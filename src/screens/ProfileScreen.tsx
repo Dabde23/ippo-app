@@ -8,9 +8,11 @@ import {
   SafeAreaView,
   Platform,
   Modal,
+  TextInput,
 } from 'react-native';
 import { XPBar } from '../components/XPBar';
-import { useAppStore } from '../store/useAppStore';
+import { TaskCard } from '../components/TaskCard';
+import { useAppStore, Task, today } from '../store/useAppStore';
 import {
   requestNotificationPermission,
   scheduleDailyReminder,
@@ -24,6 +26,25 @@ export function ProfileScreen() {
   const { xp, badges, tasks, reminderEnabled, reminderTime, setReminder } = useAppStore();
   const completedTotal = tasks.filter((t) => t.completed).length;
   const [timePickerVisible, setTimePickerVisible] = useState(false);
+  const [editingTask, setEditingTask] = useState<Task | null>(null);
+  const [editTitle, setEditTitle] = useState('');
+
+  const todayStr = today();
+  const availableTasks = tasks.filter((t) => !t.completed && t.skippedDate !== todayStr);
+  const skippedTasks = tasks.filter((t) => !t.completed && t.skippedDate === todayStr);
+  const completedTasks = tasks.filter((t) => t.completed);
+
+  function openEdit(task: Task) {
+    setEditingTask(task);
+    setEditTitle(task.title);
+  }
+
+  function handleEditSave() {
+    if (!editingTask || !editTitle.trim()) return;
+    useAppStore.getState().editTask(editingTask.id, editTitle.trim());
+    setEditingTask(null);
+    setEditTitle('');
+  }
 
   async function handleReminderToggle() {
     if (reminderEnabled) {
@@ -68,6 +89,43 @@ export function ProfileScreen() {
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>⚡ 経験値</Text>
           <XPBar xp={xp} />
+        </View>
+
+        {/* Task list */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>📋 タスク一覧</Text>
+          {tasks.length === 0 ? (
+            <View style={styles.taskEmpty}>
+              <Text style={styles.taskEmptyText}>タスクがありません</Text>
+            </View>
+          ) : (
+            <>
+              {availableTasks.length > 0 && (
+                <>
+                  <Text style={styles.taskSectionLabel}>残り {availableTasks.length} 件</Text>
+                  {availableTasks.map((t) => (
+                    <TaskCard key={t.id} task={t} onEdit={() => openEdit(t)} />
+                  ))}
+                </>
+              )}
+              {skippedTasks.length > 0 && (
+                <>
+                  <Text style={styles.taskSectionLabel}>今日あとで {skippedTasks.length} 件</Text>
+                  {skippedTasks.map((t) => (
+                    <TaskCard key={t.id} task={t} onEdit={() => openEdit(t)} />
+                  ))}
+                </>
+              )}
+              {completedTasks.length > 0 && (
+                <>
+                  <Text style={styles.taskSectionLabel}>完了 {completedTasks.length} 件</Text>
+                  {completedTasks.map((t) => (
+                    <TaskCard key={t.id} task={t} onEdit={() => openEdit(t)} />
+                  ))}
+                </>
+              )}
+            </>
+          )}
         </View>
 
         {/* Badges */}
@@ -136,6 +194,40 @@ export function ProfileScreen() {
           </Text>
         </View>
       </ScrollView>
+
+      {/* Edit task modal */}
+      <Modal visible={!!editingTask} animationType="fade" transparent>
+        <View style={styles.editOverlay}>
+          <View style={styles.editSheet}>
+            <Text style={styles.editTitle}>タスクを編集</Text>
+            <TextInput
+              style={styles.editInput}
+              value={editTitle}
+              onChangeText={setEditTitle}
+              autoFocus
+              maxLength={100}
+              returnKeyType="done"
+              onSubmitEditing={handleEditSave}
+              placeholderTextColor={colors.textDisabled}
+            />
+            <View style={styles.editActions}>
+              <TouchableOpacity
+                style={styles.editCancelBtn}
+                onPress={() => { setEditingTask(null); setEditTitle(''); }}
+              >
+                <Text style={styles.editCancelText}>キャンセル</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.editSaveBtn, !editTitle.trim() && styles.editSaveBtnDisabled]}
+                onPress={handleEditSave}
+                disabled={!editTitle.trim()}
+              >
+                <Text style={styles.editSaveText}>保存</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
 
       {/* Time picker modal */}
       <Modal visible={timePickerVisible} transparent animationType="fade">
@@ -212,6 +304,84 @@ const styles = StyleSheet.create({
     fontSize: fontSize.md,
     fontWeight: fontWeight.semibold,
     color: colors.textMain,
+  },
+  taskSectionLabel: {
+    fontSize: fontSize.xs,
+    color: colors.textSub,
+    fontWeight: fontWeight.semibold,
+    marginTop: spacing.sm,
+    marginBottom: spacing.xs,
+  },
+  taskEmpty: {
+    backgroundColor: colors.surface,
+    borderRadius: radius.md,
+    padding: spacing.lg,
+    alignItems: 'center',
+  },
+  taskEmptyText: {
+    fontSize: fontSize.sm,
+    color: colors.textSub,
+  },
+  editOverlay: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0,0,0,0.4)',
+    padding: spacing.lg,
+  },
+  editSheet: {
+    backgroundColor: colors.surface,
+    borderRadius: radius.xl,
+    padding: spacing.xl,
+    width: '100%',
+    gap: spacing.md,
+  },
+  editTitle: {
+    fontSize: fontSize.lg,
+    fontWeight: fontWeight.bold,
+    color: colors.textMain,
+    textAlign: 'center',
+  },
+  editInput: {
+    backgroundColor: colors.surfaceAlt,
+    borderRadius: radius.md,
+    padding: spacing.md,
+    fontSize: fontSize.md,
+    color: colors.textMain,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  editActions: {
+    flexDirection: 'row',
+    gap: spacing.sm,
+  },
+  editCancelBtn: {
+    flex: 1,
+    alignItems: 'center',
+    paddingVertical: spacing.md,
+    borderRadius: radius.full,
+    borderWidth: 1.5,
+    borderColor: colors.border,
+  },
+  editCancelText: {
+    fontSize: fontSize.md,
+    color: colors.textSub,
+    fontWeight: fontWeight.medium,
+  },
+  editSaveBtn: {
+    flex: 2,
+    alignItems: 'center',
+    paddingVertical: spacing.md,
+    borderRadius: radius.full,
+    backgroundColor: colors.primary,
+  },
+  editSaveBtnDisabled: {
+    backgroundColor: colors.locked,
+  },
+  editSaveText: {
+    fontSize: fontSize.md,
+    color: colors.surface,
+    fontWeight: fontWeight.semibold,
   },
   emptyBadges: {
     backgroundColor: colors.surface,
