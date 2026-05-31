@@ -1,5 +1,6 @@
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, StyleSheet, TouchableOpacity } from 'react-native';
+import { Text } from './Text';
 import { PREMIUM_PRICE_JPY } from '../store/useAppStore';
 import { colors, spacing, radius, fontSize, fontWeight } from '../theme';
 

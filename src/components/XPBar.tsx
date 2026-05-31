@@ -1,5 +1,6 @@
 import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { View, StyleSheet } from 'react-native';
+import { Text } from './Text';
 import { BADGE_THRESHOLDS } from '../store/useAppStore';
 import { colors, spacing, radius, fontSize, fontWeight } from '../theme';
 
@@ -20,7 +21,7 @@ export function XPBar({ xp }: Props) {
       <View style={styles.row}>
         <Text style={styles.label}>XP {xp}</Text>
         <Text style={styles.hint}>
-          {isMaxed ? 'ALL BADGES' : `NEXT BADGE — ${remaining} XP`}
+          {isMaxed ? '全バッジ獲得' : `次のバッジまで — ${remaining} XP`}
         </Text>
       </View>
       <View style={styles.track}>

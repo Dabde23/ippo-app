@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
 import {
-  View, Text, StyleSheet, ScrollView, Pressable,
+  View, StyleSheet, ScrollView, Pressable,
   SafeAreaView, Platform, Modal, TextInput,
 } from 'react-native';
+import { Text } from '../components/Text';
 import { XPBar } from '../components/XPBar';
 import { TaskCard } from '../components/TaskCard';
 import { useAppStore, Task, today } from '../store/useAppStore';
@@ -61,7 +62,7 @@ export function ProfileScreen() {
         <View style={styles.statsRow}>
           <View style={styles.statItem}>
             <Text style={styles.statNum}>{completedTotal}</Text>
-            <Text style={styles.statLabel}>DONE</Text>
+            <Text style={styles.statLabel}>完了</Text>
           </View>
           <View style={styles.statDivider} />
           <View style={styles.statItem}>
@@ -71,7 +72,7 @@ export function ProfileScreen() {
           <View style={styles.statDivider} />
           <View style={styles.statItem}>
             <Text style={styles.statNum}>{badges.length}</Text>
-            <Text style={styles.statLabel}>BADGE</Text>
+            <Text style={styles.statLabel}>バッジ</Text>
           </View>
         </View>
 
@@ -84,7 +85,7 @@ export function ProfileScreen() {
 
         {/* Tasks */}
         <View style={styles.section}>
-          <Text style={styles.sectionLabel}>TASKS</Text>
+          <Text style={styles.sectionLabel}>タスク</Text>
           <View style={styles.rule} />
           {tasks.length === 0 ? (
             <View style={styles.emptyCard}>
@@ -110,7 +111,7 @@ export function ProfileScreen() {
 
         {/* Badges */}
         <View style={styles.section}>
-          <Text style={styles.sectionLabel}>BADGES</Text>
+          <Text style={styles.sectionLabel}>バッジ</Text>
           <View style={styles.rule} />
           {badges.length === 0 ? (
             <View style={styles.emptyCard}>
@@ -133,7 +134,7 @@ export function ProfileScreen() {
 
         {/* Reminder */}
         <View style={styles.section}>
-          <Text style={styles.sectionLabel}>REMINDER</Text>
+          <Text style={styles.sectionLabel}>リマインダー</Text>
           <View style={styles.rule} />
           <View style={styles.reminderRow}>
             <View style={{ flex: 1 }}>
@@ -149,7 +150,7 @@ export function ProfileScreen() {
                 style={[styles.toggle, reminderEnabled && styles.toggleOn]}
                 onPress={handleReminderToggle}
               >
-                <Text style={styles.toggleText}>{reminderEnabled ? 'ON' : 'OFF'}</Text>
+                <Text style={styles.toggleText}>{reminderEnabled ? 'オン' : 'オフ'}</Text>
               </Pressable>
             )}
           </View>
@@ -162,7 +163,7 @@ export function ProfileScreen() {
 
         {/* Early access */}
         <View style={styles.noteCard}>
-          <Text style={styles.noteTitle}>EARLY ACCESS</Text>
+          <Text style={styles.noteTitle}>アーリーアクセス</Text>
           <View style={styles.rule} />
           <Text style={styles.noteText}>
             現在、全機能を無料でご利用いただけます。{'\n'}ネイティブアプリ公開時に有料プランへ移行予定です。
@@ -176,7 +177,7 @@ export function ProfileScreen() {
       <Modal visible={!!editingTask} animationType="fade" transparent>
         <View style={styles.editOverlay}>
           <View style={styles.editSheet}>
-            <Text style={styles.editLabel}>EDIT TASK</Text>
+            <Text style={styles.editLabel}>タスクを編集</Text>
             <View style={styles.rule} />
             <TextInput
               style={styles.editInput}
@@ -209,7 +210,7 @@ export function ProfileScreen() {
       <Modal visible={timePickerVisible} transparent animationType="fade">
         <Pressable style={styles.timeOverlay} onPress={() => setTimePickerVisible(false)}>
           <View style={styles.timeSheet}>
-            <Text style={styles.timeSheetLabel}>SELECT TIME</Text>
+            <Text style={styles.timeSheetLabel}>時刻を選択</Text>
             <View style={styles.rule} />
             {TIME_OPTIONS.map((t) => (
               <Pressable
@@ -328,7 +329,7 @@ const styles = StyleSheet.create({
   },
   badgeEmoji: { fontSize: 28 },
   badgeName: { fontSize: fontSize.xs, color: colors.textMain, fontWeight: fontWeight.semibold, textAlign: 'center' },
-  badgeDate: { fontSize: 9, color: colors.textMuted, letterSpacing: 0.3 },
+  badgeDate: { fontSize: 12, color: colors.textMuted, letterSpacing: 0.3 },
   reminderRow: {
     flexDirection: 'row',
     alignItems: 'center',

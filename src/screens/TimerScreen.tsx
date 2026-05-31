@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { View, Text, StyleSheet, Pressable, SafeAreaView, ScrollView } from 'react-native';
+import { View, StyleSheet, Pressable, SafeAreaView, ScrollView } from 'react-native';
+import { Text } from '../components/Text';
 import { TimerDisplay } from '../components/TimerDisplay';
 import { colors, spacing, radius, fontSize, fontWeight, shadow } from '../theme';
 
@@ -32,7 +33,7 @@ export function TimerScreen() {
 
   const progress = 1 - seconds / (mode === 'work' ? WORK_DURATION : SHORT_BREAK);
   const ringColor = mode === 'work' ? colors.primary : colors.success;
-  const modeLabel = mode === 'work' ? 'FOCUS' : 'BREAK';
+  const modeLabel = mode === 'work' ? 'フォーカス' : 'ブレイク';
 
   return (
     <SafeAreaView style={styles.safe}>
@@ -53,14 +54,14 @@ export function TimerScreen() {
             style={({ pressed }) => [styles.modeBtn, mode === 'work' && styles.modeBtnActive, pressed && { opacity: 0.7 }]}
             onPress={() => switchMode('work')}
           >
-            <Text style={[styles.modeBtnLabel, mode === 'work' && styles.modeBtnLabelActive]}>FOCUS</Text>
+            <Text style={[styles.modeBtnLabel, mode === 'work' && styles.modeBtnLabelActive]}>フォーカス</Text>
             <Text style={[styles.modeBtnTime, mode === 'work' && styles.modeBtnLabelActive]}>25:00</Text>
           </Pressable>
           <Pressable
             style={({ pressed }) => [styles.modeBtn, mode === 'break' && styles.modeBtnBreak, pressed && { opacity: 0.7 }]}
             onPress={() => switchMode('break')}
           >
-            <Text style={[styles.modeBtnLabel, mode === 'break' && styles.modeBtnLabelBreak]}>BREAK</Text>
+            <Text style={[styles.modeBtnLabel, mode === 'break' && styles.modeBtnLabelBreak]}>ブレイク</Text>
             <Text style={[styles.modeBtnTime, mode === 'break' && styles.modeBtnLabelBreak]}>05:00</Text>
           </Pressable>
         </View>
@@ -92,7 +93,7 @@ export function TimerScreen() {
             style={({ pressed }) => [styles.resetBtn, pressed && { opacity: 0.6 }]}
             onPress={handleReset}
           >
-            <Text style={styles.resetBtnText}>RESET</Text>
+            <Text style={styles.resetBtnText}>リセット</Text>
           </Pressable>
           <Pressable
             style={({ pressed }) => [styles.startBtn, { backgroundColor: ringColor }, pressed && { opacity: 0.85 }]}
@@ -100,14 +101,14 @@ export function TimerScreen() {
             disabled={seconds === 0}
           >
             <Text style={styles.startBtnText}>
-              {seconds === 0 ? 'DONE' : isRunning ? 'PAUSE' : 'START'}
+              {seconds === 0 ? '完了' : isRunning ? '一時停止' : 'スタート'}
             </Text>
           </Pressable>
         </View>
 
         {/* Tip */}
         <View style={styles.tipBlock}>
-          <Text style={styles.tipLabel}>ABOUT</Text>
+          <Text style={styles.tipLabel}>使い方</Text>
           <View style={styles.headerRule} />
           <Text style={styles.tipTitle}>ポモドーロテクニック</Text>
           <Text style={styles.tipText}>25分集中 → 5分休憩を繰り返すと集中力を長く保てます</Text>

@@ -1,5 +1,6 @@
 import React from 'react';
-import { View, Text, Pressable, StyleSheet, Alert, Platform } from 'react-native';
+import { View, Pressable, StyleSheet, Alert, Platform } from 'react-native';
+import { Text } from './Text';
 import { Task, useAppStore, XP_PER_TASK } from '../store/useAppStore';
 import { colors, spacing, radius, fontSize, fontWeight } from '../theme';
 

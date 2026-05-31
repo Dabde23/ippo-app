@@ -1,12 +1,12 @@
 import React, { useEffect, useRef } from 'react';
 import {
   View,
-  Text,
   StyleSheet,
   Modal,
   TouchableOpacity,
   Animated,
 } from 'react-native';
+import { Text } from '../components/Text';
 import { Badge } from '../store/useAppStore';
 import { colors, spacing, radius, fontSize, fontWeight } from '../theme';
 

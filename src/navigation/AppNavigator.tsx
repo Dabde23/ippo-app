@@ -1,5 +1,5 @@
 import React from 'react';
-import { Text } from 'react-native';
+import { Text } from '../components/Text';
 import { NavigationContainer } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { HomeScreen } from '../screens/HomeScreen';
@@ -40,18 +40,17 @@ export function AppNavigator() {
           },
           tabBarLabelStyle: {
             fontSize: fontSize.xs,
-            fontWeight: '800',
+            fontFamily: 'BIZUDPGothic_700Bold',
             letterSpacing: 1,
-            textTransform: 'uppercase',
           },
           tabBarIcon: ({ color }) => (
             <Text style={{ fontSize: 12, color, letterSpacing: 0 }}>{TAB_ICONS[route.name]}</Text>
           ),
         })}
       >
-        <Tab.Screen name="Home"    component={HomeScreen}    options={{ tabBarLabel: 'TODAY' }} />
-        <Tab.Screen name="Timer"   component={TimerScreen}   options={{ tabBarLabel: 'TIMER' }} />
-        <Tab.Screen name="Profile" component={ProfileScreen} options={{ tabBarLabel: 'YOU' }} />
+        <Tab.Screen name="Home"    component={HomeScreen}    options={{ tabBarLabel: '今日' }} />
+        <Tab.Screen name="Timer"   component={TimerScreen}   options={{ tabBarLabel: 'タイマー' }} />
+        <Tab.Screen name="Profile" component={ProfileScreen} options={{ tabBarLabel: 'プロフィール' }} />
       </Tab.Navigator>
       {pendingBadge && <BadgeModal badge={pendingBadge} onDismiss={dismissBadge} />}
     </NavigationContainer>

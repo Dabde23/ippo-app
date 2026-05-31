@@ -1,5 +1,6 @@
 import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { View, StyleSheet } from 'react-native';
+import { Text } from './Text';
 import { colors, fontSize, fontWeight, spacing } from '../theme';
 
 interface Props {
@@ -16,7 +17,7 @@ export function TimerDisplay({ seconds, isRunning, color }: Props) {
   return (
     <View style={styles.container}>
       <Text style={[styles.time, { color: timeColor }]}>{mins}:{secs}</Text>
-      {seconds === 0 && <Text style={styles.done}>DONE</Text>}
+      {seconds === 0 && <Text style={styles.done}>完了</Text>}
     </View>
   );
 }

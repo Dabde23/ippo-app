@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import {
-  View, Text, StyleSheet, Pressable, TextInput,
+  View, StyleSheet, Pressable, TextInput,
   Modal, SafeAreaView, ScrollView, Platform,
 } from 'react-native';
+import { Text } from '../components/Text';
 import { XPBar } from '../components/XPBar';
 import { TaskCard } from '../components/TaskCard';
 import { useAppStore, Task, today, XP_PER_TASK } from '../store/useAppStore';
@@ -90,7 +91,7 @@ export function HomeScreen() {
             )}
             <View style={styles.completedTag}>
               <Text style={styles.completedTagNum}>{completed}</Text>
-              <Text style={styles.completedTagLabel}>DONE</Text>
+              <Text style={styles.completedTagLabel}>完了</Text>
             </View>
           </View>
         </View>
@@ -108,7 +109,7 @@ export function HomeScreen() {
         {currentTask ? (
           <>
             {/* Section label */}
-            <Text style={styles.sectionTag}>TODAY'S FOCUS</Text>
+            <Text style={styles.sectionTag}>今日のフォーカス</Text>
 
             {/* Focus card */}
             <View style={styles.focusCard}>
@@ -156,7 +157,7 @@ export function HomeScreen() {
         {/* Next tasks */}
         {nextTasks.length > 0 && (
           <View style={styles.nextSection}>
-            <Text style={styles.sectionTag}>NEXT</Text>
+            <Text style={styles.sectionTag}>ネクスト</Text>
             {nextTasks.map((t, i) => (
               <View key={t.id} style={styles.nextRow}>
                 <Text style={styles.nextIndex}>{String(i + 2).padStart(2, '0')}</Text>
@@ -224,7 +225,7 @@ export function HomeScreen() {
           <View style={styles.modalSheet}>
             <View style={styles.sheetHandle} />
             <View style={styles.sheetHeader}>
-              <Text style={styles.sheetTitle}>ALL TASKS</Text>
+              <Text style={styles.sheetTitle}>すべてのタスク</Text>
               <Pressable onPress={() => setListModalVisible(false)}>
                 <Text style={styles.sheetClose}>×</Text>
               </Pressable>
@@ -254,7 +255,7 @@ export function HomeScreen() {
       <Modal visible={!!editingTask} animationType="fade" transparent>
         <View style={styles.editOverlay}>
           <View style={styles.editSheet}>
-            <Text style={styles.editLabel}>EDIT TASK</Text>
+            <Text style={styles.editLabel}>タスクを編集</Text>
             <View style={styles.headerRule} />
             <TextInput
               style={styles.editInput}
