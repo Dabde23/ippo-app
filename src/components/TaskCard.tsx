@@ -1,13 +1,7 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Alert, Platform } from 'react-native';
-import { Task, Priority, useAppStore, XP_BY_PRIORITY } from '../store/useAppStore';
+import { Task, useAppStore, XP_PER_TASK } from '../store/useAppStore';
 import { colors, spacing, radius, fontSize, fontWeight, shadow } from '../theme';
-
-const PRIORITY_CONFIG: Record<Priority, { emoji: string; color: string }> = {
-  high:   { emoji: '🔴', color: colors.danger },
-  normal: { emoji: '🟡', color: colors.warning },
-  low:    { emoji: '🟢', color: colors.success },
-};
 
 interface Props {
   task: Task;
@@ -17,8 +11,6 @@ interface Props {
 export function TaskCard({ task, onEdit }: Props) {
   const completeTask = useAppStore((s) => s.completeTask);
   const deleteTask = useAppStore((s) => s.deleteTask);
-  const isPremium = useAppStore((s) => s.isPremium);
-  const config = PRIORITY_CONFIG[task.priority];
 
   function handleDelete() {
     if (Platform.OS === 'web') {
@@ -53,24 +45,18 @@ export function TaskCard({ task, onEdit }: Props) {
       </TouchableOpacity>
 
       <View style={styles.content}>
-        <Text
-          style={[styles.title, task.completed && styles.completedTitle]}
-          numberOfLines={2}
-        >
+        <Text style={[styles.title, task.completed && styles.completedTitle]} numberOfLines={2}>
           {task.title}
         </Text>
-        <View style={styles.meta}>
-          <Text style={styles.priorityEmoji}>{config.emoji}</Text>
-          {task.completed && (
-            <View style={styles.xpTag}>
-              <Text style={styles.xpText}>+{XP_BY_PRIORITY[task.priority]} XP</Text>
-            </View>
-          )}
-        </View>
+        {task.completed && (
+          <View style={styles.xpTag}>
+            <Text style={styles.xpText}>+{XP_PER_TASK} XP</Text>
+          </View>
+        )}
       </View>
 
-      {!task.completed && (
-        <View style={styles.actions}>
+      <View style={styles.actions}>
+        {!task.completed && (
           <TouchableOpacity
             style={styles.actionBtn}
             onPress={onEdit}
@@ -78,27 +64,15 @@ export function TaskCard({ task, onEdit }: Props) {
           >
             <Text style={styles.actionIcon}>✏️</Text>
           </TouchableOpacity>
-          {isPremium && (
-            <TouchableOpacity
-              style={styles.actionBtn}
-              onPress={handleDelete}
-              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-            >
-              <Text style={styles.actionIcon}>🗑️</Text>
-            </TouchableOpacity>
-          )}
-        </View>
-      )}
-
-      {task.completed && (
+        )}
         <TouchableOpacity
           style={styles.actionBtn}
           onPress={handleDelete}
           hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
         >
-          <Text style={[styles.actionIcon, styles.actionIconDim]}>🗑️</Text>
+          <Text style={[styles.actionIcon, task.completed && styles.actionIconDim]}>🗑️</Text>
         </TouchableOpacity>
-      )}
+      </View>
     </View>
   );
 }
@@ -150,26 +124,19 @@ const styles = StyleSheet.create({
   },
   content: {
     flex: 1,
+    gap: spacing.xs,
   },
   title: {
-    fontSize: fontSize.lg,
+    fontSize: fontSize.md,
     fontWeight: fontWeight.semibold,
     color: colors.textMain,
-    marginBottom: spacing.xs,
   },
   completedTitle: {
     textDecorationLine: 'line-through',
     color: colors.textSub,
   },
-  meta: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.sm,
-  },
-  priorityEmoji: {
-    fontSize: fontSize.md,
-  },
   xpTag: {
+    alignSelf: 'flex-start',
     backgroundColor: colors.xpGold + '22',
     borderRadius: radius.full,
     paddingHorizontal: spacing.sm,

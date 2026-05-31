@@ -2,15 +2,16 @@ import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-export type Priority = 'high' | 'normal' | 'low';
+export type Priority = 'high' | 'normal' | 'low'; // kept for backwards compat
 
 export interface Task {
   id: string;
   title: string;
-  priority: Priority;
+  priority?: Priority; // legacy field, no longer used
   completed: boolean;
   xpAwarded: boolean;
-  createdAt: string; // YYYY-MM-DD
+  createdAt: string;
+  skippedDate: string | null;
 }
 
 export interface Badge {
@@ -22,12 +23,7 @@ export interface Badge {
 
 export const PREMIUM_PRICE_JPY = 500;
 export const CANCEL_NOTICE_DAYS = 5;
-
-export const XP_BY_PRIORITY: Record<Priority, number> = {
-  high: 15,
-  normal: 10,
-  low: 5,
-};
+export const XP_PER_TASK = 10;
 
 export const BADGE_THRESHOLDS = [100, 300, 600, 1000, 1500];
 
@@ -62,19 +58,20 @@ interface AppState {
   isPremium: boolean;
   pendingBadge: Badge | null;
   reminderEnabled: boolean;
-  reminderTime: string; // "HH:MM"
+  reminderTime: string;
   hasCompletedOnboarding: boolean;
 
-  addTask: (title: string, priority: Priority) => string;
+  addTask: (title: string) => string;
   completeTask: (id: string) => void;
-  editTask: (id: string, title: string, priority: Priority) => void;
+  skipTask: (id: string) => void;
+  editTask: (id: string, title: string) => void;
   deleteTask: (id: string) => void;
   dismissBadge: () => void;
   togglePremium: () => void;
   setReminder: (enabled: boolean, time: string) => void;
   completeOnboarding: () => void;
-  todayTaskCount: () => number;
-  todayCompletedCount: () => number;
+  availableTaskCount: () => number;
+  completedTaskCount: () => number;
 }
 
 export const useAppStore = create<AppState>()(
@@ -85,20 +82,20 @@ export const useAppStore = create<AppState>()(
       badges: [],
       streak: 0,
       lastCompletedDate: null,
-      isPremium: true, // アーリーアクセス期間中は全機能開放
+      isPremium: true,
       pendingBadge: null,
       reminderEnabled: false,
       reminderTime: '09:00',
       hasCompletedOnboarding: false,
 
-      addTask: (title, priority) => {
+      addTask: (title) => {
         const task: Task = {
           id: Date.now().toString(),
           title,
-          priority,
           completed: false,
           xpAwarded: false,
           createdAt: today(),
+          skippedDate: null,
         };
         set((s) => ({ tasks: [task, ...s.tasks] }));
         return task.id;
@@ -109,7 +106,7 @@ export const useAppStore = create<AppState>()(
           const task = state.tasks.find((t) => t.id === id);
           if (!task || task.completed) return state;
 
-          const earned = XP_BY_PRIORITY[task.priority];
+          const earned = XP_PER_TASK;
           const tasks = state.tasks.map((t) =>
             t.id === id ? { ...t, completed: true, xpAwarded: true } : t
           );
@@ -140,9 +137,17 @@ export const useAppStore = create<AppState>()(
         });
       },
 
-      editTask: (id, title, priority) => {
+      skipTask: (id) => {
         set((state) => ({
-          tasks: state.tasks.map((t) => t.id === id ? { ...t, title, priority } : t),
+          tasks: state.tasks.map((t) =>
+            t.id === id ? { ...t, skippedDate: today() } : t
+          ),
+        }));
+      },
+
+      editTask: (id, title) => {
+        set((state) => ({
+          tasks: state.tasks.map((t) => t.id === id ? { ...t, title } : t),
         }));
       },
 
@@ -158,20 +163,18 @@ export const useAppStore = create<AppState>()(
 
       completeOnboarding: () => set({ hasCompletedOnboarding: true }),
 
-      todayTaskCount: () => {
+      availableTaskCount: () => {
         const t = today();
-        return get().tasks.filter((task) => task.createdAt === t).length;
+        return get().tasks.filter((task) => !task.completed && task.skippedDate !== t).length;
       },
 
-      todayCompletedCount: () => {
-        const t = today();
-        return get().tasks.filter((task) => task.createdAt === t && task.completed).length;
+      completedTaskCount: () => {
+        return get().tasks.filter((task) => task.completed).length;
       },
     }),
     {
       name: 'adhd-app-storage',
       storage: createJSONStorage(() => AsyncStorage),
-      // pendingBadge はUI状態なので永続化しない
       partialize: (state) => ({
         tasks: state.tasks,
         xp: state.xp,
