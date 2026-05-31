@@ -1,20 +1,20 @@
 export const colors = {
   primary: '#6366F1',
-  primaryLight: '#A5B4FC',
+  primaryLight: '#EEF2FF',
   primaryDark: '#4338CA',
-  success: '#10B981',
-  warning: '#F59E0B',
-  danger: '#EF4444',
-  background: '#F8FAFC',
+  success: '#16A34A',
+  successLight: '#F0FDF4',
+  warning: '#D97706',
+  danger: '#DC2626',
+  background: '#F8F8F7',
   surface: '#FFFFFF',
-  surfaceAlt: '#F1F5F9',
-  border: '#E2E8F0',
-  textMain: '#1E293B',
-  textSub: '#64748B',
-  textDisabled: '#CBD5E1',
-  locked: '#CBD5E1',
-  xpGold: '#F59E0B',
-  badge: '#8B5CF6',
+  surfaceAlt: '#F3F3F2',
+  border: '#E5E5E4',
+  textMain: '#1A1A1A',
+  textSub: '#737373',
+  textDisabled: '#D4D4D4',
+  xpGold: '#B45309',
+  badge: '#7C3AED',
 };
 
 export const spacing = {
@@ -27,10 +27,11 @@ export const spacing = {
 };
 
 export const radius = {
-  sm: 8,
-  md: 12,
+  sm: 6,
+  md: 10,
   lg: 16,
-  xl: 24,
+  xl: 20,
+  xxl: 28,
   full: 9999,
 };
 
@@ -39,8 +40,9 @@ export const fontSize = {
   sm: 13,
   md: 15,
   lg: 18,
-  xl: 24,
-  xxl: 32,
+  xl: 22,
+  xxl: 28,
+  xxxl: 40,
 };
 
 export const fontWeight = {
@@ -52,19 +54,19 @@ export const fontWeight = {
 
 export const shadow = {
   sm: {
-    boxShadow: '0px 1px 3px rgba(0,0,0,0.05)',
+    boxShadow: '0px 1px 3px rgba(0,0,0,0.06)',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
+    shadowOpacity: 0.06,
     shadowRadius: 3,
-    elevation: 2,
+    elevation: 1,
   },
   md: {
-    boxShadow: '0px 4px 8px rgba(0,0,0,0.08)',
+    boxShadow: '0px 2px 8px rgba(0,0,0,0.08)',
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
+    shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.08,
     shadowRadius: 8,
-    elevation: 4,
+    elevation: 2,
   },
 };

@@ -31,12 +31,12 @@ export function TaskCard({ task, onEdit }: Props) {
 
   return (
     <View style={[styles.card, task.completed && styles.completedCard]}>
-      {task.completed && <View style={styles.completedAccent} />}
+      {task.completed && <View style={styles.completedBar} />}
 
       <TouchableOpacity
         style={styles.checkArea}
         onPress={() => !task.completed && completeTask(task.id)}
-        activeOpacity={0.7}
+        activeOpacity={0.6}
         hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
       >
         <View style={[styles.checkbox, task.completed && styles.checkboxDone]}>
@@ -49,9 +49,7 @@ export function TaskCard({ task, onEdit }: Props) {
           {task.title}
         </Text>
         {task.completed && (
-          <View style={styles.xpTag}>
-            <Text style={styles.xpText}>+{XP_PER_TASK} XP</Text>
-          </View>
+          <Text style={styles.xpLabel}>+{XP_PER_TASK} XP</Text>
         )}
       </View>
 
@@ -62,7 +60,7 @@ export function TaskCard({ task, onEdit }: Props) {
             onPress={onEdit}
             hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
           >
-            <Text style={styles.actionIcon}>✏️</Text>
+            <Text style={styles.editText}>編集</Text>
           </TouchableOpacity>
         )}
         <TouchableOpacity
@@ -70,7 +68,7 @@ export function TaskCard({ task, onEdit }: Props) {
           onPress={handleDelete}
           hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
         >
-          <Text style={[styles.actionIcon, task.completed && styles.actionIconDim]}>🗑️</Text>
+          <Text style={[styles.deleteText, task.completed && styles.dimText]}>×</Text>
         </TouchableOpacity>
       </View>
     </View>
@@ -82,34 +80,36 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: colors.surface,
-    borderRadius: radius.md,
+    borderRadius: radius.lg,
     padding: spacing.md,
     marginBottom: spacing.sm,
     overflow: 'hidden',
-    ...shadow.sm,
+    borderWidth: 1,
+    borderColor: colors.border,
   },
   completedCard: {
-    backgroundColor: colors.success + '12',
+    backgroundColor: colors.surfaceAlt,
+    borderColor: colors.border,
   },
-  completedAccent: {
+  completedBar: {
     position: 'absolute',
     left: 0,
     top: 0,
     bottom: 0,
     width: 3,
     backgroundColor: colors.success,
-    borderTopLeftRadius: radius.md,
-    borderBottomLeftRadius: radius.md,
+    borderTopLeftRadius: radius.lg,
+    borderBottomLeftRadius: radius.lg,
   },
   checkArea: {
     marginRight: spacing.md,
   },
   checkbox: {
-    width: 28,
-    height: 28,
+    width: 24,
+    height: 24,
     borderRadius: radius.full,
-    borderWidth: 2,
-    borderColor: colors.primary,
+    borderWidth: 1.5,
+    borderColor: colors.border,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -119,46 +119,49 @@ const styles = StyleSheet.create({
   },
   checkmark: {
     color: colors.surface,
-    fontSize: fontSize.sm,
+    fontSize: fontSize.xs,
     fontWeight: fontWeight.bold,
   },
   content: {
     flex: 1,
-    gap: spacing.xs,
+    gap: 3,
   },
   title: {
     fontSize: fontSize.md,
-    fontWeight: fontWeight.semibold,
+    fontWeight: fontWeight.medium,
     color: colors.textMain,
+    lineHeight: 21,
   },
   completedTitle: {
     textDecorationLine: 'line-through',
     color: colors.textSub,
   },
-  xpTag: {
-    alignSelf: 'flex-start',
-    backgroundColor: colors.xpGold + '22',
-    borderRadius: radius.full,
-    paddingHorizontal: spacing.sm,
-    paddingVertical: 2,
-  },
-  xpText: {
-    color: colors.xpGold,
+  xpLabel: {
     fontSize: fontSize.xs,
-    fontWeight: fontWeight.bold,
+    color: colors.xpGold,
+    fontWeight: fontWeight.medium,
   },
   actions: {
     flexDirection: 'row',
     gap: spacing.xs,
     marginLeft: spacing.sm,
+    alignItems: 'center',
   },
   actionBtn: {
-    padding: spacing.xs,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: spacing.xs,
   },
-  actionIcon: {
-    fontSize: fontSize.md,
+  editText: {
+    fontSize: fontSize.xs,
+    color: colors.textSub,
+    fontWeight: fontWeight.medium,
   },
-  actionIconDim: {
-    opacity: 0.4,
+  deleteText: {
+    fontSize: fontSize.lg,
+    color: colors.textSub,
+    lineHeight: 20,
+  },
+  dimText: {
+    opacity: 0.35,
   },
 });

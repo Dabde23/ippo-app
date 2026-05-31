@@ -13,9 +13,9 @@ import { BadgeModal } from './BadgeModal';
 const Tab = createBottomTabNavigator();
 
 const TAB_ICONS: Record<string, string> = {
-  Home:    '📋',
-  Timer:   '⏱',
-  Profile: '👤',
+  Home:    '◻',
+  Timer:   '◷',
+  Profile: '◉',
 };
 
 export function AppNavigator() {
@@ -34,12 +34,18 @@ export function AppNavigator() {
           tabBarInactiveTintColor: colors.textSub,
           tabBarStyle: {
             backgroundColor: colors.surface,
+            borderTopWidth: 1,
             borderTopColor: colors.border,
-            paddingBottom: 4,
-            height: 60,
+            paddingBottom: 6,
+            paddingTop: 6,
+            height: 62,
+          },
+          tabBarLabelStyle: {
+            fontSize: fontSize.xs,
+            fontWeight: '500',
           },
           tabBarIcon: ({ color, size }) => (
-            <Text style={{ fontSize: size - 2, color }}>{TAB_ICONS[route.name]}</Text>
+            <Text style={{ fontSize: size - 4, color }}>{TAB_ICONS[route.name]}</Text>
           ),
         })}
       >

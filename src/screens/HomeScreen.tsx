@@ -91,6 +91,7 @@ export function HomeScreen() {
   return (
     <SafeAreaView style={styles.safe}>
       <View style={styles.container}>
+
         {/* Header */}
         <View style={styles.header}>
           <View>
@@ -101,14 +102,13 @@ export function HomeScreen() {
           </View>
           <View style={styles.headerRight}>
             {streak >= 2 && (
-              <View style={styles.streakBox}>
-                <Text style={styles.streakNum}>🔥 {streak}</Text>
-                <Text style={styles.streakLabel}>日連続</Text>
+              <View style={styles.chip}>
+                <Text style={styles.chipText}>🔥 {streak}日</Text>
               </View>
             )}
-            <View style={styles.statsBox}>
-              <Text style={styles.statsNum}>{completed}</Text>
-              <Text style={styles.statsLabel}>完了</Text>
+            <View style={styles.chip}>
+              <Text style={styles.chipNum}>{completed}</Text>
+              <Text style={styles.chipLabel}>完了</Text>
             </View>
           </View>
         </View>
@@ -119,19 +119,19 @@ export function HomeScreen() {
         <View style={styles.focusArea}>
           {currentTask ? (
             <>
-              <Text style={styles.focusHint}>今これをやろう</Text>
+              <Text style={styles.focusLabel}>今これをやろう</Text>
               <View style={styles.focusCard}>
-                <Text style={styles.focusEmoji}>📝</Text>
                 <Text style={styles.focusTitle}>{currentTask.title}</Text>
-                <Text style={styles.focusXp}>完了で +{XP_PER_TASK} XP</Text>
+                <View style={styles.xpPill}>
+                  <Text style={styles.xpPillText}>完了で +{XP_PER_TASK} XP</Text>
+                </View>
               </View>
-
               <View style={styles.actionRow}>
-                <TouchableOpacity style={styles.skipBtn} onPress={handleSkip} activeOpacity={0.75}>
+                <TouchableOpacity style={styles.skipBtn} onPress={handleSkip} activeOpacity={0.7}>
                   <Text style={styles.skipBtnText}>あとで</Text>
                 </TouchableOpacity>
                 <TouchableOpacity style={styles.doneBtn} onPress={handleComplete} activeOpacity={0.85}>
-                  <Text style={styles.doneBtnText}>✓ やった！</Text>
+                  <Text style={styles.doneBtnText}>やった！</Text>
                 </TouchableOpacity>
               </View>
             </>
@@ -154,11 +154,11 @@ export function HomeScreen() {
         <View style={styles.footer}>
           {available > 0 && (
             <TouchableOpacity
-              style={styles.listBtn}
+              style={styles.listLink}
               onPress={() => setListModalVisible(true)}
-              activeOpacity={0.7}
+              activeOpacity={0.6}
             >
-              <Text style={styles.listBtnText}>全タスクを見る（残り {available} 件）</Text>
+              <Text style={styles.listLinkText}>タスクを全て見る  {available}件</Text>
             </TouchableOpacity>
           )}
 
@@ -187,7 +187,7 @@ export function HomeScreen() {
                 style={styles.inlineCancelBtn}
                 onPress={() => { setAddInputVisible(false); setInputTitle(''); }}
               >
-                <Text style={styles.inlineCancelText}>✕</Text>
+                <Text style={styles.inlineCancelText}>×</Text>
               </TouchableOpacity>
             </View>
           ) : (
@@ -207,17 +207,18 @@ export function HomeScreen() {
       <Modal visible={listModalVisible} animationType="slide" transparent>
         <View style={styles.modalOverlay}>
           <View style={styles.modalSheet}>
+            <View style={styles.sheetHandle} />
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>全タスク</Text>
-              <TouchableOpacity onPress={() => setListModalVisible(false)}>
-                <Text style={styles.modalClose}>✕</Text>
+              <TouchableOpacity onPress={() => setListModalVisible(false)} style={styles.closeBtn}>
+                <Text style={styles.closeBtnText}>×</Text>
               </TouchableOpacity>
             </View>
 
             <ScrollView showsVerticalScrollIndicator={false}>
               {availableTasks.length > 0 && (
                 <>
-                  <Text style={styles.listSectionLabel}>残り {availableTasks.length} 件</Text>
+                  <Text style={styles.sectionLabel}>残り {availableTasks.length} 件</Text>
                   {availableTasks.map((t) => (
                     <TaskCard key={t.id} task={t} onEdit={() => openEdit(t)} />
                   ))}
@@ -226,7 +227,7 @@ export function HomeScreen() {
 
               {skippedTasks.length > 0 && (
                 <>
-                  <Text style={styles.listSectionLabel}>今日あとで ({skippedTasks.length} 件)</Text>
+                  <Text style={styles.sectionLabel}>今日あとで  {skippedTasks.length} 件</Text>
                   {skippedTasks.map((t) => (
                     <TaskCard key={t.id} task={t} onEdit={() => openEdit(t)} />
                   ))}
@@ -235,7 +236,7 @@ export function HomeScreen() {
 
               {completedTasks.length > 0 && (
                 <>
-                  <Text style={styles.listSectionLabel}>完了 {completedTasks.length} 件</Text>
+                  <Text style={styles.sectionLabel}>完了  {completedTasks.length} 件</Text>
                   {completedTasks.map((t) => (
                     <TaskCard key={t.id} task={t} onEdit={() => openEdit(t)} />
                   ))}
@@ -303,13 +304,13 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingHorizontal: spacing.md,
     paddingTop: spacing.lg,
-    paddingBottom: spacing.md,
+    paddingBottom: spacing.sm,
   },
   appName: {
     fontSize: fontSize.xxl,
     fontWeight: fontWeight.bold,
-    color: colors.primary,
-    letterSpacing: 1,
+    color: colors.textMain,
+    letterSpacing: -0.5,
   },
   dateText: {
     fontSize: fontSize.sm,
@@ -321,35 +322,28 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: spacing.sm,
   },
-  streakBox: {
+  chip: {
+    flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#FFF7ED',
-    borderRadius: radius.md,
+    gap: spacing.xs,
+    backgroundColor: colors.surface,
+    borderRadius: radius.full,
     paddingHorizontal: spacing.sm,
-    paddingVertical: spacing.sm,
+    paddingVertical: 6,
+    borderWidth: 1,
+    borderColor: colors.border,
   },
-  streakNum: {
+  chipText: {
+    fontSize: fontSize.xs,
+    color: colors.textSub,
+    fontWeight: fontWeight.medium,
+  },
+  chipNum: {
     fontSize: fontSize.sm,
     fontWeight: fontWeight.bold,
-    color: '#EA580C',
+    color: colors.textMain,
   },
-  streakLabel: {
-    fontSize: fontSize.xs,
-    color: '#EA580C',
-  },
-  statsBox: {
-    alignItems: 'center',
-    backgroundColor: colors.primary + '15',
-    borderRadius: radius.md,
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm,
-  },
-  statsNum: {
-    fontSize: fontSize.lg,
-    fontWeight: fontWeight.bold,
-    color: colors.primary,
-  },
-  statsLabel: {
+  chipLabel: {
     fontSize: fontSize.xs,
     color: colors.textSub,
   },
@@ -360,32 +354,38 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.lg,
     gap: spacing.lg,
   },
-  focusHint: {
+  focusLabel: {
     fontSize: fontSize.sm,
     color: colors.textSub,
-    letterSpacing: 0.5,
+    letterSpacing: 0.3,
   },
   focusCard: {
     width: '100%',
     backgroundColor: colors.surface,
     borderRadius: radius.xl,
-    padding: spacing.xl,
+    paddingVertical: spacing.xl,
+    paddingHorizontal: spacing.lg,
     alignItems: 'center',
     gap: spacing.md,
-    ...shadow.md,
-  },
-  focusEmoji: {
-    fontSize: 48,
+    borderWidth: 1,
+    borderColor: colors.border,
+    ...shadow.sm,
   },
   focusTitle: {
-    fontSize: fontSize.xl,
+    fontSize: 26,
     fontWeight: fontWeight.bold,
     color: colors.textMain,
     textAlign: 'center',
-    lineHeight: 32,
+    lineHeight: 36,
   },
-  focusXp: {
-    fontSize: fontSize.sm,
+  xpPill: {
+    backgroundColor: colors.xpGold + '18',
+    borderRadius: radius.full,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.xs,
+  },
+  xpPillText: {
+    fontSize: fontSize.xs,
     color: colors.xpGold,
     fontWeight: fontWeight.semibold,
   },
@@ -398,10 +398,11 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: spacing.md,
+    paddingVertical: 14,
     borderRadius: radius.full,
-    borderWidth: 1.5,
+    borderWidth: 1,
     borderColor: colors.border,
+    backgroundColor: colors.surface,
   },
   skipBtnText: {
     fontSize: fontSize.md,
@@ -412,7 +413,7 @@ const styles = StyleSheet.create({
     flex: 2,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: spacing.md,
+    paddingVertical: 14,
     borderRadius: radius.full,
     backgroundColor: colors.primary,
     ...shadow.sm,
@@ -420,38 +421,40 @@ const styles = StyleSheet.create({
   doneBtnText: {
     fontSize: fontSize.md,
     color: colors.surface,
-    fontWeight: fontWeight.bold,
+    fontWeight: fontWeight.semibold,
   },
   emptyState: {
     alignItems: 'center',
     gap: spacing.sm,
+    paddingHorizontal: spacing.lg,
   },
   emptyEmoji: {
-    fontSize: 64,
+    fontSize: 56,
   },
   emptyTitle: {
     fontSize: fontSize.xl,
     fontWeight: fontWeight.bold,
     color: colors.textMain,
+    textAlign: 'center',
   },
   emptyHint: {
     fontSize: fontSize.sm,
     color: colors.textSub,
     textAlign: 'center',
+    lineHeight: 20,
   },
   footer: {
     paddingHorizontal: spacing.md,
     paddingBottom: spacing.xl,
     gap: spacing.sm,
   },
-  listBtn: {
+  listLink: {
     alignItems: 'center',
     paddingVertical: spacing.sm,
   },
-  listBtnText: {
+  listLinkText: {
     fontSize: fontSize.sm,
     color: colors.textSub,
-    textDecorationLine: 'underline',
   },
   fab: {
     backgroundColor: colors.primary,
@@ -459,14 +462,14 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: spacing.md,
+    paddingVertical: 15,
     gap: spacing.sm,
-    ...shadow.md,
   },
   fabIcon: {
-    fontSize: fontSize.xl,
+    fontSize: fontSize.lg,
     color: colors.surface,
     fontWeight: fontWeight.bold,
+    lineHeight: 22,
   },
   fabText: {
     fontSize: fontSize.md,
@@ -483,7 +486,6 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.sm,
     borderWidth: 1.5,
     borderColor: colors.primary,
-    ...shadow.sm,
   },
   inlineInput: {
     flex: 1,
@@ -498,7 +500,7 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.xs,
   },
   inlineAddBtnDisabled: {
-    backgroundColor: colors.locked,
+    backgroundColor: colors.textDisabled,
   },
   inlineAddBtnText: {
     color: colors.surface,
@@ -506,23 +508,32 @@ const styles = StyleSheet.create({
     fontSize: fontSize.sm,
   },
   inlineCancelBtn: {
-    padding: spacing.xs,
+    paddingHorizontal: spacing.xs,
   },
   inlineCancelText: {
     color: colors.textSub,
-    fontSize: fontSize.md,
+    fontSize: fontSize.lg,
+    lineHeight: 22,
   },
   modalOverlay: {
     flex: 1,
     justifyContent: 'flex-end',
-    backgroundColor: 'rgba(0,0,0,0.4)',
+    backgroundColor: 'rgba(0,0,0,0.35)',
   },
   modalSheet: {
     backgroundColor: colors.background,
-    borderTopLeftRadius: radius.xl,
-    borderTopRightRadius: radius.xl,
+    borderTopLeftRadius: radius.xxl,
+    borderTopRightRadius: radius.xxl,
     padding: spacing.lg,
-    maxHeight: '80%',
+    maxHeight: '82%',
+  },
+  sheetHandle: {
+    width: 36,
+    height: 4,
+    backgroundColor: colors.border,
+    borderRadius: radius.full,
+    alignSelf: 'center',
+    marginBottom: spacing.md,
   },
   modalHeader: {
     flexDirection: 'row',
@@ -535,18 +546,22 @@ const styles = StyleSheet.create({
     fontWeight: fontWeight.bold,
     color: colors.textMain,
   },
-  modalClose: {
-    fontSize: fontSize.lg,
-    color: colors.textSub,
+  closeBtn: {
     padding: spacing.xs,
   },
-  listSectionLabel: {
+  closeBtnText: {
+    fontSize: fontSize.lg,
+    color: colors.textSub,
+    lineHeight: 24,
+  },
+  sectionLabel: {
     fontSize: fontSize.xs,
     color: colors.textSub,
     fontWeight: fontWeight.semibold,
     marginTop: spacing.md,
     marginBottom: spacing.xs,
-    paddingHorizontal: spacing.xs,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
   },
   listEmpty: {
     textAlign: 'center',
@@ -558,7 +573,7 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: 'rgba(0,0,0,0.4)',
+    backgroundColor: 'rgba(0,0,0,0.35)',
     padding: spacing.lg,
   },
   editSheet: {
@@ -590,9 +605,9 @@ const styles = StyleSheet.create({
   editCancelBtn: {
     flex: 1,
     alignItems: 'center',
-    paddingVertical: spacing.md,
+    paddingVertical: 14,
     borderRadius: radius.full,
-    borderWidth: 1.5,
+    borderWidth: 1,
     borderColor: colors.border,
   },
   editCancelText: {
@@ -603,12 +618,12 @@ const styles = StyleSheet.create({
   editSaveBtn: {
     flex: 2,
     alignItems: 'center',
-    paddingVertical: spacing.md,
+    paddingVertical: 14,
     borderRadius: radius.full,
     backgroundColor: colors.primary,
   },
   editSaveBtnDisabled: {
-    backgroundColor: colors.locked,
+    backgroundColor: colors.textDisabled,
   },
   editSaveText: {
     fontSize: fontSize.md,

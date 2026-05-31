@@ -69,7 +69,7 @@ export function ProfileScreen() {
       <ScrollView style={styles.container} contentContainerStyle={styles.content}>
         <Text style={styles.title}>プロフィール</Text>
 
-        {/* Stats row */}
+        {/* Stats */}
         <View style={styles.statsRow}>
           <View style={styles.statCard}>
             <Text style={styles.statNum}>{completedTotal}</Text>
@@ -77,7 +77,7 @@ export function ProfileScreen() {
           </View>
           <View style={styles.statCard}>
             <Text style={styles.statNum}>{xp}</Text>
-            <Text style={styles.statLabel}>累計XP</Text>
+            <Text style={styles.statLabel}>累計 XP</Text>
           </View>
           <View style={styles.statCard}>
             <Text style={styles.statNum}>{badges.length}</Text>
@@ -85,24 +85,26 @@ export function ProfileScreen() {
           </View>
         </View>
 
-        {/* XP bar */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>⚡ 経験値</Text>
-          <XPBar xp={xp} />
+        {/* XP */}
+        <View style={styles.card}>
+          <Text style={styles.sectionTitle}>経験値</Text>
+          <View style={{ marginTop: spacing.sm }}>
+            <XPBar xp={xp} />
+          </View>
         </View>
 
         {/* Task list */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>📋 タスク一覧</Text>
+          <Text style={styles.sectionTitle}>タスク一覧</Text>
           {tasks.length === 0 ? (
-            <View style={styles.taskEmpty}>
-              <Text style={styles.taskEmptyText}>タスクがありません</Text>
+            <View style={styles.emptyCard}>
+              <Text style={styles.emptyCardText}>タスクがありません</Text>
             </View>
           ) : (
             <>
               {availableTasks.length > 0 && (
                 <>
-                  <Text style={styles.taskSectionLabel}>残り {availableTasks.length} 件</Text>
+                  <Text style={styles.groupLabel}>残り {availableTasks.length} 件</Text>
                   {availableTasks.map((t) => (
                     <TaskCard key={t.id} task={t} onEdit={() => openEdit(t)} />
                   ))}
@@ -110,7 +112,7 @@ export function ProfileScreen() {
               )}
               {skippedTasks.length > 0 && (
                 <>
-                  <Text style={styles.taskSectionLabel}>今日あとで {skippedTasks.length} 件</Text>
+                  <Text style={styles.groupLabel}>今日あとで  {skippedTasks.length} 件</Text>
                   {skippedTasks.map((t) => (
                     <TaskCard key={t.id} task={t} onEdit={() => openEdit(t)} />
                   ))}
@@ -118,7 +120,7 @@ export function ProfileScreen() {
               )}
               {completedTasks.length > 0 && (
                 <>
-                  <Text style={styles.taskSectionLabel}>完了 {completedTasks.length} 件</Text>
+                  <Text style={styles.groupLabel}>完了  {completedTasks.length} 件</Text>
                   {completedTasks.map((t) => (
                     <TaskCard key={t.id} task={t} onEdit={() => openEdit(t)} />
                   ))}
@@ -130,12 +132,12 @@ export function ProfileScreen() {
 
         {/* Badges */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>🏆 バッジ</Text>
+          <Text style={styles.sectionTitle}>バッジ</Text>
           {badges.length === 0 ? (
-            <View style={styles.emptyBadges}>
-              <Text style={styles.emptyBadgeIcon}>🎖</Text>
-              <Text style={styles.emptyBadgeText}>タスクを完了してXPを貯めよう！</Text>
-              <Text style={styles.emptyBadgeHint}>100XP でバッジ獲得</Text>
+            <View style={styles.emptyCard}>
+              <Text style={styles.emptyCardIcon}>🎖</Text>
+              <Text style={styles.emptyCardText}>タスクを完了して XP を貯めよう</Text>
+              <Text style={styles.emptyCardHint}>100 XP でバッジ獲得</Text>
             </View>
           ) : (
             <View style={styles.badgeGrid}>
@@ -150,12 +152,12 @@ export function ProfileScreen() {
           )}
         </View>
 
-        {/* Reminder settings */}
+        {/* Reminder */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>🔔 リマインダー</Text>
-          <View style={styles.reminderCard}>
+          <Text style={styles.sectionTitle}>リマインダー</Text>
+          <View style={styles.card}>
             <View style={styles.reminderRow}>
-              <View>
+              <View style={{ flex: 1 }}>
                 <Text style={styles.reminderLabel}>毎日の通知</Text>
                 <Text style={styles.reminderSub}>
                   {Platform.OS === 'web'
@@ -179,15 +181,15 @@ export function ProfileScreen() {
                 onPress={() => setTimePickerVisible(true)}
                 activeOpacity={0.7}
               >
-                <Text style={styles.timeBtnText}>⏰ 時刻を変更: {reminderTime}</Text>
+                <Text style={styles.timeBtnText}>時刻を変更: {reminderTime}</Text>
               </TouchableOpacity>
             )}
           </View>
         </View>
 
-        {/* Early access banner */}
-        <View style={styles.earlyAccessBanner}>
-          <Text style={styles.earlyAccessTitle}>🎉 アーリーアクセス期間中</Text>
+        {/* Early access */}
+        <View style={styles.earlyAccessCard}>
+          <Text style={styles.earlyAccessTitle}>アーリーアクセス期間中</Text>
           <Text style={styles.earlyAccessSub}>
             現在、全機能を無料でご利用いただけます。{'\n'}
             ネイティブアプリ公開時に有料プランへ移行予定です。
@@ -274,6 +276,7 @@ const styles = StyleSheet.create({
     fontSize: fontSize.xl,
     fontWeight: fontWeight.bold,
     color: colors.textMain,
+    letterSpacing: -0.3,
   },
   statsRow: {
     flexDirection: 'row',
@@ -282,20 +285,22 @@ const styles = StyleSheet.create({
   statCard: {
     flex: 1,
     backgroundColor: colors.surface,
-    borderRadius: radius.md,
+    borderRadius: radius.lg,
     padding: spacing.md,
     alignItems: 'center',
-    ...shadow.sm,
+    borderWidth: 1,
+    borderColor: colors.border,
   },
   statNum: {
     fontSize: fontSize.xl,
     fontWeight: fontWeight.bold,
-    color: colors.primary,
+    color: colors.textMain,
   },
   statLabel: {
     fontSize: fontSize.xs,
     color: colors.textSub,
     marginTop: spacing.xs,
+    textAlign: 'center',
   },
   section: {
     gap: spacing.sm,
@@ -304,29 +309,143 @@ const styles = StyleSheet.create({
     fontSize: fontSize.md,
     fontWeight: fontWeight.semibold,
     color: colors.textMain,
+    letterSpacing: -0.2,
   },
-  taskSectionLabel: {
+  card: {
+    backgroundColor: colors.surface,
+    borderRadius: radius.lg,
+    padding: spacing.md,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  groupLabel: {
     fontSize: fontSize.xs,
     color: colors.textSub,
     fontWeight: fontWeight.semibold,
     marginTop: spacing.sm,
     marginBottom: spacing.xs,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
   },
-  taskEmpty: {
+  emptyCard: {
     backgroundColor: colors.surface,
-    borderRadius: radius.md,
-    padding: spacing.lg,
+    borderRadius: radius.lg,
+    padding: spacing.xl,
     alignItems: 'center',
+    gap: spacing.xs,
+    borderWidth: 1,
+    borderColor: colors.border,
   },
-  taskEmptyText: {
+  emptyCardIcon: {
+    fontSize: 32,
+    marginBottom: spacing.xs,
+  },
+  emptyCardText: {
+    fontSize: fontSize.md,
+    color: colors.textMain,
+    fontWeight: fontWeight.medium,
+    textAlign: 'center',
+  },
+  emptyCardHint: {
     fontSize: fontSize.sm,
     color: colors.textSub,
+    textAlign: 'center',
+  },
+  badgeGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: spacing.sm,
+  },
+  badgeCard: {
+    backgroundColor: colors.surface,
+    borderRadius: radius.lg,
+    padding: spacing.md,
+    alignItems: 'center',
+    width: '30%',
+    gap: spacing.xs,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  badgeEmoji: {
+    fontSize: 30,
+  },
+  badgeName: {
+    fontSize: fontSize.xs,
+    color: colors.textMain,
+    fontWeight: fontWeight.medium,
+    textAlign: 'center',
+  },
+  badgeDate: {
+    fontSize: 10,
+    color: colors.textSub,
+  },
+  reminderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  reminderLabel: {
+    fontSize: fontSize.md,
+    fontWeight: fontWeight.semibold,
+    color: colors.textMain,
+  },
+  reminderSub: {
+    fontSize: fontSize.xs,
+    color: colors.textSub,
+    marginTop: spacing.xs,
+  },
+  timeBtn: {
+    backgroundColor: colors.surfaceAlt,
+    borderRadius: radius.md,
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.md,
+    alignItems: 'center',
+    marginTop: spacing.sm,
+  },
+  timeBtnText: {
+    fontSize: fontSize.sm,
+    color: colors.primary,
+    fontWeight: fontWeight.medium,
+  },
+  togglePill: {
+    backgroundColor: colors.border,
+    borderRadius: radius.full,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.xs,
+  },
+  togglePillOn: {
+    backgroundColor: colors.primary,
+  },
+  toggleText: {
+    fontSize: fontSize.xs,
+    fontWeight: fontWeight.bold,
+    color: colors.surface,
+  },
+  earlyAccessCard: {
+    backgroundColor: colors.surface,
+    borderRadius: radius.lg,
+    borderWidth: 1,
+    borderColor: colors.border,
+    padding: spacing.md,
+    gap: spacing.xs,
+    alignItems: 'center',
+  },
+  earlyAccessTitle: {
+    fontSize: fontSize.sm,
+    fontWeight: fontWeight.semibold,
+    color: colors.textMain,
+  },
+  earlyAccessSub: {
+    fontSize: fontSize.sm,
+    color: colors.textSub,
+    textAlign: 'center',
+    lineHeight: 20,
   },
   editOverlay: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: 'rgba(0,0,0,0.4)',
+    backgroundColor: 'rgba(0,0,0,0.35)',
     padding: spacing.lg,
   },
   editSheet: {
@@ -358,9 +477,9 @@ const styles = StyleSheet.create({
   editCancelBtn: {
     flex: 1,
     alignItems: 'center',
-    paddingVertical: spacing.md,
+    paddingVertical: 14,
     borderRadius: radius.full,
-    borderWidth: 1.5,
+    borderWidth: 1,
     borderColor: colors.border,
   },
   editCancelText: {
@@ -371,165 +490,21 @@ const styles = StyleSheet.create({
   editSaveBtn: {
     flex: 2,
     alignItems: 'center',
-    paddingVertical: spacing.md,
+    paddingVertical: 14,
     borderRadius: radius.full,
     backgroundColor: colors.primary,
   },
   editSaveBtnDisabled: {
-    backgroundColor: colors.locked,
+    backgroundColor: colors.textDisabled,
   },
   editSaveText: {
     fontSize: fontSize.md,
     color: colors.surface,
     fontWeight: fontWeight.semibold,
   },
-  emptyBadges: {
-    backgroundColor: colors.surface,
-    borderRadius: radius.md,
-    padding: spacing.xl,
-    alignItems: 'center',
-    gap: spacing.xs,
-    ...shadow.sm,
-  },
-  emptyBadgeIcon: {
-    fontSize: 36,
-  },
-  emptyBadgeText: {
-    fontSize: fontSize.md,
-    color: colors.textMain,
-    fontWeight: fontWeight.medium,
-  },
-  emptyBadgeHint: {
-    fontSize: fontSize.sm,
-    color: colors.textSub,
-  },
-  badgeGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: spacing.sm,
-  },
-  badgeCard: {
-    backgroundColor: colors.surface,
-    borderRadius: radius.md,
-    padding: spacing.md,
-    alignItems: 'center',
-    width: '30%',
-    gap: spacing.xs,
-    ...shadow.sm,
-  },
-  badgeEmoji: {
-    fontSize: 32,
-  },
-  badgeName: {
-    fontSize: fontSize.xs,
-    color: colors.textMain,
-    fontWeight: fontWeight.medium,
-    textAlign: 'center',
-  },
-  badgeDate: {
-    fontSize: 10,
-    color: colors.textSub,
-  },
-  comingSoon: {
-    backgroundColor: colors.surface,
-    borderRadius: radius.md,
-    padding: spacing.xl,
-    alignItems: 'center',
-    ...shadow.sm,
-  },
-  comingSoonText: {
-    fontSize: fontSize.md,
-    color: colors.textSub,
-  },
-  premiumCard: {
-    backgroundColor: colors.surface,
-    borderRadius: radius.lg,
-    padding: spacing.lg,
-    alignItems: 'center',
-    gap: spacing.md,
-    borderWidth: 1.5,
-    borderColor: colors.primary + '40',
-    ...shadow.sm,
-  },
-  premiumCardTitle: {
-    fontSize: fontSize.lg,
-    fontWeight: fontWeight.bold,
-    color: colors.textMain,
-  },
-  premiumCardPrice: {
-    fontSize: fontSize.xl,
-    fontWeight: fontWeight.bold,
-    color: colors.primary,
-  },
-  premiumFeatures: {
-    width: '100%',
-    gap: spacing.sm,
-  },
-  premiumFeatureRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.sm,
-  },
-  premiumFeatureIcon: {
-    fontSize: fontSize.md,
-    width: 24,
-    textAlign: 'center',
-  },
-  premiumFeatureLabel: {
-    fontSize: fontSize.sm,
-    color: colors.textSub,
-  },
-  upgradeBtn: {
-    backgroundColor: colors.primary,
-    borderRadius: radius.full,
-    paddingVertical: spacing.md,
-    paddingHorizontal: spacing.xl,
-    width: '100%',
-    alignItems: 'center',
-    ...shadow.sm,
-  },
-  upgradeBtnText: {
-    fontSize: fontSize.md,
-    fontWeight: fontWeight.semibold,
-    color: colors.surface,
-  },
-  reminderCard: {
-    backgroundColor: colors.surface,
-    borderRadius: radius.md,
-    padding: spacing.md,
-    gap: spacing.sm,
-    ...shadow.sm,
-  },
-  reminderRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  reminderLabel: {
-    fontSize: fontSize.md,
-    fontWeight: fontWeight.semibold,
-    color: colors.textMain,
-  },
-  reminderSub: {
-    fontSize: fontSize.xs,
-    color: colors.textSub,
-    marginTop: spacing.xs,
-  },
-  timeBtn: {
-    backgroundColor: colors.surfaceAlt,
-    borderRadius: radius.sm,
-    paddingVertical: spacing.sm,
-    paddingHorizontal: spacing.md,
-    alignItems: 'center',
-  },
-  timeBtnText: {
-    fontSize: fontSize.sm,
-    color: colors.primary,
-    fontWeight: fontWeight.medium,
-  },
   timeOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.4)',
+    backgroundColor: 'rgba(0,0,0,0.35)',
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -539,6 +514,8 @@ const styles = StyleSheet.create({
     padding: spacing.lg,
     width: 240,
     gap: spacing.xs,
+    borderWidth: 1,
+    borderColor: colors.border,
   },
   timeSheetTitle: {
     fontSize: fontSize.md,
@@ -554,7 +531,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   timeOptionActive: {
-    backgroundColor: colors.primary + '15',
+    backgroundColor: colors.primaryLight,
   },
   timeOptionText: {
     fontSize: fontSize.md,
@@ -563,39 +540,5 @@ const styles = StyleSheet.create({
   timeOptionTextActive: {
     color: colors.primary,
     fontWeight: fontWeight.semibold,
-  },
-  earlyAccessBanner: {
-    backgroundColor: colors.primary + '12',
-    borderRadius: radius.md,
-    borderWidth: 1,
-    borderColor: colors.primary + '30',
-    padding: spacing.md,
-    gap: spacing.xs,
-    alignItems: 'center',
-  },
-  earlyAccessTitle: {
-    fontSize: fontSize.md,
-    fontWeight: fontWeight.bold,
-    color: colors.primary,
-  },
-  earlyAccessSub: {
-    fontSize: fontSize.sm,
-    color: colors.textSub,
-    textAlign: 'center',
-    lineHeight: 20,
-  },
-  togglePill: {
-    backgroundColor: colors.locked,
-    borderRadius: radius.full,
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.xs,
-  },
-  togglePillOn: {
-    backgroundColor: colors.primary,
-  },
-  toggleText: {
-    fontSize: fontSize.sm,
-    fontWeight: fontWeight.bold,
-    color: colors.surface,
   },
 });

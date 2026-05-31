@@ -54,16 +54,19 @@ const styles = StyleSheet.create({
   },
   card: {
     backgroundColor: colors.surface,
-    borderRadius: radius.xl,
+    borderRadius: radius.xxl,
     padding: spacing.xxl,
     alignItems: 'center',
     width: '80%',
     gap: spacing.md,
+    borderWidth: 1,
+    borderColor: colors.border,
   },
   congrats: {
-    fontSize: fontSize.lg,
+    fontSize: fontSize.md,
     fontWeight: fontWeight.semibold,
     color: colors.textSub,
+    letterSpacing: 0.3,
   },
   badgeEmoji: {
     fontSize: 72,

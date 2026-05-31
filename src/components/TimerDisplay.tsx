@@ -16,7 +16,7 @@ export function TimerDisplay({ seconds, isRunning }: Props) {
       <Text style={[styles.time, isRunning && styles.timeActive]}>
         {mins}:{secs}
       </Text>
-      {seconds === 0 && <Text style={styles.done}>✅ 完了！</Text>}
+      {seconds === 0 && <Text style={styles.done}>完了</Text>}
     </View>
   );
 }
@@ -27,7 +27,7 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.xl,
   },
   time: {
-    fontSize: 72,
+    fontSize: 68,
     fontWeight: fontWeight.bold,
     color: colors.textMain,
     letterSpacing: -2,
@@ -37,9 +37,10 @@ const styles = StyleSheet.create({
     color: colors.primary,
   },
   done: {
-    fontSize: fontSize.lg,
+    fontSize: fontSize.md,
     color: colors.success,
     fontWeight: fontWeight.semibold,
     marginTop: spacing.sm,
+    letterSpacing: 0.5,
   },
 });

@@ -25,8 +25,8 @@ const SLIDES = [
     title: 'できたことを\n積み重ねよう',
     description: null,
     features: [
-      { icon: '✅', label: 'シンプルなタスク管理', sub: '優先度をつけて今日やることを整理' },
-      { icon: '⚡', label: 'XPとバッジ', sub: 'タスクを完了するたびに経験値を獲得' },
+      { icon: '✅', label: 'シンプルなタスク管理', sub: '今日やることを一つずつ整理' },
+      { icon: '⚡', label: 'XP とバッジ', sub: 'タスクを完了するたびに経験値を獲得' },
       { icon: '🔥', label: 'ストリーク', sub: '続けた日数が記録されていく' },
       { icon: '🔔', label: 'リマインダー', sub: '忘れないように通知でサポート' },
     ],
@@ -96,7 +96,6 @@ export function OnboardingScreen() {
       </ScrollView>
 
       <View style={styles.footer}>
-        {/* Dots */}
         <View style={styles.dots}>
           {SLIDES.map((_, i) => (
             <View
@@ -106,7 +105,6 @@ export function OnboardingScreen() {
           ))}
         </View>
 
-        {/* Buttons */}
         <View style={styles.btnRow}>
           {currentIndex > 0 && (
             <TouchableOpacity
@@ -148,14 +146,15 @@ const styles = StyleSheet.create({
     gap: spacing.lg,
   },
   emoji: {
-    fontSize: 80,
+    fontSize: 72,
   },
   title: {
     fontSize: fontSize.xxl,
     fontWeight: fontWeight.bold,
     color: colors.textMain,
     textAlign: 'center',
-    lineHeight: 44,
+    lineHeight: 42,
+    letterSpacing: -0.5,
   },
   description: {
     fontSize: fontSize.md,
@@ -165,20 +164,22 @@ const styles = StyleSheet.create({
   },
   featureList: {
     width: '100%',
-    gap: spacing.md,
+    gap: spacing.sm,
     marginTop: spacing.sm,
   },
   featureRow: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: colors.surface,
-    borderRadius: radius.md,
+    borderRadius: radius.lg,
     padding: spacing.md,
     gap: spacing.md,
+    borderWidth: 1,
+    borderColor: colors.border,
   },
   featureIcon: {
-    fontSize: 28,
-    width: 36,
+    fontSize: 24,
+    width: 32,
     textAlign: 'center',
   },
   featureText: {
@@ -193,6 +194,7 @@ const styles = StyleSheet.create({
   featureSub: {
     fontSize: fontSize.sm,
     color: colors.textSub,
+    lineHeight: 18,
   },
   footer: {
     paddingHorizontal: spacing.lg,
@@ -206,14 +208,15 @@ const styles = StyleSheet.create({
     gap: spacing.sm,
   },
   dot: {
-    width: 8,
-    height: 8,
+    width: 6,
+    height: 6,
     borderRadius: radius.full,
     backgroundColor: colors.border,
   },
   dotActive: {
-    width: 24,
+    width: 20,
     backgroundColor: colors.primary,
+    borderRadius: radius.full,
   },
   btnRow: {
     flexDirection: 'row',
@@ -223,9 +226,9 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: spacing.md,
+    paddingVertical: 14,
     borderRadius: radius.full,
-    borderWidth: 1.5,
+    borderWidth: 1,
     borderColor: colors.border,
   },
   backBtnText: {
@@ -237,7 +240,7 @@ const styles = StyleSheet.create({
     flex: 2,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: spacing.md,
+    paddingVertical: 14,
     borderRadius: radius.full,
     backgroundColor: colors.primary,
   },

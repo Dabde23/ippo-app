@@ -16,24 +16,18 @@ export function XPBar({ xp }: Props) {
   const segmentXp = xp - prevThreshold;
   const segmentTotal = nextThreshold - prevThreshold;
   const progress = isMaxed ? 1 : segmentXp / segmentTotal;
+  const remaining = segmentTotal - segmentXp;
 
   return (
     <View style={styles.container}>
-      <View style={styles.header}>
-        <Text style={styles.label}>⚡ XP</Text>
-        <Text style={styles.badgeLabel}>
-          {isMaxed ? '🏆 全バッジ獲得！' : `次のバッジまで ${segmentTotal - segmentXp} XP`}
+      <View style={styles.topRow}>
+        <Text style={styles.hint}>
+          {isMaxed ? '全バッジ獲得！' : `バッジまで ${remaining} XP`}
         </Text>
-        <Text style={styles.xpText}>{xp} XP</Text>
+        <Text style={styles.xpValue}>{xp} XP</Text>
       </View>
       <View style={styles.track}>
-        <View style={[styles.fill, { width: `${progress * 100}%` }]} />
-      </View>
-      <View style={styles.footer}>
-        <Text style={styles.footerText}>バッジ {badgeCount} / {BADGE_THRESHOLDS.length}</Text>
-        {!isMaxed && (
-          <Text style={styles.footerText}>目標: {nextThreshold} XP</Text>
-        )}
+        <View style={[styles.fill, { width: `${progress * 100}%` as any }]} />
       </View>
     </View>
   );
@@ -41,35 +35,27 @@ export function XPBar({ xp }: Props) {
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: colors.surface,
-    borderRadius: radius.md,
-    padding: spacing.md,
-    marginHorizontal: spacing.md,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    gap: spacing.xs,
   },
-  header: {
+  topRow: {
     flexDirection: 'row',
+    justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: spacing.sm,
-    gap: spacing.sm,
   },
-  label: {
-    fontSize: fontSize.sm,
-    fontWeight: fontWeight.semibold,
-    color: colors.textMain,
-  },
-  badgeLabel: {
-    flex: 1,
+  hint: {
     fontSize: fontSize.xs,
     color: colors.textSub,
   },
-  xpText: {
+  xpValue: {
     fontSize: fontSize.xs,
-    fontWeight: fontWeight.bold,
+    fontWeight: fontWeight.semibold,
     color: colors.xpGold,
   },
   track: {
-    height: 10,
-    backgroundColor: colors.surfaceAlt,
+    height: 4,
+    backgroundColor: colors.border,
     borderRadius: radius.full,
     overflow: 'hidden',
   },
@@ -77,14 +63,5 @@ const styles = StyleSheet.create({
     height: '100%',
     backgroundColor: colors.xpGold,
     borderRadius: radius.full,
-  },
-  footer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginTop: spacing.xs,
-  },
-  footerText: {
-    fontSize: fontSize.xs,
-    color: colors.textSub,
   },
 });

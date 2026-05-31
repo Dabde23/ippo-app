@@ -68,7 +68,7 @@ export function TimerScreen() {
             activeOpacity={0.7}
           >
             <Text style={[styles.modeBtnText, mode === 'work' && styles.modeBtnTextActive]}>
-              🎯 集中 25分
+              集中  25分
             </Text>
           </TouchableOpacity>
           <TouchableOpacity
@@ -77,7 +77,7 @@ export function TimerScreen() {
             activeOpacity={0.7}
           >
             <Text style={[styles.modeBtnText, mode === 'break' && styles.modeBtnTextActive]}>
-              ☕ 休憩 5分
+              休憩  5分
             </Text>
           </TouchableOpacity>
         </View>
@@ -102,16 +102,14 @@ export function TimerScreen() {
 
         {/* Progress bar */}
         <View style={styles.progressBar}>
-          <View style={[styles.progressFill, { width: `${progress * 100}%` }]} />
+          <View style={[styles.progressFill, { width: `${progress * 100}%` as any }]} />
         </View>
-        <Text style={styles.progressLabel}>
-          {Math.round(progress * 100)}% 完了
-        </Text>
+        <Text style={styles.progressLabel}>{Math.round(progress * 100)}% 完了</Text>
 
         {/* Controls */}
         <View style={styles.controls}>
           <TouchableOpacity style={styles.resetBtn} onPress={handleReset} activeOpacity={0.7}>
-            <Text style={styles.resetBtnText}>🔄 リセット</Text>
+            <Text style={styles.resetBtnText}>リセット</Text>
           </TouchableOpacity>
 
           <TouchableOpacity
@@ -121,16 +119,16 @@ export function TimerScreen() {
             disabled={seconds === 0}
           >
             <Text style={styles.mainBtnText}>
-              {seconds === 0 ? '✅ 完了！' : isRunning ? '⏸ 一時停止' : '▶ スタート'}
+              {seconds === 0 ? '完了！' : isRunning ? '一時停止' : 'スタート'}
             </Text>
           </TouchableOpacity>
         </View>
 
-        {/* Tips */}
+        {/* Tip */}
         <View style={styles.tipCard}>
-          <Text style={styles.tipTitle}>💡 ポモドーロテクニック</Text>
+          <Text style={styles.tipTitle}>ポモドーロテクニック</Text>
           <Text style={styles.tipText}>
-            25分集中 → 5分休憩を繰り返すと、ADHDの集中力維持に効果的です
+            25分集中 → 5分休憩を繰り返すと、集中力を長く保てます
           </Text>
         </View>
       </View>
@@ -156,6 +154,7 @@ const styles = StyleSheet.create({
     color: colors.textMain,
     alignSelf: 'flex-start',
     marginBottom: spacing.lg,
+    letterSpacing: -0.3,
   },
   modeRow: {
     flexDirection: 'row',
@@ -168,18 +167,19 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: spacing.sm,
     borderRadius: radius.full,
-    borderWidth: 1.5,
+    borderWidth: 1,
     borderColor: colors.border,
     backgroundColor: colors.surface,
   },
   modeBtnActive: {
     borderColor: colors.primary,
-    backgroundColor: colors.primary + '15',
+    backgroundColor: colors.primaryLight,
   },
   modeBtnText: {
     fontSize: fontSize.sm,
     color: colors.textSub,
     fontWeight: fontWeight.medium,
+    letterSpacing: 0.2,
   },
   modeBtnTextActive: {
     color: colors.primary,
@@ -196,18 +196,17 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   progressRingInner: {
-    width: 208,
-    height: 208,
-    borderRadius: 104,
+    width: 210,
+    height: 210,
+    borderRadius: 105,
     backgroundColor: colors.background,
     alignItems: 'center',
     justifyContent: 'center',
-    ...shadow.sm,
   },
   progressBar: {
     width: '100%',
-    height: 8,
-    backgroundColor: colors.surfaceAlt,
+    height: 4,
+    backgroundColor: colors.border,
     borderRadius: radius.full,
     overflow: 'hidden',
     marginBottom: spacing.xs,
@@ -224,16 +223,16 @@ const styles = StyleSheet.create({
   },
   controls: {
     flexDirection: 'row',
-    gap: spacing.md,
+    gap: spacing.sm,
     width: '100%',
     marginBottom: spacing.xl,
   },
   resetBtn: {
     flex: 1,
     alignItems: 'center',
-    paddingVertical: spacing.md,
+    paddingVertical: 14,
     borderRadius: radius.full,
-    borderWidth: 1.5,
+    borderWidth: 1,
     borderColor: colors.border,
     backgroundColor: colors.surface,
   },
@@ -245,7 +244,7 @@ const styles = StyleSheet.create({
   mainBtn: {
     flex: 2,
     alignItems: 'center',
-    paddingVertical: spacing.md,
+    paddingVertical: 14,
     borderRadius: radius.full,
     backgroundColor: colors.primary,
     ...shadow.sm,
@@ -260,15 +259,17 @@ const styles = StyleSheet.create({
   },
   tipCard: {
     width: '100%',
-    backgroundColor: colors.primary + '10',
-    borderRadius: radius.md,
+    backgroundColor: colors.surface,
+    borderRadius: radius.lg,
     padding: spacing.md,
     gap: spacing.xs,
+    borderWidth: 1,
+    borderColor: colors.border,
   },
   tipTitle: {
     fontSize: fontSize.sm,
     fontWeight: fontWeight.semibold,
-    color: colors.primary,
+    color: colors.textMain,
   },
   tipText: {
     fontSize: fontSize.sm,
