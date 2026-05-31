@@ -54,6 +54,7 @@ export function TimerScreen() {
   }
 
   const progress = 1 - seconds / (mode === 'work' ? WORK_DURATION : SHORT_BREAK);
+  const ringColor = mode === 'work' ? colors.primary : colors.success;
 
   return (
     <SafeAreaView style={styles.safe}>
@@ -68,16 +69,16 @@ export function TimerScreen() {
             activeOpacity={0.7}
           >
             <Text style={[styles.modeBtnText, mode === 'work' && styles.modeBtnTextActive]}>
-              集中  25分
+              🎯 集中  25分
             </Text>
           </TouchableOpacity>
           <TouchableOpacity
-            style={[styles.modeBtn, mode === 'break' && styles.modeBtnActive]}
+            style={[styles.modeBtn, mode === 'break' && styles.modeBtnBreak]}
             onPress={() => switchMode('break')}
             activeOpacity={0.7}
           >
-            <Text style={[styles.modeBtnText, mode === 'break' && styles.modeBtnTextActive]}>
-              休憩  5分
+            <Text style={[styles.modeBtnText, mode === 'break' && styles.modeBtnTextBreak]}>
+              ☕ 休憩  5分
             </Text>
           </TouchableOpacity>
         </View>
@@ -89,7 +90,7 @@ export function TimerScreen() {
               styles.progressRing,
               {
                 backgroundImage: `conic-gradient(${
-                  isRunning ? colors.primary : progress > 0 ? colors.primary : colors.border
+                  isRunning ? ringColor : progress > 0 ? ringColor : colors.border
                 } ${Math.round(progress * 360)}deg, ${colors.border} 0deg)`,
               } as object,
             ]}
@@ -102,7 +103,7 @@ export function TimerScreen() {
 
         {/* Progress bar */}
         <View style={styles.progressBar}>
-          <View style={[styles.progressFill, { width: `${progress * 100}%` as any }]} />
+          <View style={[styles.progressFill, { width: `${progress * 100}%` as any, backgroundColor: ringColor }]} />
         </View>
         <Text style={styles.progressLabel}>{Math.round(progress * 100)}% 完了</Text>
 
@@ -111,9 +112,8 @@ export function TimerScreen() {
           <TouchableOpacity style={styles.resetBtn} onPress={handleReset} activeOpacity={0.7}>
             <Text style={styles.resetBtnText}>リセット</Text>
           </TouchableOpacity>
-
           <TouchableOpacity
-            style={[styles.mainBtn, seconds === 0 && styles.mainBtnDone]}
+            style={[styles.mainBtn, seconds === 0 && styles.mainBtnDone, { backgroundColor: ringColor }]}
             onPress={handleStartPause}
             activeOpacity={0.85}
             disabled={seconds === 0}
@@ -167,7 +167,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: spacing.sm,
     borderRadius: radius.full,
-    borderWidth: 1,
+    borderWidth: 1.5,
     borderColor: colors.border,
     backgroundColor: colors.surface,
   },
@@ -175,14 +175,21 @@ const styles = StyleSheet.create({
     borderColor: colors.primary,
     backgroundColor: colors.primaryLight,
   },
+  modeBtnBreak: {
+    borderColor: colors.success,
+    backgroundColor: colors.successLight,
+  },
   modeBtnText: {
     fontSize: fontSize.sm,
     color: colors.textSub,
     fontWeight: fontWeight.medium,
-    letterSpacing: 0.2,
   },
   modeBtnTextActive: {
     color: colors.primary,
+    fontWeight: fontWeight.semibold,
+  },
+  modeBtnTextBreak: {
+    color: colors.success,
     fontWeight: fontWeight.semibold,
   },
   progressContainer: {
@@ -205,7 +212,7 @@ const styles = StyleSheet.create({
   },
   progressBar: {
     width: '100%',
-    height: 4,
+    height: 5,
     backgroundColor: colors.border,
     borderRadius: radius.full,
     overflow: 'hidden',
@@ -213,7 +220,6 @@ const styles = StyleSheet.create({
   },
   progressFill: {
     height: '100%',
-    backgroundColor: colors.primary,
     borderRadius: radius.full,
   },
   progressLabel: {
@@ -232,7 +238,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: 14,
     borderRadius: radius.full,
-    borderWidth: 1,
+    borderWidth: 1.5,
     borderColor: colors.border,
     backgroundColor: colors.surface,
   },
@@ -246,7 +252,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: 14,
     borderRadius: radius.full,
-    backgroundColor: colors.primary,
     ...shadow.sm,
   },
   mainBtnDone: {
@@ -265,11 +270,13 @@ const styles = StyleSheet.create({
     gap: spacing.xs,
     borderWidth: 1,
     borderColor: colors.border,
+    borderLeftWidth: 3,
+    borderLeftColor: colors.primary,
   },
   tipTitle: {
     fontSize: fontSize.sm,
     fontWeight: fontWeight.semibold,
-    color: colors.textMain,
+    color: colors.primary,
   },
   tipText: {
     fontSize: fontSize.sm,

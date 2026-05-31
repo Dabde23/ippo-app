@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Alert, Platform } from 'react-native';
 import { Task, useAppStore, XP_PER_TASK } from '../store/useAppStore';
-import { colors, spacing, radius, fontSize, fontWeight, shadow } from '../theme';
+import { colors, spacing, radius, fontSize, fontWeight } from '../theme';
 
 interface Props {
   task: Task;
@@ -31,7 +31,7 @@ export function TaskCard({ task, onEdit }: Props) {
 
   return (
     <View style={[styles.card, task.completed && styles.completedCard]}>
-      {task.completed && <View style={styles.completedBar} />}
+      <View style={[styles.accentBar, task.completed && styles.accentBarDone]} />
 
       <TouchableOpacity
         style={styles.checkArea}
@@ -81,35 +81,37 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: colors.surface,
     borderRadius: radius.lg,
-    padding: spacing.md,
+    paddingVertical: spacing.md,
+    paddingRight: spacing.md,
+    paddingLeft: spacing.sm,
     marginBottom: spacing.sm,
     overflow: 'hidden',
     borderWidth: 1,
     borderColor: colors.border,
   },
   completedCard: {
-    backgroundColor: colors.surfaceAlt,
-    borderColor: colors.border,
+    backgroundColor: colors.successLight,
+    borderColor: '#BBF7D0',
   },
-  completedBar: {
-    position: 'absolute',
-    left: 0,
-    top: 0,
-    bottom: 0,
-    width: 3,
+  accentBar: {
+    width: 4,
+    alignSelf: 'stretch',
+    backgroundColor: colors.primary,
+    borderRadius: radius.full,
+    marginRight: spacing.sm,
+  },
+  accentBarDone: {
     backgroundColor: colors.success,
-    borderTopLeftRadius: radius.lg,
-    borderBottomLeftRadius: radius.lg,
   },
   checkArea: {
-    marginRight: spacing.md,
+    marginRight: spacing.sm,
   },
   checkbox: {
-    width: 24,
-    height: 24,
+    width: 22,
+    height: 22,
     borderRadius: radius.full,
-    borderWidth: 1.5,
-    borderColor: colors.border,
+    borderWidth: 2,
+    borderColor: colors.primary,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -124,7 +126,7 @@ const styles = StyleSheet.create({
   },
   content: {
     flex: 1,
-    gap: 3,
+    gap: 2,
   },
   title: {
     fontSize: fontSize.md,
@@ -139,7 +141,7 @@ const styles = StyleSheet.create({
   xpLabel: {
     fontSize: fontSize.xs,
     color: colors.xpGold,
-    fontWeight: fontWeight.medium,
+    fontWeight: fontWeight.semibold,
   },
   actions: {
     flexDirection: 'row',
@@ -153,7 +155,7 @@ const styles = StyleSheet.create({
   },
   editText: {
     fontSize: fontSize.xs,
-    color: colors.textSub,
+    color: colors.primary,
     fontWeight: fontWeight.medium,
   },
   deleteText: {
@@ -162,6 +164,6 @@ const styles = StyleSheet.create({
     lineHeight: 20,
   },
   dimText: {
-    opacity: 0.35,
+    opacity: 0.3,
   },
 });

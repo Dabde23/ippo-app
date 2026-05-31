@@ -82,7 +82,9 @@ export function OnboardingScreen() {
               <View style={styles.featureList}>
                 {slide.features.map((f) => (
                   <View key={f.label} style={styles.featureRow}>
-                    <Text style={styles.featureIcon}>{f.icon}</Text>
+                    <View style={styles.featureIconWrap}>
+                      <Text style={styles.featureIcon}>{f.icon}</Text>
+                    </View>
                     <View style={styles.featureText}>
                       <Text style={styles.featureLabel}>{f.label}</Text>
                       <Text style={styles.featureSub}>{f.sub}</Text>
@@ -176,15 +178,23 @@ const styles = StyleSheet.create({
     gap: spacing.md,
     borderWidth: 1,
     borderColor: colors.border,
+    borderLeftWidth: 3,
+    borderLeftColor: colors.primary,
+  },
+  featureIconWrap: {
+    width: 36,
+    height: 36,
+    borderRadius: radius.md,
+    backgroundColor: colors.primaryLight,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   featureIcon: {
-    fontSize: 24,
-    width: 32,
-    textAlign: 'center',
+    fontSize: 20,
   },
   featureText: {
     flex: 1,
-    gap: spacing.xs,
+    gap: 2,
   },
   featureLabel: {
     fontSize: fontSize.md,
@@ -214,7 +224,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.border,
   },
   dotActive: {
-    width: 20,
+    width: 22,
     backgroundColor: colors.primary,
     borderRadius: radius.full,
   },
@@ -228,7 +238,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     paddingVertical: 14,
     borderRadius: radius.full,
-    borderWidth: 1,
+    borderWidth: 1.5,
     borderColor: colors.border,
   },
   backBtnText: {

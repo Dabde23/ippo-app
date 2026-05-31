@@ -102,13 +102,13 @@ export function HomeScreen() {
           </View>
           <View style={styles.headerRight}>
             {streak >= 2 && (
-              <View style={styles.chip}>
-                <Text style={styles.chipText}>🔥 {streak}日</Text>
+              <View style={[styles.badge, styles.streakBadge]}>
+                <Text style={styles.streakText}>🔥 {streak}日</Text>
               </View>
             )}
-            <View style={styles.chip}>
-              <Text style={styles.chipNum}>{completed}</Text>
-              <Text style={styles.chipLabel}>完了</Text>
+            <View style={[styles.badge, styles.completedBadge]}>
+              <Text style={styles.badgeNum}>{completed}</Text>
+              <Text style={styles.badgeLabel}>完了</Text>
             </View>
           </View>
         </View>
@@ -121,9 +121,14 @@ export function HomeScreen() {
             <>
               <Text style={styles.focusLabel}>今これをやろう</Text>
               <View style={styles.focusCard}>
-                <Text style={styles.focusTitle}>{currentTask.title}</Text>
-                <View style={styles.xpPill}>
-                  <Text style={styles.xpPillText}>完了で +{XP_PER_TASK} XP</Text>
+                <View style={styles.focusCardAccent} />
+                <View style={styles.focusCardBody}>
+                  <Text style={styles.focusTitle}>{currentTask.title}</Text>
+                  <View style={styles.xpRow}>
+                    <View style={styles.xpPill}>
+                      <Text style={styles.xpPillText}>+{XP_PER_TASK} XP</Text>
+                    </View>
+                  </View>
                 </View>
               </View>
               <View style={styles.actionRow}>
@@ -131,7 +136,7 @@ export function HomeScreen() {
                   <Text style={styles.skipBtnText}>あとで</Text>
                 </TouchableOpacity>
                 <TouchableOpacity style={styles.doneBtn} onPress={handleComplete} activeOpacity={0.85}>
-                  <Text style={styles.doneBtnText}>やった！</Text>
+                  <Text style={styles.doneBtnText}>やった！ ✓</Text>
                 </TouchableOpacity>
               </View>
             </>
@@ -158,7 +163,7 @@ export function HomeScreen() {
               onPress={() => setListModalVisible(true)}
               activeOpacity={0.6}
             >
-              <Text style={styles.listLinkText}>タスクを全て見る  {available}件</Text>
+              <Text style={styles.listLinkText}>タスクを全て見る  {available} 件</Text>
             </TouchableOpacity>
           )}
 
@@ -224,7 +229,6 @@ export function HomeScreen() {
                   ))}
                 </>
               )}
-
               {skippedTasks.length > 0 && (
                 <>
                   <Text style={styles.sectionLabel}>今日あとで  {skippedTasks.length} 件</Text>
@@ -233,7 +237,6 @@ export function HomeScreen() {
                   ))}
                 </>
               )}
-
               {completedTasks.length > 0 && (
                 <>
                   <Text style={styles.sectionLabel}>完了  {completedTasks.length} 件</Text>
@@ -242,7 +245,6 @@ export function HomeScreen() {
                   ))}
                 </>
               )}
-
               {tasks.length === 0 && (
                 <Text style={styles.listEmpty}>タスクがありません</Text>
               )}
@@ -309,7 +311,7 @@ const styles = StyleSheet.create({
   appName: {
     fontSize: fontSize.xxl,
     fontWeight: fontWeight.bold,
-    color: colors.textMain,
+    color: colors.primary,
     letterSpacing: -0.5,
   },
   dateText: {
@@ -322,54 +324,69 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: spacing.sm,
   },
-  chip: {
+  badge: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.xs,
-    backgroundColor: colors.surface,
     borderRadius: radius.full,
     paddingHorizontal: spacing.sm,
-    paddingVertical: 6,
+    paddingVertical: 5,
+  },
+  streakBadge: {
+    backgroundColor: '#FFF7ED',
     borderWidth: 1,
-    borderColor: colors.border,
+    borderColor: '#FED7AA',
   },
-  chipText: {
+  streakText: {
     fontSize: fontSize.xs,
-    color: colors.textSub,
-    fontWeight: fontWeight.medium,
+    color: colors.streak,
+    fontWeight: fontWeight.semibold,
   },
-  chipNum: {
+  completedBadge: {
+    backgroundColor: colors.primaryLight,
+    borderWidth: 1,
+    borderColor: '#BAE6FD',
+  },
+  badgeNum: {
     fontSize: fontSize.sm,
     fontWeight: fontWeight.bold,
-    color: colors.textMain,
+    color: colors.primary,
   },
-  chipLabel: {
+  badgeLabel: {
     fontSize: fontSize.xs,
-    color: colors.textSub,
+    color: colors.primary,
   },
   focusArea: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingHorizontal: spacing.lg,
+    paddingHorizontal: spacing.md,
     gap: spacing.lg,
   },
   focusLabel: {
     fontSize: fontSize.sm,
     color: colors.textSub,
+    fontWeight: fontWeight.medium,
     letterSpacing: 0.3,
   },
   focusCard: {
     width: '100%',
     backgroundColor: colors.surface,
     borderRadius: radius.xl,
-    paddingVertical: spacing.xl,
-    paddingHorizontal: spacing.lg,
-    alignItems: 'center',
-    gap: spacing.md,
+    overflow: 'hidden',
     borderWidth: 1,
     borderColor: colors.border,
-    ...shadow.sm,
+    ...shadow.md,
+  },
+  focusCardAccent: {
+    height: 5,
+    backgroundColor: colors.primary,
+    width: '100%',
+  },
+  focusCardBody: {
+    padding: spacing.xl,
+    alignItems: 'center',
+    gap: spacing.md,
   },
   focusTitle: {
     fontSize: 26,
@@ -378,16 +395,21 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     lineHeight: 36,
   },
+  xpRow: {
+    alignItems: 'center',
+  },
   xpPill: {
-    backgroundColor: colors.xpGold + '18',
+    backgroundColor: '#FEF3C7',
     borderRadius: radius.full,
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.xs,
+    borderWidth: 1,
+    borderColor: '#FDE68A',
   },
   xpPillText: {
     fontSize: fontSize.xs,
     color: colors.xpGold,
-    fontWeight: fontWeight.semibold,
+    fontWeight: fontWeight.bold,
   },
   actionRow: {
     flexDirection: 'row',
@@ -400,7 +422,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     paddingVertical: 14,
     borderRadius: radius.full,
-    borderWidth: 1,
+    borderWidth: 1.5,
     borderColor: colors.border,
     backgroundColor: colors.surface,
   },
@@ -421,7 +443,8 @@ const styles = StyleSheet.create({
   doneBtnText: {
     fontSize: fontSize.md,
     color: colors.surface,
-    fontWeight: fontWeight.semibold,
+    fontWeight: fontWeight.bold,
+    letterSpacing: 0.3,
   },
   emptyState: {
     alignItems: 'center',
@@ -454,7 +477,8 @@ const styles = StyleSheet.create({
   },
   listLinkText: {
     fontSize: fontSize.sm,
-    color: colors.textSub,
+    color: colors.primary,
+    fontWeight: fontWeight.medium,
   },
   fab: {
     backgroundColor: colors.primary,
@@ -464,6 +488,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     paddingVertical: 15,
     gap: spacing.sm,
+    ...shadow.md,
   },
   fabIcon: {
     fontSize: fontSize.lg,
@@ -484,7 +509,7 @@ const styles = StyleSheet.create({
     borderRadius: radius.full,
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.sm,
-    borderWidth: 1.5,
+    borderWidth: 2,
     borderColor: colors.primary,
   },
   inlineInput: {
@@ -518,7 +543,7 @@ const styles = StyleSheet.create({
   modalOverlay: {
     flex: 1,
     justifyContent: 'flex-end',
-    backgroundColor: 'rgba(0,0,0,0.35)',
+    backgroundColor: 'rgba(0,0,0,0.3)',
   },
   modalSheet: {
     backgroundColor: colors.background,
@@ -573,7 +598,7 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: 'rgba(0,0,0,0.35)',
+    backgroundColor: 'rgba(0,0,0,0.3)',
     padding: spacing.lg,
   },
   editSheet: {
@@ -595,7 +620,7 @@ const styles = StyleSheet.create({
     padding: spacing.md,
     fontSize: fontSize.md,
     color: colors.textMain,
-    borderWidth: 1,
+    borderWidth: 1.5,
     borderColor: colors.border,
   },
   editActions: {
@@ -607,7 +632,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: 14,
     borderRadius: radius.full,
-    borderWidth: 1,
+    borderWidth: 1.5,
     borderColor: colors.border,
   },
   editCancelText: {

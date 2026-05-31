@@ -71,16 +71,16 @@ export function ProfileScreen() {
 
         {/* Stats */}
         <View style={styles.statsRow}>
-          <View style={styles.statCard}>
-            <Text style={styles.statNum}>{completedTotal}</Text>
+          <View style={[styles.statCard, styles.statCardBlue]}>
+            <Text style={[styles.statNum, { color: colors.primary }]}>{completedTotal}</Text>
             <Text style={styles.statLabel}>完了タスク</Text>
           </View>
-          <View style={styles.statCard}>
-            <Text style={styles.statNum}>{xp}</Text>
+          <View style={[styles.statCard, styles.statCardYellow]}>
+            <Text style={[styles.statNum, { color: colors.xpGold }]}>{xp}</Text>
             <Text style={styles.statLabel}>累計 XP</Text>
           </View>
-          <View style={styles.statCard}>
-            <Text style={styles.statNum}>{badges.length}</Text>
+          <View style={[styles.statCard, styles.statCardPurple]}>
+            <Text style={[styles.statNum, { color: colors.badge }]}>{badges.length}</Text>
             <Text style={styles.statLabel}>バッジ</Text>
           </View>
         </View>
@@ -189,7 +189,7 @@ export function ProfileScreen() {
 
         {/* Early access */}
         <View style={styles.earlyAccessCard}>
-          <Text style={styles.earlyAccessTitle}>アーリーアクセス期間中</Text>
+          <Text style={styles.earlyAccessTitle}>🎉 アーリーアクセス期間中</Text>
           <Text style={styles.earlyAccessSub}>
             現在、全機能を無料でご利用いただけます。{'\n'}
             ネイティブアプリ公開時に有料プランへ移行予定です。
@@ -284,17 +284,26 @@ const styles = StyleSheet.create({
   },
   statCard: {
     flex: 1,
-    backgroundColor: colors.surface,
     borderRadius: radius.lg,
     padding: spacing.md,
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: colors.border,
+  },
+  statCardBlue: {
+    backgroundColor: colors.primaryLight,
+    borderColor: '#BAE6FD',
+  },
+  statCardYellow: {
+    backgroundColor: '#FEF9C3',
+    borderColor: '#FDE68A',
+  },
+  statCardPurple: {
+    backgroundColor: '#EDE9FE',
+    borderColor: '#DDD6FE',
   },
   statNum: {
     fontSize: fontSize.xl,
     fontWeight: fontWeight.bold,
-    color: colors.textMain,
   },
   statLabel: {
     fontSize: fontSize.xs,
@@ -309,7 +318,6 @@ const styles = StyleSheet.create({
     fontSize: fontSize.md,
     fontWeight: fontWeight.semibold,
     color: colors.textMain,
-    letterSpacing: -0.2,
   },
   card: {
     backgroundColor: colors.surface,
@@ -408,7 +416,7 @@ const styles = StyleSheet.create({
     fontWeight: fontWeight.medium,
   },
   togglePill: {
-    backgroundColor: colors.border,
+    backgroundColor: colors.textDisabled,
     borderRadius: radius.full,
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.xs,
@@ -422,10 +430,10 @@ const styles = StyleSheet.create({
     color: colors.surface,
   },
   earlyAccessCard: {
-    backgroundColor: colors.surface,
+    backgroundColor: colors.primaryLight,
     borderRadius: radius.lg,
     borderWidth: 1,
-    borderColor: colors.border,
+    borderColor: '#BAE6FD',
     padding: spacing.md,
     gap: spacing.xs,
     alignItems: 'center',
@@ -433,7 +441,7 @@ const styles = StyleSheet.create({
   earlyAccessTitle: {
     fontSize: fontSize.sm,
     fontWeight: fontWeight.semibold,
-    color: colors.textMain,
+    color: colors.primary,
   },
   earlyAccessSub: {
     fontSize: fontSize.sm,
@@ -445,7 +453,7 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: 'rgba(0,0,0,0.35)',
+    backgroundColor: 'rgba(0,0,0,0.3)',
     padding: spacing.lg,
   },
   editSheet: {
@@ -467,7 +475,7 @@ const styles = StyleSheet.create({
     padding: spacing.md,
     fontSize: fontSize.md,
     color: colors.textMain,
-    borderWidth: 1,
+    borderWidth: 1.5,
     borderColor: colors.border,
   },
   editActions: {
@@ -479,7 +487,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: 14,
     borderRadius: radius.full,
-    borderWidth: 1,
+    borderWidth: 1.5,
     borderColor: colors.border,
   },
   editCancelText: {
@@ -504,7 +512,7 @@ const styles = StyleSheet.create({
   },
   timeOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.35)',
+    backgroundColor: 'rgba(0,0,0,0.3)',
     justifyContent: 'center',
     alignItems: 'center',
   },

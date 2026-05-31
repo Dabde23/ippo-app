@@ -13,9 +13,9 @@ import { BadgeModal } from './BadgeModal';
 const Tab = createBottomTabNavigator();
 
 const TAB_ICONS: Record<string, string> = {
-  Home:    '◻',
-  Timer:   '◷',
-  Profile: '◉',
+  Home:    '📋',
+  Timer:   '⏱',
+  Profile: '👤',
 };
 
 export function AppNavigator() {
@@ -42,7 +42,7 @@ export function AppNavigator() {
           },
           tabBarLabelStyle: {
             fontSize: fontSize.xs,
-            fontWeight: '500',
+            fontWeight: '600',
           },
           tabBarIcon: ({ color, size }) => (
             <Text style={{ fontSize: size - 4, color }}>{TAB_ICONS[route.name]}</Text>

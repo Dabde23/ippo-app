@@ -20,11 +20,11 @@ export function XPBar({ xp }: Props) {
 
   return (
     <View style={styles.container}>
-      <View style={styles.topRow}>
+      <View style={styles.row}>
+        <Text style={styles.xpValue}>⚡ {xp} XP</Text>
         <Text style={styles.hint}>
-          {isMaxed ? '全バッジ獲得！' : `バッジまで ${remaining} XP`}
+          {isMaxed ? '全バッジ獲得！' : `次のバッジまで ${remaining} XP`}
         </Text>
-        <Text style={styles.xpValue}>{xp} XP</Text>
       </View>
       <View style={styles.track}>
         <View style={[styles.fill, { width: `${progress * 100}%` as any }]} />
@@ -36,25 +36,25 @@ export function XPBar({ xp }: Props) {
 const styles = StyleSheet.create({
   container: {
     paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm,
+    paddingBottom: spacing.sm,
     gap: spacing.xs,
   },
-  topRow: {
+  row: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+  },
+  xpValue: {
+    fontSize: fontSize.xs,
+    fontWeight: fontWeight.bold,
+    color: colors.xpGold,
   },
   hint: {
     fontSize: fontSize.xs,
     color: colors.textSub,
   },
-  xpValue: {
-    fontSize: fontSize.xs,
-    fontWeight: fontWeight.semibold,
-    color: colors.xpGold,
-  },
   track: {
-    height: 4,
+    height: 5,
     backgroundColor: colors.border,
     borderRadius: radius.full,
     overflow: 'hidden',
