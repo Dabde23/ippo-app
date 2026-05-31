@@ -1,14 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import {
-  View,
-  Text,
-  StyleSheet,
-  Pressable,
-  TextInput,
-  Modal,
-  SafeAreaView,
-  ScrollView,
-  Platform,
+  View, Text, StyleSheet, Pressable, TextInput,
+  Modal, SafeAreaView, ScrollView, Platform,
 } from 'react-native';
 import { XPBar } from '../components/XPBar';
 import { TaskCard } from '../components/TaskCard';
@@ -50,208 +43,205 @@ export function HomeScreen() {
   const handleComplete = useCallback(() => {
     if (!currentTask) return;
     completeTask(currentTask.id);
-    const next = pickRandom(availableTasks, currentTask.id) as Task | null;
-    setCurrentTaskId(next?.id ?? null);
+    setCurrentTaskId((pickRandom(availableTasks, currentTask.id) as Task | null)?.id ?? null);
   }, [currentTask, availableTasks]);
 
   const handleSkip = useCallback(() => {
     if (!currentTask) return;
     skipTask(currentTask.id);
-    const next = pickRandom(availableTasks, currentTask.id) as Task | null;
-    setCurrentTaskId(next?.id ?? null);
+    setCurrentTaskId((pickRandom(availableTasks, currentTask.id) as Task | null)?.id ?? null);
   }, [currentTask, availableTasks]);
 
   function handleAddSubmit() {
     const title = inputTitle.trim();
     if (!title) return;
     const newId = addTask(title);
-    setInputTitle('');
-    setAddInputVisible(false);
+    setInputTitle(''); setAddInputVisible(false);
     setCurrentTaskId((prev) => prev ?? newId);
   }
 
   function openEdit(task: Task) { setEditingTask(task); setEditTitle(task.title); }
-
   function handleEditSave() {
     if (!editingTask || !editTitle.trim()) return;
     useAppStore.getState().editTask(editingTask.id, editTitle.trim());
-    setEditingTask(null);
-    setEditTitle('');
+    setEditingTask(null); setEditTitle('');
   }
 
   const available = availableTaskCount();
   const completed = completedTaskCount();
-  const dateStr = new Date().toLocaleDateString('ja-JP', { month: 'long', day: 'numeric', weekday: 'short' });
+  const dateStr = new Date().toLocaleDateString('ja-JP', { year: 'numeric', month: 'long', day: 'numeric', weekday: 'short' });
 
   return (
     <SafeAreaView style={styles.safe}>
 
-      {/* ── HEADER (sky blue) ── */}
+      {/* ── HEADER ── */}
       <View style={styles.header}>
-        <View style={styles.headerTop}>
-          <View>
+        <View style={styles.headerRule} />
+        <View style={styles.headerContent}>
+          <View style={styles.headerLeft}>
             <Text style={styles.appName}>いっぽ</Text>
             <Text style={styles.dateLabel}>{dateStr}</Text>
           </View>
-          <View style={styles.headerBadges}>
+          <View style={styles.headerRight}>
             {streak >= 2 && (
-              <View style={styles.streakChip}>
-                <Text style={styles.streakChipText}>🔥 {streak}日</Text>
+              <View style={styles.streakTag}>
+                <Text style={styles.streakTagText}>🔥 {streak}</Text>
               </View>
             )}
-            <View style={styles.completedChip}>
-              <Text style={styles.completedChipNum}>{completed}</Text>
-              <Text style={styles.completedChipLabel}> 完了</Text>
+            <View style={styles.completedTag}>
+              <Text style={styles.completedTagNum}>{completed}</Text>
+              <Text style={styles.completedTagLabel}>DONE</Text>
             </View>
           </View>
         </View>
-        <XPBar xp={xp} variant="header" />
+        <XPBar xp={xp} />
+        <View style={styles.headerRule} />
       </View>
 
-      {/* ── CONTENT (light bg, rounded top) ── */}
-      <View style={styles.content}>
-        <ScrollView
-          style={styles.scroll}
-          contentContainerStyle={styles.scrollContent}
-          showsVerticalScrollIndicator={false}
-          keyboardShouldPersistTaps="handled"
-        >
-          {/* Focus area */}
-          {currentTask ? (
-            <View style={styles.focusSection}>
-              <Text style={styles.focusLabel}>今これをやろう</Text>
-              <View style={styles.focusCard}>
-                <View style={styles.focusAccentBar} />
-                <View style={styles.focusBody}>
-                  <Text style={styles.focusTitle}>{currentTask.title}</Text>
-                  <View style={styles.xpPill}>
-                    <Text style={styles.xpPillText}>完了で +{XP_PER_TASK} XP</Text>
-                  </View>
+      {/* ── SCROLL CONTENT ── */}
+      <ScrollView
+        style={styles.scroll}
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
+      >
+        {currentTask ? (
+          <>
+            {/* Section label */}
+            <Text style={styles.sectionTag}>TODAY'S FOCUS</Text>
+
+            {/* Focus card */}
+            <View style={styles.focusCard}>
+              <View style={styles.focusCardBar} />
+              <View style={styles.focusCardBody}>
+                <Text style={styles.focusTitle}>{currentTask.title}</Text>
+                <View style={styles.focusFooter}>
+                  <Text style={styles.focusXp}>+{XP_PER_TASK} XP</Text>
                 </View>
               </View>
-              <View style={styles.actionRow}>
-                <Pressable
-                  style={({ pressed }) => [styles.skipBtn, pressed && styles.btnPressed]}
-                  onPress={handleSkip}
-                >
-                  <Text style={styles.skipBtnText}>あとで</Text>
-                </Pressable>
-                <Pressable
-                  style={({ pressed }) => [styles.doneBtn, pressed && styles.doneBtnPressed]}
-                  onPress={handleComplete}
-                >
-                  <Text style={styles.doneBtnText}>やった！ ✓</Text>
-                </Pressable>
-              </View>
             </View>
-          ) : tasks.length === 0 ? (
-            <View style={styles.emptyState}>
-              <Text style={styles.emptyEmoji}>✨</Text>
-              <Text style={styles.emptyTitle}>タスクを追加しよう</Text>
-              <Text style={styles.emptyHint}>思いついたことを何でも書いてみて</Text>
-            </View>
-          ) : (
-            <View style={styles.emptyState}>
-              <Text style={styles.emptyEmoji}>🎉</Text>
-              <Text style={styles.emptyTitle}>今日はここまで！</Text>
-              <Text style={styles.emptyHint}>残りは明日また表示されます</Text>
-            </View>
-          )}
 
-          {/* Next tasks preview */}
-          {nextTasks.length > 0 && (
-            <View style={styles.nextSection}>
-              <Text style={styles.nextLabel}>次のタスク</Text>
-              {nextTasks.map((t) => (
-                <View key={t.id} style={styles.nextRow}>
-                  <View style={styles.nextDot} />
-                  <Text style={styles.nextTitle} numberOfLines={1}>{t.title}</Text>
-                </View>
-              ))}
-              {available > 2 && (
-                <Text style={styles.nextMore}>他 {available - 2} 件…</Text>
-              )}
-            </View>
-          )}
-
-          {/* View all link */}
-          {available > 0 && (
-            <Pressable
-              style={({ pressed }) => [styles.viewAllBtn, pressed && styles.viewAllBtnPressed]}
-              onPress={() => setListModalVisible(true)}
-            >
-              <Text style={styles.viewAllText}>全タスクを見る  {available} 件 →</Text>
-            </Pressable>
-          )}
-        </ScrollView>
-
-        {/* Bottom: add task */}
-        <View style={styles.bottomBar}>
-          {addInputVisible ? (
-            <View style={styles.inputRow}>
-              <TextInput
-                style={styles.textInput}
-                placeholder="何をしますか？"
-                placeholderTextColor={colors.textDisabled}
-                value={inputTitle}
-                onChangeText={setInputTitle}
-                autoFocus
-                returnKeyType="done"
-                onSubmitEditing={handleAddSubmit}
-                maxLength={100}
-              />
+            {/* Action buttons */}
+            <View style={styles.actionRow}>
               <Pressable
-                style={({ pressed }) => [styles.addBtn, !inputTitle.trim() && styles.addBtnDisabled, pressed && styles.addBtnPressed]}
-                onPress={handleAddSubmit}
-                disabled={!inputTitle.trim()}
+                style={({ pressed }) => [styles.skipBtn, pressed && { opacity: 0.65 }]}
+                onPress={handleSkip}
               >
-                <Text style={styles.addBtnText}>追加</Text>
+                <Text style={styles.skipBtnText}>あとで</Text>
               </Pressable>
-              <Pressable style={styles.cancelBtn} onPress={() => { setAddInputVisible(false); setInputTitle(''); }}>
-                <Text style={styles.cancelBtnText}>×</Text>
+              <Pressable
+                style={({ pressed }) => [styles.doneBtn, pressed && { backgroundColor: colors.primaryDark }]}
+                onPress={handleComplete}
+              >
+                <Text style={styles.doneBtnText}>やった！</Text>
               </Pressable>
             </View>
-          ) : (
+          </>
+        ) : tasks.length === 0 ? (
+          <View style={styles.emptyState}>
+            <Text style={styles.emptyNum}>00</Text>
+            <View style={styles.headerRule} />
+            <Text style={styles.emptyTitle}>タスクを追加しよう</Text>
+            <Text style={styles.emptyHint}>思いついたことを何でも書いてみて</Text>
+          </View>
+        ) : (
+          <View style={styles.emptyState}>
+            <Text style={styles.emptyNum}>✓</Text>
+            <View style={styles.headerRule} />
+            <Text style={styles.emptyTitle}>今日はここまで！</Text>
+            <Text style={styles.emptyHint}>残りは明日また表示されます</Text>
+          </View>
+        )}
+
+        {/* Next tasks */}
+        {nextTasks.length > 0 && (
+          <View style={styles.nextSection}>
+            <Text style={styles.sectionTag}>NEXT</Text>
+            {nextTasks.map((t, i) => (
+              <View key={t.id} style={styles.nextRow}>
+                <Text style={styles.nextIndex}>{String(i + 2).padStart(2, '0')}</Text>
+                <Text style={styles.nextTitle} numberOfLines={1}>{t.title}</Text>
+              </View>
+            ))}
+            {available > 2 && (
+              <Text style={styles.nextMore}>他 {available - 2} 件</Text>
+            )}
+          </View>
+        )}
+
+        {/* View all */}
+        {available > 0 && (
+          <Pressable
+            style={({ pressed }) => [styles.viewAllBtn, pressed && { opacity: 0.5 }]}
+            onPress={() => setListModalVisible(true)}
+          >
+            <Text style={styles.viewAllText}>全タスクを見る — {available} 件</Text>
+          </Pressable>
+        )}
+
+        <View style={{ height: spacing.xxl }} />
+      </ScrollView>
+
+      {/* ── BOTTOM BAR ── */}
+      <View style={styles.bottomBar}>
+        {addInputVisible ? (
+          <View style={styles.inputRow}>
+            <TextInput
+              style={styles.textInput}
+              placeholder="何をしますか？"
+              placeholderTextColor={colors.textDisabled}
+              value={inputTitle}
+              onChangeText={setInputTitle}
+              autoFocus
+              returnKeyType="done"
+              onSubmitEditing={handleAddSubmit}
+              maxLength={100}
+            />
             <Pressable
-              style={({ pressed }) => [styles.fab, pressed && styles.fabPressed]}
-              onPress={() => setAddInputVisible(true)}
+              style={({ pressed }) => [styles.addBtn, !inputTitle.trim() && styles.addBtnDisabled, pressed && { opacity: 0.8 }]}
+              onPress={handleAddSubmit}
+              disabled={!inputTitle.trim()}
             >
-              <Text style={styles.fabIcon}>＋</Text>
-              <Text style={styles.fabText}>タスクを追加</Text>
+              <Text style={styles.addBtnText}>追加</Text>
             </Pressable>
-          )}
-        </View>
+            <Pressable onPress={() => { setAddInputVisible(false); setInputTitle(''); }}>
+              <Text style={styles.cancelText}>×</Text>
+            </Pressable>
+          </View>
+        ) : (
+          <Pressable
+            style={({ pressed }) => [styles.fab, pressed && { backgroundColor: colors.primaryDark }]}
+            onPress={() => setAddInputVisible(true)}
+          >
+            <Text style={styles.fabText}>＋ タスクを追加</Text>
+          </Pressable>
+        )}
       </View>
 
       {/* ── MODAL: Task list ── */}
       <Modal visible={listModalVisible} animationType="slide" transparent>
-        <View style={styles.overlay}>
-          <View style={styles.sheet}>
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalSheet}>
             <View style={styles.sheetHandle} />
             <View style={styles.sheetHeader}>
-              <Text style={styles.sheetTitle}>全タスク</Text>
-              <Pressable onPress={() => setListModalVisible(false)} style={styles.closeBtn}>
-                <Text style={styles.closeBtnText}>×</Text>
+              <Text style={styles.sheetTitle}>ALL TASKS</Text>
+              <Pressable onPress={() => setListModalVisible(false)}>
+                <Text style={styles.sheetClose}>×</Text>
               </Pressable>
             </View>
-            <ScrollView showsVerticalScrollIndicator={false}>
+            <View style={styles.headerRule} />
+            <ScrollView showsVerticalScrollIndicator={false} style={{ marginTop: spacing.md }}>
               {availableTasks.length > 0 && (
-                <>
-                  <Text style={styles.sheetSection}>残り {availableTasks.length} 件</Text>
-                  {availableTasks.map((t) => <TaskCard key={t.id} task={t} onEdit={() => openEdit(t)} />)}
-                </>
+                <><Text style={styles.sheetSection}>残り {availableTasks.length} 件</Text>
+                  {availableTasks.map((t) => <TaskCard key={t.id} task={t} onEdit={() => openEdit(t)} />)}</>
               )}
               {skippedTasks.length > 0 && (
-                <>
-                  <Text style={styles.sheetSection}>今日あとで  {skippedTasks.length} 件</Text>
-                  {skippedTasks.map((t) => <TaskCard key={t.id} task={t} onEdit={() => openEdit(t)} />)}
-                </>
+                <><Text style={styles.sheetSection}>今日あとで {skippedTasks.length} 件</Text>
+                  {skippedTasks.map((t) => <TaskCard key={t.id} task={t} onEdit={() => openEdit(t)} />)}</>
               )}
               {completedTasks.length > 0 && (
-                <>
-                  <Text style={styles.sheetSection}>完了  {completedTasks.length} 件</Text>
-                  {completedTasks.map((t) => <TaskCard key={t.id} task={t} onEdit={() => openEdit(t)} />)}
-                </>
+                <><Text style={styles.sheetSection}>完了 {completedTasks.length} 件</Text>
+                  {completedTasks.map((t) => <TaskCard key={t.id} task={t} onEdit={() => openEdit(t)} />)}</>
               )}
               {tasks.length === 0 && <Text style={styles.sheetEmpty}>タスクがありません</Text>}
               <View style={{ height: spacing.xxl }} />
@@ -260,30 +250,29 @@ export function HomeScreen() {
         </View>
       </Modal>
 
-      {/* ── MODAL: Edit task ── */}
+      {/* ── MODAL: Edit ── */}
       <Modal visible={!!editingTask} animationType="fade" transparent>
         <View style={styles.editOverlay}>
           <View style={styles.editSheet}>
-            <Text style={styles.editTitle}>タスクを編集</Text>
+            <Text style={styles.editLabel}>EDIT TASK</Text>
+            <View style={styles.headerRule} />
             <TextInput
               style={styles.editInput}
               value={editTitle}
               onChangeText={setEditTitle}
-              autoFocus
-              maxLength={100}
-              returnKeyType="done"
+              autoFocus maxLength={100} returnKeyType="done"
               onSubmitEditing={handleEditSave}
               placeholderTextColor={colors.textDisabled}
             />
             <View style={styles.editActions}>
               <Pressable
-                style={({ pressed }) => [styles.editCancelBtn, pressed && styles.btnPressed]}
+                style={({ pressed }) => [styles.editCancelBtn, pressed && { opacity: 0.6 }]}
                 onPress={() => { setEditingTask(null); setEditTitle(''); }}
               >
                 <Text style={styles.editCancelText}>キャンセル</Text>
               </Pressable>
               <Pressable
-                style={({ pressed }) => [styles.editSaveBtn, !editTitle.trim() && styles.editSaveBtnDisabled, pressed && styles.editSaveBtnPressed]}
+                style={({ pressed }) => [styles.editSaveBtn, !editTitle.trim() && styles.editSaveBtnDisabled, pressed && { opacity: 0.8 }]}
                 onPress={handleEditSave}
                 disabled={!editTitle.trim()}
               >
@@ -300,255 +289,246 @@ export function HomeScreen() {
 const styles = StyleSheet.create({
   safe: {
     flex: 1,
-    backgroundColor: colors.primary,
+    backgroundColor: colors.background,
   },
 
   // ── Header ──
   header: {
     paddingHorizontal: spacing.md,
     paddingTop: spacing.md,
-    paddingBottom: spacing.xl + spacing.lg,
-    gap: spacing.md,
+    paddingBottom: spacing.sm,
+    gap: spacing.sm,
   },
-  headerTop: {
+  headerRule: {
+    height: 1,
+    backgroundColor: colors.ink,
+  },
+  headerContent: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'flex-start',
+    alignItems: 'flex-end',
+    paddingVertical: spacing.xs,
+  },
+  headerLeft: {
+    gap: 2,
   },
   appName: {
-    fontSize: fontSize.xxl,
-    fontWeight: fontWeight.bold,
-    color: colors.headerText,
-    letterSpacing: -0.5,
+    fontSize: fontSize.xxxl,
+    fontWeight: fontWeight.black,
+    color: colors.ink,
+    letterSpacing: -2,
+    lineHeight: 46,
   },
   dateLabel: {
-    fontSize: fontSize.sm,
-    color: colors.headerTextSub,
-    marginTop: 2,
+    fontSize: fontSize.xs,
+    color: colors.textSub,
+    letterSpacing: 1,
+    textTransform: 'uppercase',
   },
-  headerBadges: {
+  headerRight: {
     flexDirection: 'row',
     gap: spacing.sm,
     alignItems: 'center',
+    paddingBottom: spacing.xs,
   },
-  streakChip: {
-    backgroundColor: 'rgba(255,255,255,0.2)',
-    borderRadius: radius.full,
-    paddingHorizontal: spacing.sm,
-    paddingVertical: 5,
+  streakTag: {
     borderWidth: 1,
-    borderColor: colors.headerBorder,
+    borderColor: colors.primary,
+    borderRadius: radius.sm,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: 3,
   },
-  streakChipText: {
+  streakTagText: {
     fontSize: fontSize.xs,
-    color: colors.headerText,
-    fontWeight: fontWeight.semibold,
+    color: colors.primary,
+    fontWeight: fontWeight.bold,
+    letterSpacing: 0.5,
   },
-  completedChip: {
+  completedTag: {
     flexDirection: 'row',
     alignItems: 'baseline',
-    backgroundColor: 'rgba(255,255,255,0.2)',
-    borderRadius: radius.full,
-    paddingHorizontal: spacing.sm,
-    paddingVertical: 5,
+    gap: 3,
     borderWidth: 1,
-    borderColor: colors.headerBorder,
+    borderColor: colors.border,
+    borderRadius: radius.sm,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: 3,
   },
-  completedChipNum: {
+  completedTagNum: {
     fontSize: fontSize.md,
-    fontWeight: fontWeight.bold,
-    color: colors.headerText,
+    fontWeight: fontWeight.black,
+    color: colors.ink,
   },
-  completedChipLabel: {
+  completedTagLabel: {
     fontSize: fontSize.xs,
-    color: colors.headerTextSub,
+    color: colors.textSub,
+    letterSpacing: 1,
   },
 
-  // ── Content ──
-  content: {
-    flex: 1,
-    backgroundColor: colors.background,
-    borderTopLeftRadius: radius.xxl,
-    borderTopRightRadius: radius.xxl,
-    marginTop: -spacing.lg,
-    overflow: 'hidden',
-  },
+  // ── Scroll ──
   scroll: {
     flex: 1,
   },
   scrollContent: {
-    padding: spacing.md,
+    paddingHorizontal: spacing.md,
     paddingTop: spacing.lg,
-    gap: spacing.lg,
     flexGrow: 1,
   },
+  sectionTag: {
+    fontSize: fontSize.xs,
+    fontWeight: fontWeight.bold,
+    color: colors.primary,
+    letterSpacing: 2.5,
+    textTransform: 'uppercase',
+    marginBottom: spacing.md,
+  },
 
-  // ── Focus task ──
-  focusSection: {
-    gap: spacing.md,
-  },
-  focusLabel: {
-    fontSize: fontSize.sm,
-    color: colors.textSub,
-    fontWeight: fontWeight.medium,
-    textAlign: 'center',
-    letterSpacing: 0.3,
-  },
+  // ── Focus card ──
   focusCard: {
     backgroundColor: colors.surface,
-    borderRadius: radius.xl,
+    borderRadius: radius.lg,
     overflow: 'hidden',
-    borderWidth: 1,
-    borderColor: colors.border,
+    marginBottom: spacing.lg,
     ...shadow.card,
   },
-  focusAccentBar: {
-    height: 5,
+  focusCardBar: {
+    height: 4,
     backgroundColor: colors.primary,
-    width: '100%',
   },
-  focusBody: {
+  focusCardBody: {
     padding: spacing.xl,
-    alignItems: 'center',
     gap: spacing.md,
   },
   focusTitle: {
-    fontSize: 26,
-    fontWeight: fontWeight.bold,
-    color: colors.textMain,
-    textAlign: 'center',
-    lineHeight: 36,
+    fontSize: 30,
+    fontWeight: fontWeight.black,
+    color: colors.ink,
+    lineHeight: 38,
+    letterSpacing: -0.5,
   },
-  xpPill: {
-    backgroundColor: '#FEF3C7',
-    borderRadius: radius.full,
-    paddingHorizontal: spacing.md,
-    paddingVertical: 5,
-    borderWidth: 1,
-    borderColor: '#FDE68A',
+  focusFooter: {
+    flexDirection: 'row',
+    alignItems: 'center',
   },
-  xpPillText: {
+  focusXp: {
     fontSize: fontSize.xs,
-    color: colors.xpGold,
     fontWeight: fontWeight.bold,
+    color: colors.primary,
+    letterSpacing: 1.5,
+    textTransform: 'uppercase',
+    borderWidth: 1,
+    borderColor: colors.primary,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: 3,
+    borderRadius: radius.sm,
   },
+
+  // ── Action buttons ──
   actionRow: {
     flexDirection: 'row',
     gap: spacing.sm,
+    marginBottom: spacing.xl,
   },
   skipBtn: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
     paddingVertical: 14,
-    borderRadius: radius.full,
+    borderRadius: radius.md,
     borderWidth: 1.5,
-    borderColor: colors.border,
-    backgroundColor: colors.surface,
+    borderColor: colors.ink,
+    backgroundColor: 'transparent',
   },
   skipBtnText: {
     fontSize: fontSize.md,
-    color: colors.textSub,
-    fontWeight: fontWeight.medium,
+    color: colors.ink,
+    fontWeight: fontWeight.bold,
+    letterSpacing: 0.5,
   },
   doneBtn: {
     flex: 2,
     alignItems: 'center',
     justifyContent: 'center',
     paddingVertical: 14,
-    borderRadius: radius.full,
+    borderRadius: radius.md,
     backgroundColor: colors.primary,
-    ...shadow.soft,
-  },
-  doneBtnPressed: {
-    backgroundColor: colors.primaryDark,
   },
   doneBtnText: {
     fontSize: fontSize.md,
     color: colors.surface,
-    fontWeight: fontWeight.bold,
-    letterSpacing: 0.3,
-  },
-  btnPressed: {
-    opacity: 0.7,
+    fontWeight: fontWeight.black,
+    letterSpacing: 0.5,
   },
 
   // ── Empty states ──
   emptyState: {
-    alignItems: 'center',
-    gap: spacing.sm,
     paddingVertical: spacing.xl,
+    gap: spacing.md,
   },
-  emptyEmoji: {
-    fontSize: 56,
+  emptyNum: {
+    fontSize: fontSize.display,
+    fontWeight: fontWeight.black,
+    color: colors.surfaceAlt,
+    letterSpacing: -3,
+    lineHeight: 60,
   },
   emptyTitle: {
     fontSize: fontSize.xl,
-    fontWeight: fontWeight.bold,
-    color: colors.textMain,
-    textAlign: 'center',
+    fontWeight: fontWeight.black,
+    color: colors.ink,
+    letterSpacing: -0.5,
   },
   emptyHint: {
     fontSize: fontSize.sm,
     color: colors.textSub,
-    textAlign: 'center',
     lineHeight: 20,
   },
 
-  // ── Next tasks preview ──
+  // ── Next tasks ──
   nextSection: {
-    backgroundColor: colors.surface,
-    borderRadius: radius.lg,
-    padding: spacing.md,
+    marginBottom: spacing.lg,
     gap: spacing.sm,
-    borderWidth: 1,
-    borderColor: colors.border,
-  },
-  nextLabel: {
-    fontSize: fontSize.xs,
-    fontWeight: fontWeight.semibold,
-    color: colors.textSub,
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-    marginBottom: spacing.xs,
   },
   nextRow: {
     flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.sm,
-    paddingVertical: 3,
+    alignItems: 'baseline',
+    gap: spacing.md,
+    paddingVertical: spacing.xs,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.surfaceAlt,
   },
-  nextDot: {
-    width: 7,
-    height: 7,
-    borderRadius: radius.full,
-    backgroundColor: colors.border,
-    borderWidth: 1.5,
-    borderColor: colors.primary,
+  nextIndex: {
+    fontSize: fontSize.xs,
+    fontWeight: fontWeight.bold,
+    color: colors.primary,
+    letterSpacing: 1,
+    width: 24,
   },
   nextTitle: {
     flex: 1,
     fontSize: fontSize.sm,
     color: colors.textSub,
+    fontWeight: fontWeight.medium,
   },
   nextMore: {
     fontSize: fontSize.xs,
     color: colors.textMuted,
+    letterSpacing: 0.5,
     textAlign: 'right',
+    marginTop: spacing.xs,
   },
 
   // ── View all ──
   viewAllBtn: {
-    alignItems: 'center',
     paddingVertical: spacing.sm,
-  },
-  viewAllBtnPressed: {
-    opacity: 0.6,
+    marginBottom: spacing.md,
   },
   viewAllText: {
     fontSize: fontSize.sm,
-    color: colors.primary,
-    fontWeight: fontWeight.semibold,
+    color: colors.textSub,
+    fontWeight: fontWeight.bold,
+    letterSpacing: 0.5,
+    textDecorationLine: 'underline',
   },
 
   // ── Bottom bar ──
@@ -557,43 +537,32 @@ const styles = StyleSheet.create({
     paddingBottom: spacing.lg,
     paddingTop: spacing.sm,
     borderTopWidth: 1,
-    borderTopColor: colors.border,
+    borderTopColor: colors.ink,
     backgroundColor: colors.background,
   },
   fab: {
-    backgroundColor: colors.primary,
-    borderRadius: radius.full,
-    flexDirection: 'row',
+    backgroundColor: colors.ink,
+    borderRadius: radius.md,
     alignItems: 'center',
     justifyContent: 'center',
     paddingVertical: 15,
-    gap: spacing.sm,
-    ...shadow.card,
-  },
-  fabPressed: {
-    backgroundColor: colors.primaryDark,
-  },
-  fabIcon: {
-    fontSize: fontSize.lg,
-    color: colors.surface,
-    fontWeight: fontWeight.bold,
-    lineHeight: 22,
   },
   fabText: {
     fontSize: fontSize.md,
-    fontWeight: fontWeight.semibold,
+    fontWeight: fontWeight.black,
     color: colors.surface,
+    letterSpacing: 0.5,
   },
   inputRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.sm,
     backgroundColor: colors.surface,
-    borderRadius: radius.full,
+    borderRadius: radius.md,
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.sm,
-    borderWidth: 2,
-    borderColor: colors.primary,
+    borderWidth: 1.5,
+    borderColor: colors.ink,
   },
   textInput: {
     flex: 1,
@@ -603,37 +572,31 @@ const styles = StyleSheet.create({
   },
   addBtn: {
     backgroundColor: colors.primary,
-    borderRadius: radius.full,
+    borderRadius: radius.sm,
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.xs,
   },
   addBtnDisabled: {
     backgroundColor: colors.textDisabled,
   },
-  addBtnPressed: {
-    backgroundColor: colors.primaryDark,
-  },
   addBtnText: {
     color: colors.surface,
-    fontWeight: fontWeight.semibold,
+    fontWeight: fontWeight.bold,
     fontSize: fontSize.sm,
+    letterSpacing: 0.3,
   },
-  cancelBtn: {
-    paddingHorizontal: spacing.xs,
-  },
-  cancelBtnText: {
+  cancelText: {
     color: colors.textSub,
     fontSize: fontSize.lg,
     lineHeight: 22,
   },
 
-  // ── Modals ──
-  overlay: {
-    flex: 1,
-    justifyContent: 'flex-end',
-    backgroundColor: 'rgba(0,0,0,0.35)',
+  // ── Modal: list ──
+  modalOverlay: {
+    flex: 1, justifyContent: 'flex-end',
+    backgroundColor: 'rgba(26,16,7,0.45)',
   },
-  sheet: {
+  modalSheet: {
     backgroundColor: colors.background,
     borderTopLeftRadius: radius.xxl,
     borderTopRightRadius: radius.xxl,
@@ -641,8 +604,7 @@ const styles = StyleSheet.create({
     maxHeight: '84%',
   },
   sheetHandle: {
-    width: 36,
-    height: 4,
+    width: 36, height: 3,
     backgroundColor: colors.border,
     borderRadius: radius.full,
     alignSelf: 'center',
@@ -652,42 +614,35 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: spacing.md,
+    marginBottom: spacing.sm,
   },
   sheetTitle: {
     fontSize: fontSize.lg,
-    fontWeight: fontWeight.bold,
-    color: colors.textMain,
+    fontWeight: fontWeight.black,
+    color: colors.ink,
+    letterSpacing: 1,
   },
-  closeBtn: {
-    padding: spacing.xs,
-  },
-  closeBtnText: {
-    fontSize: fontSize.xl,
-    color: colors.textSub,
-    lineHeight: 26,
+  sheetClose: {
+    fontSize: fontSize.xl, color: colors.textSub, lineHeight: 26,
   },
   sheetSection: {
     fontSize: fontSize.xs,
-    color: colors.textMuted,
-    fontWeight: fontWeight.semibold,
+    fontWeight: fontWeight.bold,
+    color: colors.primary,
+    letterSpacing: 2,
     textTransform: 'uppercase',
-    letterSpacing: 0.5,
     marginTop: spacing.md,
     marginBottom: spacing.xs,
   },
   sheetEmpty: {
-    textAlign: 'center',
-    color: colors.textSub,
-    fontSize: fontSize.md,
-    marginTop: spacing.xl,
+    textAlign: 'center', color: colors.textSub,
+    fontSize: fontSize.md, marginTop: spacing.xl,
   },
+
+  // ── Modal: edit ──
   editOverlay: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: 'rgba(0,0,0,0.35)',
-    padding: spacing.lg,
+    flex: 1, justifyContent: 'center', alignItems: 'center',
+    backgroundColor: 'rgba(26,16,7,0.45)', padding: spacing.lg,
   },
   editSheet: {
     backgroundColor: colors.surface,
@@ -695,56 +650,44 @@ const styles = StyleSheet.create({
     padding: spacing.xl,
     width: '100%',
     gap: spacing.md,
-    ...shadow.card,
+    borderWidth: 1,
+    borderColor: colors.border,
   },
-  editTitle: {
-    fontSize: fontSize.lg,
+  editLabel: {
+    fontSize: fontSize.sm,
     fontWeight: fontWeight.bold,
-    color: colors.textMain,
-    textAlign: 'center',
+    color: colors.primary,
+    letterSpacing: 2,
+    textTransform: 'uppercase',
+    marginBottom: spacing.xs,
   },
   editInput: {
-    backgroundColor: colors.surfaceAlt,
+    backgroundColor: colors.background,
     borderRadius: radius.md,
     padding: spacing.md,
     fontSize: fontSize.md,
     color: colors.textMain,
     borderWidth: 1.5,
     borderColor: colors.border,
+    marginTop: spacing.sm,
   },
   editActions: {
     flexDirection: 'row',
     gap: spacing.sm,
   },
   editCancelBtn: {
-    flex: 1,
-    alignItems: 'center',
-    paddingVertical: 14,
-    borderRadius: radius.full,
-    borderWidth: 1.5,
-    borderColor: colors.border,
+    flex: 1, alignItems: 'center', paddingVertical: 13,
+    borderRadius: radius.md, borderWidth: 1.5, borderColor: colors.border,
   },
   editCancelText: {
-    fontSize: fontSize.md,
-    color: colors.textSub,
-    fontWeight: fontWeight.medium,
+    fontSize: fontSize.md, color: colors.textSub, fontWeight: fontWeight.semibold,
   },
   editSaveBtn: {
-    flex: 2,
-    alignItems: 'center',
-    paddingVertical: 14,
-    borderRadius: radius.full,
-    backgroundColor: colors.primary,
+    flex: 2, alignItems: 'center', paddingVertical: 13,
+    borderRadius: radius.md, backgroundColor: colors.primary,
   },
-  editSaveBtnPressed: {
-    backgroundColor: colors.primaryDark,
-  },
-  editSaveBtnDisabled: {
-    backgroundColor: colors.textDisabled,
-  },
+  editSaveBtnDisabled: { backgroundColor: colors.textDisabled },
   editSaveText: {
-    fontSize: fontSize.md,
-    color: colors.surface,
-    fontWeight: fontWeight.semibold,
+    fontSize: fontSize.md, color: colors.surface, fontWeight: fontWeight.bold,
   },
 });

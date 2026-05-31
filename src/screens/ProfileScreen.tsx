@@ -50,125 +50,134 @@ export function ProfileScreen() {
 
   return (
     <SafeAreaView style={styles.safe}>
-
       {/* ── HEADER ── */}
       <View style={styles.header}>
-        <Text style={styles.title}>プロフィール</Text>
+        <View style={styles.rule} />
+        <View style={styles.headerContent}>
+          <Text style={styles.title}>プロフィール</Text>
+        </View>
+
+        {/* Stats row */}
         <View style={styles.statsRow}>
-          <View style={styles.statCard}>
+          <View style={styles.statItem}>
             <Text style={styles.statNum}>{completedTotal}</Text>
-            <Text style={styles.statLabel}>完了</Text>
+            <Text style={styles.statLabel}>DONE</Text>
           </View>
-          <View style={[styles.statCard, styles.statCardMid]}>
+          <View style={styles.statDivider} />
+          <View style={styles.statItem}>
             <Text style={styles.statNum}>{xp}</Text>
             <Text style={styles.statLabel}>XP</Text>
           </View>
-          <View style={styles.statCard}>
+          <View style={styles.statDivider} />
+          <View style={styles.statItem}>
             <Text style={styles.statNum}>{badges.length}</Text>
-            <Text style={styles.statLabel}>バッジ</Text>
+            <Text style={styles.statLabel}>BADGE</Text>
           </View>
         </View>
-        <XPBar xp={xp} variant="header" />
+
+        <XPBar xp={xp} />
+        <View style={styles.rule} />
       </View>
 
       {/* ── CONTENT ── */}
-      <View style={styles.content}>
-        <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
+      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
 
-          {/* Task list */}
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>タスク一覧</Text>
-            {tasks.length === 0 ? (
-              <View style={styles.emptyCard}>
-                <Text style={styles.emptyCardText}>タスクがありません</Text>
-              </View>
-            ) : (
-              <>
-                {availableTasks.length > 0 && (
-                  <><Text style={styles.groupLabel}>残り {availableTasks.length} 件</Text>
-                    {availableTasks.map((t) => <TaskCard key={t.id} task={t} onEdit={() => openEdit(t)} />)}</>
-                )}
-                {skippedTasks.length > 0 && (
-                  <><Text style={styles.groupLabel}>今日あとで  {skippedTasks.length} 件</Text>
-                    {skippedTasks.map((t) => <TaskCard key={t.id} task={t} onEdit={() => openEdit(t)} />)}</>
-                )}
-                {completedTasks.length > 0 && (
-                  <><Text style={styles.groupLabel}>完了  {completedTasks.length} 件</Text>
-                    {completedTasks.map((t) => <TaskCard key={t.id} task={t} onEdit={() => openEdit(t)} />)}</>
-                )}
-              </>
-            )}
-          </View>
-
-          {/* Badges */}
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>バッジ</Text>
-            {badges.length === 0 ? (
-              <View style={styles.emptyCard}>
-                <Text style={styles.emptyCardIcon}>🎖</Text>
-                <Text style={styles.emptyCardText}>タスクを完了して XP を貯めよう</Text>
-                <Text style={styles.emptyCardHint}>100 XP でバッジ獲得</Text>
-              </View>
-            ) : (
-              <View style={styles.badgeGrid}>
-                {badges.map((badge) => (
-                  <View key={badge.id} style={styles.badgeCard}>
-                    <Text style={styles.badgeEmoji}>{badge.emoji}</Text>
-                    <Text style={styles.badgeName}>{badge.name}</Text>
-                    <Text style={styles.badgeDate}>{badge.earnedAt}</Text>
-                  </View>
-                ))}
-              </View>
-            )}
-          </View>
-
-          {/* Reminder */}
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>リマインダー</Text>
-            <View style={styles.card}>
-              <View style={styles.reminderRow}>
-                <View style={{ flex: 1 }}>
-                  <Text style={styles.reminderLabel}>毎日の通知</Text>
-                  <Text style={styles.reminderSub}>
-                    {Platform.OS === 'web'
-                      ? 'モバイルアプリで利用できます'
-                      : reminderEnabled ? `毎日 ${reminderTime} に通知` : 'オフ'}
-                  </Text>
-                </View>
-                {Platform.OS !== 'web' && (
-                  <Pressable
-                    style={[styles.toggle, reminderEnabled && styles.toggleOn]}
-                    onPress={handleReminderToggle}
-                  >
-                    <Text style={styles.toggleText}>{reminderEnabled ? 'ON' : 'OFF'}</Text>
-                  </Pressable>
-                )}
-              </View>
-              {Platform.OS !== 'web' && reminderEnabled && (
-                <Pressable style={styles.timeBtn} onPress={() => setTimePickerVisible(true)}>
-                  <Text style={styles.timeBtnText}>時刻を変更: {reminderTime}</Text>
-                </Pressable>
-              )}
+        {/* Tasks */}
+        <View style={styles.section}>
+          <Text style={styles.sectionLabel}>TASKS</Text>
+          <View style={styles.rule} />
+          {tasks.length === 0 ? (
+            <View style={styles.emptyCard}>
+              <Text style={styles.emptyCardText}>タスクがありません</Text>
             </View>
-          </View>
+          ) : (
+            <>
+              {availableTasks.length > 0 && (
+                <><Text style={styles.groupLabel}>残り {availableTasks.length} 件</Text>
+                  {availableTasks.map((t) => <TaskCard key={t.id} task={t} onEdit={() => openEdit(t)} />)}</>
+              )}
+              {skippedTasks.length > 0 && (
+                <><Text style={styles.groupLabel}>あとで {skippedTasks.length} 件</Text>
+                  {skippedTasks.map((t) => <TaskCard key={t.id} task={t} onEdit={() => openEdit(t)} />)}</>
+              )}
+              {completedTasks.length > 0 && (
+                <><Text style={styles.groupLabel}>完了 {completedTasks.length} 件</Text>
+                  {completedTasks.map((t) => <TaskCard key={t.id} task={t} onEdit={() => openEdit(t)} />)}</>
+              )}
+            </>
+          )}
+        </View>
 
-          {/* Early access */}
-          <View style={styles.earlyAccessCard}>
-            <Text style={styles.earlyAccessTitle}>🎉 アーリーアクセス期間中</Text>
-            <Text style={styles.earlyAccessSub}>
-              現在、全機能を無料でご利用いただけます。{'\n'}ネイティブアプリ公開時に有料プランへ移行予定です。
-            </Text>
-          </View>
+        {/* Badges */}
+        <View style={styles.section}>
+          <Text style={styles.sectionLabel}>BADGES</Text>
+          <View style={styles.rule} />
+          {badges.length === 0 ? (
+            <View style={styles.emptyCard}>
+              <Text style={styles.emptyIcon}>🎖</Text>
+              <Text style={styles.emptyCardText}>タスクを完了して XP を貯めよう</Text>
+              <Text style={styles.emptyCardHint}>100 XP でバッジ獲得</Text>
+            </View>
+          ) : (
+            <View style={styles.badgeGrid}>
+              {badges.map((badge) => (
+                <View key={badge.id} style={styles.badgeCard}>
+                  <Text style={styles.badgeEmoji}>{badge.emoji}</Text>
+                  <Text style={styles.badgeName}>{badge.name}</Text>
+                  <Text style={styles.badgeDate}>{badge.earnedAt}</Text>
+                </View>
+              ))}
+            </View>
+          )}
+        </View>
 
-          <View style={{ height: spacing.xxl }} />
-        </ScrollView>
-      </View>
+        {/* Reminder */}
+        <View style={styles.section}>
+          <Text style={styles.sectionLabel}>REMINDER</Text>
+          <View style={styles.rule} />
+          <View style={styles.reminderRow}>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.reminderLabel}>毎日の通知</Text>
+              <Text style={styles.reminderSub}>
+                {Platform.OS === 'web'
+                  ? 'モバイルアプリで利用できます'
+                  : reminderEnabled ? `毎日 ${reminderTime} に通知` : 'オフ'}
+              </Text>
+            </View>
+            {Platform.OS !== 'web' && (
+              <Pressable
+                style={[styles.toggle, reminderEnabled && styles.toggleOn]}
+                onPress={handleReminderToggle}
+              >
+                <Text style={styles.toggleText}>{reminderEnabled ? 'ON' : 'OFF'}</Text>
+              </Pressable>
+            )}
+          </View>
+          {Platform.OS !== 'web' && reminderEnabled && (
+            <Pressable style={styles.timeBtn} onPress={() => setTimePickerVisible(true)}>
+              <Text style={styles.timeBtnText}>時刻を変更: {reminderTime}</Text>
+            </Pressable>
+          )}
+        </View>
+
+        {/* Early access */}
+        <View style={styles.noteCard}>
+          <Text style={styles.noteTitle}>EARLY ACCESS</Text>
+          <View style={styles.rule} />
+          <Text style={styles.noteText}>
+            現在、全機能を無料でご利用いただけます。{'\n'}ネイティブアプリ公開時に有料プランへ移行予定です。
+          </Text>
+        </View>
+
+        <View style={{ height: spacing.xxl }} />
+      </ScrollView>
 
       {/* Edit modal */}
       <Modal visible={!!editingTask} animationType="fade" transparent>
         <View style={styles.editOverlay}>
           <View style={styles.editSheet}>
-            <Text style={styles.editTitle}>タスクを編集</Text>
+            <Text style={styles.editLabel}>EDIT TASK</Text>
+            <View style={styles.rule} />
             <TextInput
               style={styles.editInput}
               value={editTitle}
@@ -179,7 +188,7 @@ export function ProfileScreen() {
             />
             <View style={styles.editActions}>
               <Pressable
-                style={({ pressed }) => [styles.editCancelBtn, pressed && { opacity: 0.7 }]}
+                style={({ pressed }) => [styles.editCancelBtn, pressed && { opacity: 0.6 }]}
                 onPress={() => { setEditingTask(null); setEditTitle(''); }}
               >
                 <Text style={styles.editCancelText}>キャンセル</Text>
@@ -200,11 +209,12 @@ export function ProfileScreen() {
       <Modal visible={timePickerVisible} transparent animationType="fade">
         <Pressable style={styles.timeOverlay} onPress={() => setTimePickerVisible(false)}>
           <View style={styles.timeSheet}>
-            <Text style={styles.timeSheetTitle}>通知時刻を選択</Text>
+            <Text style={styles.timeSheetLabel}>SELECT TIME</Text>
+            <View style={styles.rule} />
             {TIME_OPTIONS.map((t) => (
               <Pressable
                 key={t}
-                style={({ pressed }) => [styles.timeOption, reminderTime === t && styles.timeOptionActive, pressed && { opacity: 0.7 }]}
+                style={({ pressed }) => [styles.timeOption, reminderTime === t && styles.timeOptionActive, pressed && { opacity: 0.6 }]}
                 onPress={() => handleTimeSelect(t)}
               >
                 <Text style={[styles.timeOptionText, reminderTime === t && styles.timeOptionTextActive]}>{t}</Text>
@@ -220,151 +230,153 @@ export function ProfileScreen() {
 const styles = StyleSheet.create({
   safe: {
     flex: 1,
-    backgroundColor: colors.primary,
+    backgroundColor: colors.background,
   },
   header: {
     paddingHorizontal: spacing.md,
     paddingTop: spacing.md,
-    paddingBottom: spacing.xl + spacing.lg,
-    gap: spacing.lg,
+    paddingBottom: spacing.sm,
+    gap: spacing.sm,
+  },
+  rule: {
+    height: 1,
+    backgroundColor: colors.ink,
+  },
+  headerContent: {
+    paddingVertical: spacing.xs,
   },
   title: {
-    fontSize: fontSize.xl,
-    fontWeight: fontWeight.bold,
-    color: colors.headerText,
-    letterSpacing: -0.3,
+    fontSize: fontSize.xxxl,
+    fontWeight: fontWeight.black,
+    color: colors.ink,
+    letterSpacing: -2,
+    lineHeight: 46,
   },
   statsRow: {
     flexDirection: 'row',
-    gap: spacing.sm,
+    alignItems: 'center',
   },
-  statCard: {
+  statItem: {
     flex: 1,
     alignItems: 'center',
-    backgroundColor: 'rgba(255,255,255,0.18)',
-    borderRadius: radius.lg,
-    paddingVertical: spacing.md,
-    borderWidth: 1,
-    borderColor: colors.headerBorder,
+    paddingVertical: spacing.sm,
   },
-  statCardMid: {
-    backgroundColor: 'rgba(255,255,255,0.28)',
+  statDivider: {
+    width: 1,
+    height: 32,
+    backgroundColor: colors.border,
   },
   statNum: {
-    fontSize: fontSize.xl,
-    fontWeight: fontWeight.bold,
-    color: colors.headerText,
+    fontSize: fontSize.xxl,
+    fontWeight: fontWeight.black,
+    color: colors.ink,
+    letterSpacing: -1,
   },
   statLabel: {
     fontSize: fontSize.xs,
-    color: colors.headerTextSub,
+    color: colors.primary,
+    fontWeight: fontWeight.bold,
+    letterSpacing: 2,
     marginTop: 2,
   },
-  content: {
-    flex: 1,
-    backgroundColor: colors.background,
-    borderTopLeftRadius: radius.xxl,
-    borderTopRightRadius: radius.xxl,
-    marginTop: -spacing.lg,
-    overflow: 'hidden',
-  },
   scrollContent: {
-    padding: spacing.md,
+    paddingHorizontal: spacing.md,
     paddingTop: spacing.lg,
-    gap: spacing.lg,
+    gap: spacing.xl,
   },
   section: {
     gap: spacing.sm,
   },
-  sectionTitle: {
-    fontSize: fontSize.md,
-    fontWeight: fontWeight.semibold,
-    color: colors.textMain,
-  },
-  card: {
-    backgroundColor: colors.surface,
-    borderRadius: radius.lg,
-    padding: spacing.md,
-    borderWidth: 1,
-    borderColor: colors.border,
+  sectionLabel: {
+    fontSize: fontSize.xs,
+    fontWeight: fontWeight.bold,
+    color: colors.primary,
+    letterSpacing: 2.5,
+    textTransform: 'uppercase',
   },
   groupLabel: {
     fontSize: fontSize.xs,
     color: colors.textMuted,
-    fontWeight: fontWeight.semibold,
+    fontWeight: fontWeight.bold,
+    letterSpacing: 1,
     textTransform: 'uppercase',
-    letterSpacing: 0.5,
     marginTop: spacing.sm,
-    marginBottom: spacing.xs,
+    marginBottom: 2,
   },
   emptyCard: {
-    backgroundColor: colors.surface,
-    borderRadius: radius.lg,
-    padding: spacing.xl,
+    paddingVertical: spacing.xl,
     alignItems: 'center',
     gap: spacing.xs,
-    borderWidth: 1,
-    borderColor: colors.border,
   },
-  emptyCardIcon: { fontSize: 32, marginBottom: spacing.xs },
-  emptyCardText: { fontSize: fontSize.md, color: colors.textMain, fontWeight: fontWeight.medium, textAlign: 'center' },
-  emptyCardHint: { fontSize: fontSize.sm, color: colors.textSub, textAlign: 'center' },
+  emptyIcon: { fontSize: 28 },
+  emptyCardText: { fontSize: fontSize.md, color: colors.textSub, fontWeight: fontWeight.medium },
+  emptyCardHint: { fontSize: fontSize.sm, color: colors.textMuted },
   badgeGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: spacing.sm,
   },
   badgeCard: {
-    backgroundColor: colors.surface,
-    borderRadius: radius.lg,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: radius.md,
     padding: spacing.md,
     alignItems: 'center',
     width: '30%',
     gap: spacing.xs,
-    borderWidth: 1,
-    borderColor: colors.border,
+    backgroundColor: colors.surface,
   },
   badgeEmoji: { fontSize: 28 },
-  badgeName: { fontSize: fontSize.xs, color: colors.textMain, fontWeight: fontWeight.medium, textAlign: 'center' },
-  badgeDate: { fontSize: 10, color: colors.textMuted },
+  badgeName: { fontSize: fontSize.xs, color: colors.textMain, fontWeight: fontWeight.semibold, textAlign: 'center' },
+  badgeDate: { fontSize: 9, color: colors.textMuted, letterSpacing: 0.3 },
   reminderRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
+    paddingVertical: spacing.sm,
   },
-  reminderLabel: { fontSize: fontSize.md, fontWeight: fontWeight.semibold, color: colors.textMain },
-  reminderSub: { fontSize: fontSize.xs, color: colors.textSub, marginTop: spacing.xs },
+  reminderLabel: { fontSize: fontSize.md, fontWeight: fontWeight.bold, color: colors.textMain },
+  reminderSub: { fontSize: fontSize.xs, color: colors.textSub, marginTop: 2 },
   timeBtn: {
     backgroundColor: colors.surfaceAlt,
     borderRadius: radius.md,
     paddingVertical: spacing.sm,
     paddingHorizontal: spacing.md,
-    alignItems: 'center',
-    marginTop: spacing.sm,
+    alignSelf: 'flex-start',
   },
-  timeBtnText: { fontSize: fontSize.sm, color: colors.primary, fontWeight: fontWeight.medium },
+  timeBtnText: { fontSize: fontSize.sm, color: colors.primary, fontWeight: fontWeight.bold, letterSpacing: 0.5 },
   toggle: {
-    backgroundColor: colors.textDisabled,
-    borderRadius: radius.full,
+    backgroundColor: colors.surfaceAlt,
+    borderRadius: radius.sm,
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.xs,
+    borderWidth: 1.5,
+    borderColor: colors.border,
   },
-  toggleOn: { backgroundColor: colors.primary },
-  toggleText: { fontSize: fontSize.xs, fontWeight: fontWeight.bold, color: colors.surface },
-  earlyAccessCard: {
-    backgroundColor: colors.primaryLight,
-    borderRadius: radius.lg,
-    borderWidth: 1,
-    borderColor: '#BAE6FD',
+  toggleOn: { backgroundColor: colors.primary, borderColor: colors.primary },
+  toggleText: { fontSize: fontSize.xs, fontWeight: fontWeight.black, color: colors.ink, letterSpacing: 1 },
+  noteCard: {
+    borderWidth: 1.5,
+    borderColor: colors.primary,
+    borderRadius: radius.md,
     padding: spacing.md,
-    gap: spacing.xs,
-    alignItems: 'center',
+    gap: spacing.sm,
   },
-  earlyAccessTitle: { fontSize: fontSize.sm, fontWeight: fontWeight.semibold, color: colors.primary },
-  earlyAccessSub: { fontSize: fontSize.sm, color: colors.textSub, textAlign: 'center', lineHeight: 20 },
+  noteTitle: {
+    fontSize: fontSize.xs,
+    fontWeight: fontWeight.bold,
+    color: colors.primary,
+    letterSpacing: 2.5,
+  },
+  noteText: {
+    fontSize: fontSize.sm,
+    color: colors.textSub,
+    lineHeight: 20,
+    marginTop: spacing.xs,
+  },
   editOverlay: {
     flex: 1, justifyContent: 'center', alignItems: 'center',
-    backgroundColor: 'rgba(0,0,0,0.35)', padding: spacing.lg,
+    backgroundColor: 'rgba(26,16,7,0.5)', padding: spacing.lg,
   },
   editSheet: {
     backgroundColor: colors.surface,
@@ -372,25 +384,39 @@ const styles = StyleSheet.create({
     padding: spacing.xl,
     width: '100%',
     gap: spacing.md,
-    ...shadow.card,
+    borderWidth: 1,
+    borderColor: colors.border,
   },
-  editTitle: { fontSize: fontSize.lg, fontWeight: fontWeight.bold, color: colors.textMain, textAlign: 'center' },
+  editLabel: {
+    fontSize: fontSize.sm,
+    fontWeight: fontWeight.bold,
+    color: colors.primary,
+    letterSpacing: 2,
+  },
   editInput: {
-    backgroundColor: colors.surfaceAlt, borderRadius: radius.md,
-    padding: spacing.md, fontSize: fontSize.md, color: colors.textMain,
-    borderWidth: 1.5, borderColor: colors.border,
+    backgroundColor: colors.background,
+    borderRadius: radius.md,
+    padding: spacing.md,
+    fontSize: fontSize.md,
+    color: colors.textMain,
+    borderWidth: 1.5,
+    borderColor: colors.border,
+    marginTop: spacing.xs,
   },
   editActions: { flexDirection: 'row', gap: spacing.sm },
   editCancelBtn: {
-    flex: 1, alignItems: 'center', paddingVertical: 14,
-    borderRadius: radius.full, borderWidth: 1.5, borderColor: colors.border,
+    flex: 1, alignItems: 'center', paddingVertical: 13,
+    borderRadius: radius.md, borderWidth: 1.5, borderColor: colors.border,
   },
-  editCancelText: { fontSize: fontSize.md, color: colors.textSub, fontWeight: fontWeight.medium },
-  editSaveBtn: { flex: 2, alignItems: 'center', paddingVertical: 14, borderRadius: radius.full, backgroundColor: colors.primary },
+  editCancelText: { fontSize: fontSize.md, color: colors.textSub, fontWeight: fontWeight.semibold },
+  editSaveBtn: {
+    flex: 2, alignItems: 'center', paddingVertical: 13,
+    borderRadius: radius.md, backgroundColor: colors.primary,
+  },
   editSaveBtnDisabled: { backgroundColor: colors.textDisabled },
-  editSaveText: { fontSize: fontSize.md, color: colors.surface, fontWeight: fontWeight.semibold },
+  editSaveText: { fontSize: fontSize.md, color: colors.surface, fontWeight: fontWeight.bold },
   timeOverlay: {
-    flex: 1, backgroundColor: 'rgba(0,0,0,0.35)',
+    flex: 1, backgroundColor: 'rgba(26,16,7,0.5)',
     justifyContent: 'center', alignItems: 'center',
   },
   timeSheet: {
@@ -398,9 +424,12 @@ const styles = StyleSheet.create({
     padding: spacing.lg, width: 240, gap: spacing.xs,
     borderWidth: 1, borderColor: colors.border,
   },
-  timeSheetTitle: { fontSize: fontSize.md, fontWeight: fontWeight.bold, color: colors.textMain, textAlign: 'center', marginBottom: spacing.sm },
+  timeSheetLabel: {
+    fontSize: fontSize.xs, fontWeight: fontWeight.bold,
+    color: colors.primary, letterSpacing: 2.5, marginBottom: spacing.xs,
+  },
   timeOption: { paddingVertical: spacing.sm, paddingHorizontal: spacing.md, borderRadius: radius.md, alignItems: 'center' },
   timeOptionActive: { backgroundColor: colors.primaryLight },
   timeOptionText: { fontSize: fontSize.md, color: colors.textSub },
-  timeOptionTextActive: { color: colors.primary, fontWeight: fontWeight.semibold },
+  timeOptionTextActive: { color: colors.primary, fontWeight: fontWeight.bold },
 });

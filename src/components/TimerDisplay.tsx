@@ -11,14 +11,12 @@ interface Props {
 export function TimerDisplay({ seconds, isRunning, color }: Props) {
   const mins = Math.floor(seconds / 60).toString().padStart(2, '0');
   const secs = (seconds % 60).toString().padStart(2, '0');
-  const timeColor = color ?? (isRunning ? colors.primary : colors.textMain);
+  const timeColor = color ?? (isRunning ? colors.primary : colors.ink);
 
   return (
     <View style={styles.container}>
-      <Text style={[styles.time, { color: timeColor }]}>
-        {mins}:{secs}
-      </Text>
-      {seconds === 0 && <Text style={styles.done}>完了！</Text>}
+      <Text style={[styles.time, { color: timeColor }]}>{mins}:{secs}</Text>
+      {seconds === 0 && <Text style={styles.done}>DONE</Text>}
     </View>
   );
 }
@@ -30,14 +28,16 @@ const styles = StyleSheet.create({
   },
   time: {
     fontSize: 64,
-    fontWeight: fontWeight.bold,
-    letterSpacing: -2,
+    fontWeight: fontWeight.black,
+    letterSpacing: -3,
     fontVariant: ['tabular-nums'],
   },
   done: {
-    fontSize: fontSize.md,
+    fontSize: fontSize.sm,
     color: colors.success,
-    fontWeight: fontWeight.semibold,
+    fontWeight: fontWeight.bold,
+    letterSpacing: 3,
+    textTransform: 'uppercase',
     marginTop: spacing.sm,
   },
 });

@@ -13,9 +13,9 @@ import { BadgeModal } from './BadgeModal';
 const Tab = createBottomTabNavigator();
 
 const TAB_ICONS: Record<string, string> = {
-  Home:    '📋',
-  Timer:   '⏱',
-  Profile: '👤',
+  Home:    '◻',
+  Timer:   '◷',
+  Profile: '◉',
 };
 
 export function AppNavigator() {
@@ -32,24 +32,26 @@ export function AppNavigator() {
           tabBarInactiveTintColor: colors.textMuted,
           tabBarStyle: {
             backgroundColor: colors.surface,
-            borderTopWidth: 1,
-            borderTopColor: colors.border,
+            borderTopWidth: 1.5,
+            borderTopColor: colors.ink,
             paddingBottom: 6,
             paddingTop: 6,
             height: 62,
           },
           tabBarLabelStyle: {
             fontSize: fontSize.xs,
-            fontWeight: '600',
+            fontWeight: '800',
+            letterSpacing: 1,
+            textTransform: 'uppercase',
           },
-          tabBarIcon: ({ color, size }) => (
-            <Text style={{ fontSize: size - 4, color }}>{TAB_ICONS[route.name]}</Text>
+          tabBarIcon: ({ color }) => (
+            <Text style={{ fontSize: 12, color, letterSpacing: 0 }}>{TAB_ICONS[route.name]}</Text>
           ),
         })}
       >
-        <Tab.Screen name="Home"    component={HomeScreen}    options={{ tabBarLabel: 'タスク' }} />
-        <Tab.Screen name="Timer"   component={TimerScreen}   options={{ tabBarLabel: 'タイマー' }} />
-        <Tab.Screen name="Profile" component={ProfileScreen} options={{ tabBarLabel: 'プロフィール' }} />
+        <Tab.Screen name="Home"    component={HomeScreen}    options={{ tabBarLabel: 'TODAY' }} />
+        <Tab.Screen name="Timer"   component={TimerScreen}   options={{ tabBarLabel: 'TIMER' }} />
+        <Tab.Screen name="Profile" component={ProfileScreen} options={{ tabBarLabel: 'YOU' }} />
       </Tab.Navigator>
       {pendingBadge && <BadgeModal badge={pendingBadge} onDismiss={dismissBadge} />}
     </NavigationContainer>

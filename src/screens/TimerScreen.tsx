@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { View, Text, StyleSheet, Pressable, SafeAreaView } from 'react-native';
+import { View, Text, StyleSheet, Pressable, SafeAreaView, ScrollView } from 'react-native';
 import { TimerDisplay } from '../components/TimerDisplay';
 import { colors, spacing, radius, fontSize, fontWeight, shadow } from '../theme';
 
@@ -25,50 +25,58 @@ export function TimerScreen() {
 
   function handleStartPause() { if (seconds > 0) setIsRunning((r) => !r); }
   function handleReset() { setIsRunning(false); setSeconds(mode === 'work' ? WORK_DURATION : SHORT_BREAK); }
-  function switchMode(m: 'work' | 'break') { setIsRunning(false); setMode(m); setSeconds(m === 'work' ? WORK_DURATION : SHORT_BREAK); }
+  function switchMode(m: 'work' | 'break') {
+    setIsRunning(false); setMode(m);
+    setSeconds(m === 'work' ? WORK_DURATION : SHORT_BREAK);
+  }
 
   const progress = 1 - seconds / (mode === 'work' ? WORK_DURATION : SHORT_BREAK);
   const ringColor = mode === 'work' ? colors.primary : colors.success;
-  const headerBg = mode === 'work' ? colors.primary : colors.success;
+  const modeLabel = mode === 'work' ? 'FOCUS' : 'BREAK';
 
   return (
-    <SafeAreaView style={[styles.safe, { backgroundColor: headerBg }]}>
-
+    <SafeAreaView style={styles.safe}>
       {/* ── HEADER ── */}
       <View style={styles.header}>
-        <Text style={styles.title}>集中タイマー</Text>
-        <View style={styles.modeRow}>
-          <Pressable
-            style={({ pressed }) => [styles.modeBtn, mode === 'work' && styles.modeBtnActive, pressed && styles.modeBtnPressed]}
-            onPress={() => switchMode('work')}
-          >
-            <Text style={[styles.modeBtnText, mode === 'work' && styles.modeBtnTextActive]}>🎯 集中</Text>
-            <Text style={[styles.modeBtnSub, mode === 'work' && styles.modeBtnTextActive]}>25分</Text>
-          </Pressable>
-          <Pressable
-            style={({ pressed }) => [styles.modeBtn, mode === 'break' && styles.modeBtnActive, pressed && styles.modeBtnPressed]}
-            onPress={() => switchMode('break')}
-          >
-            <Text style={[styles.modeBtnText, mode === 'break' && styles.modeBtnTextActive]}>☕ 休憩</Text>
-            <Text style={[styles.modeBtnSub, mode === 'break' && styles.modeBtnTextActive]}>5分</Text>
-          </Pressable>
+        <View style={styles.headerRule} />
+        <View style={styles.headerContent}>
+          <Text style={styles.title}>タイマー</Text>
+          <Text style={styles.modeTag}>{modeLabel}</Text>
         </View>
+        <View style={styles.headerRule} />
       </View>
 
-      {/* ── CONTENT ── */}
-      <View style={styles.content}>
-        {/* Progress ring */}
+      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+        {/* Mode selector */}
+        <View style={styles.modeRow}>
+          <Pressable
+            style={({ pressed }) => [styles.modeBtn, mode === 'work' && styles.modeBtnActive, pressed && { opacity: 0.7 }]}
+            onPress={() => switchMode('work')}
+          >
+            <Text style={[styles.modeBtnLabel, mode === 'work' && styles.modeBtnLabelActive]}>FOCUS</Text>
+            <Text style={[styles.modeBtnTime, mode === 'work' && styles.modeBtnLabelActive]}>25:00</Text>
+          </Pressable>
+          <Pressable
+            style={({ pressed }) => [styles.modeBtn, mode === 'break' && styles.modeBtnBreak, pressed && { opacity: 0.7 }]}
+            onPress={() => switchMode('break')}
+          >
+            <Text style={[styles.modeBtnLabel, mode === 'break' && styles.modeBtnLabelBreak]}>BREAK</Text>
+            <Text style={[styles.modeBtnTime, mode === 'break' && styles.modeBtnLabelBreak]}>05:00</Text>
+          </Pressable>
+        </View>
+
+        {/* Ring */}
         <View style={styles.ringContainer}>
           <View
             style={[
               styles.ring,
               {
-                backgroundImage: `conic-gradient(${ringColor} ${Math.round(progress * 360)}deg, ${colors.border} 0deg)`,
+                backgroundImage: `conic-gradient(${ringColor} ${Math.round(progress * 360)}deg, ${colors.surfaceAlt} 0deg)`,
               } as object,
             ]}
           >
             <View style={styles.ringInner}>
-              <TimerDisplay seconds={seconds} isRunning={isRunning} color={isRunning ? ringColor : colors.textMain} />
+              <TimerDisplay seconds={seconds} isRunning={isRunning} color={isRunning ? ringColor : colors.ink} />
             </View>
           </View>
         </View>
@@ -77,38 +85,34 @@ export function TimerScreen() {
         <View style={styles.progressBar}>
           <View style={[styles.progressFill, { width: `${progress * 100}%` as any, backgroundColor: ringColor }]} />
         </View>
-        <Text style={styles.progressLabel}>{Math.round(progress * 100)}% 完了</Text>
 
         {/* Controls */}
         <View style={styles.controls}>
           <Pressable
-            style={({ pressed }) => [styles.resetBtn, pressed && { opacity: 0.7 }]}
+            style={({ pressed }) => [styles.resetBtn, pressed && { opacity: 0.6 }]}
             onPress={handleReset}
           >
-            <Text style={styles.resetBtnText}>リセット</Text>
+            <Text style={styles.resetBtnText}>RESET</Text>
           </Pressable>
           <Pressable
-            style={({ pressed }) => [
-              styles.startBtn,
-              { backgroundColor: ringColor },
-              seconds === 0 && styles.startBtnDone,
-              pressed && { opacity: 0.85 },
-            ]}
+            style={({ pressed }) => [styles.startBtn, { backgroundColor: ringColor }, pressed && { opacity: 0.85 }]}
             onPress={handleStartPause}
             disabled={seconds === 0}
           >
             <Text style={styles.startBtnText}>
-              {seconds === 0 ? '完了！' : isRunning ? '一時停止' : 'スタート'}
+              {seconds === 0 ? 'DONE' : isRunning ? 'PAUSE' : 'START'}
             </Text>
           </Pressable>
         </View>
 
         {/* Tip */}
-        <View style={[styles.tipCard, { borderLeftColor: ringColor }]}>
-          <Text style={[styles.tipTitle, { color: ringColor }]}>ポモドーロテクニック</Text>
+        <View style={styles.tipBlock}>
+          <Text style={styles.tipLabel}>ABOUT</Text>
+          <View style={styles.headerRule} />
+          <Text style={styles.tipTitle}>ポモドーロテクニック</Text>
           <Text style={styles.tipText}>25分集中 → 5分休憩を繰り返すと集中力を長く保てます</Text>
         </View>
-      </View>
+      </ScrollView>
     </SafeAreaView>
   );
 }
@@ -116,142 +120,159 @@ export function TimerScreen() {
 const styles = StyleSheet.create({
   safe: {
     flex: 1,
+    backgroundColor: colors.background,
   },
   header: {
     paddingHorizontal: spacing.md,
     paddingTop: spacing.md,
-    paddingBottom: spacing.xl + spacing.lg,
-    gap: spacing.lg,
+    paddingBottom: spacing.sm,
+    gap: spacing.sm,
+  },
+  headerRule: {
+    height: 1,
+    backgroundColor: colors.ink,
+  },
+  headerContent: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'baseline',
+    paddingVertical: spacing.xs,
   },
   title: {
-    fontSize: fontSize.xl,
+    fontSize: fontSize.xxxl,
+    fontWeight: fontWeight.black,
+    color: colors.ink,
+    letterSpacing: -2,
+    lineHeight: 46,
+  },
+  modeTag: {
+    fontSize: fontSize.xs,
     fontWeight: fontWeight.bold,
-    color: colors.headerText,
-    letterSpacing: -0.3,
+    color: colors.primary,
+    letterSpacing: 3,
+    textTransform: 'uppercase',
+  },
+  content: {
+    paddingHorizontal: spacing.md,
+    paddingTop: spacing.lg,
+    gap: spacing.xl,
+    alignItems: 'center',
+    paddingBottom: spacing.xxl,
   },
   modeRow: {
     flexDirection: 'row',
     gap: spacing.sm,
+    width: '100%',
   },
   modeBtn: {
     flex: 1,
     alignItems: 'center',
-    paddingVertical: spacing.sm,
-    borderRadius: radius.lg,
-    backgroundColor: 'rgba(255,255,255,0.15)',
+    paddingVertical: spacing.md,
+    borderRadius: radius.md,
+    borderWidth: 1.5,
+    borderColor: colors.border,
     gap: 2,
   },
   modeBtnActive: {
-    backgroundColor: 'rgba(255,255,255,0.95)',
+    borderColor: colors.primary,
+    backgroundColor: colors.primaryLight,
   },
-  modeBtnPressed: {
-    opacity: 0.8,
+  modeBtnBreak: {
+    borderColor: colors.success,
+    backgroundColor: colors.successLight,
   },
-  modeBtnText: {
-    fontSize: fontSize.sm,
-    color: 'rgba(255,255,255,0.85)',
-    fontWeight: fontWeight.semibold,
-  },
-  modeBtnSub: {
+  modeBtnLabel: {
     fontSize: fontSize.xs,
-    color: 'rgba(255,255,255,0.65)',
+    fontWeight: fontWeight.bold,
+    color: colors.textMuted,
+    letterSpacing: 2,
   },
-  modeBtnTextActive: {
-    color: colors.textMain,
+  modeBtnTime: {
+    fontSize: fontSize.lg,
+    fontWeight: fontWeight.black,
+    color: colors.textMuted,
+    letterSpacing: -0.5,
   },
-  content: {
-    flex: 1,
-    backgroundColor: colors.background,
-    borderTopLeftRadius: radius.xxl,
-    borderTopRightRadius: radius.xxl,
-    marginTop: -spacing.lg,
-    paddingHorizontal: spacing.md,
-    paddingTop: spacing.xl,
-    alignItems: 'center',
+  modeBtnLabelActive: {
+    color: colors.primary,
   },
-  ringContainer: {
-    marginBottom: spacing.lg,
+  modeBtnLabelBreak: {
+    color: colors.success,
   },
+  ringContainer: {},
   ring: {
-    width: 236,
-    height: 236,
-    borderRadius: 118,
+    width: 240,
+    height: 240,
+    borderRadius: 120,
     alignItems: 'center',
     justifyContent: 'center',
   },
   ringInner: {
-    width: 206,
-    height: 206,
-    borderRadius: 103,
+    width: 208,
+    height: 208,
+    borderRadius: 104,
     backgroundColor: colors.background,
     alignItems: 'center',
     justifyContent: 'center',
   },
   progressBar: {
     width: '100%',
-    height: 5,
-    backgroundColor: colors.border,
+    height: 3,
+    backgroundColor: colors.surfaceAlt,
     borderRadius: radius.full,
     overflow: 'hidden',
-    marginBottom: spacing.xs,
   },
   progressFill: {
     height: '100%',
     borderRadius: radius.full,
   },
-  progressLabel: {
-    fontSize: fontSize.xs,
-    color: colors.textMuted,
-    marginBottom: spacing.xl,
-  },
   controls: {
     flexDirection: 'row',
     gap: spacing.sm,
     width: '100%',
-    marginBottom: spacing.lg,
   },
   resetBtn: {
     flex: 1,
     alignItems: 'center',
     paddingVertical: 14,
-    borderRadius: radius.full,
+    borderRadius: radius.md,
     borderWidth: 1.5,
-    borderColor: colors.border,
-    backgroundColor: colors.surface,
+    borderColor: colors.ink,
   },
   resetBtnText: {
-    fontSize: fontSize.md,
-    color: colors.textSub,
-    fontWeight: fontWeight.medium,
+    fontSize: fontSize.sm,
+    color: colors.ink,
+    fontWeight: fontWeight.black,
+    letterSpacing: 2,
   },
   startBtn: {
     flex: 2,
     alignItems: 'center',
     paddingVertical: 14,
-    borderRadius: radius.full,
-    ...shadow.soft,
-  },
-  startBtnDone: {
-    backgroundColor: colors.success,
+    borderRadius: radius.md,
   },
   startBtnText: {
-    fontSize: fontSize.md,
-    fontWeight: fontWeight.semibold,
+    fontSize: fontSize.sm,
+    fontWeight: fontWeight.black,
     color: colors.surface,
+    letterSpacing: 2.5,
   },
-  tipCard: {
+  tipBlock: {
     width: '100%',
-    backgroundColor: colors.surface,
-    borderRadius: radius.lg,
-    padding: spacing.md,
-    gap: 5,
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderLeftWidth: 4,
+    gap: spacing.sm,
+  },
+  tipLabel: {
+    fontSize: fontSize.xs,
+    fontWeight: fontWeight.bold,
+    color: colors.primary,
+    letterSpacing: 2.5,
+    textTransform: 'uppercase',
   },
   tipTitle: {
-    fontSize: fontSize.sm,
-    fontWeight: fontWeight.semibold,
+    fontSize: fontSize.md,
+    fontWeight: fontWeight.black,
+    color: colors.ink,
+    marginTop: spacing.xs,
   },
   tipText: {
     fontSize: fontSize.sm,

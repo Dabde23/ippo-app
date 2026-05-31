@@ -14,9 +14,7 @@ export function TaskCard({ task, onEdit }: Props) {
 
   function handleDelete() {
     if (Platform.OS === 'web') {
-      if (window.confirm(`「${task.title}」を削除しますか？`)) {
-        deleteTask(task.id);
-      }
+      if (window.confirm(`「${task.title}」を削除しますか？`)) deleteTask(task.id);
       return;
     }
     Alert.alert('タスクを削除', `「${task.title}」を削除しますか？`, [
@@ -25,18 +23,16 @@ export function TaskCard({ task, onEdit }: Props) {
     ]);
   }
 
-  const accentColor = task.completed ? colors.success : colors.primary;
-
   return (
     <View style={[styles.card, task.completed && styles.completedCard]}>
-      <View style={[styles.accent, { backgroundColor: accentColor }]} />
+      <View style={[styles.accentBar, task.completed && styles.accentBarDone]} />
 
       <Pressable
         style={styles.checkArea}
         onPress={() => !task.completed && completeTask(task.id)}
         hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
       >
-        <View style={[styles.checkbox, { borderColor: accentColor }, task.completed && { backgroundColor: accentColor }]}>
+        <View style={[styles.checkbox, task.completed && styles.checkboxDone]}>
           {task.completed && <Text style={styles.checkmark}>✓</Text>}
         </View>
       </Pressable>
@@ -45,9 +41,7 @@ export function TaskCard({ task, onEdit }: Props) {
         <Text style={[styles.title, task.completed && styles.titleDone]} numberOfLines={2}>
           {task.title}
         </Text>
-        {task.completed && (
-          <Text style={styles.xpLabel}>+{XP_PER_TASK} XP 獲得</Text>
-        )}
+        {task.completed && <Text style={styles.xpLabel}>+{XP_PER_TASK} XP</Text>}
       </View>
 
       <View style={styles.actions}>
@@ -77,34 +71,42 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: colors.surface,
-    borderRadius: radius.lg,
-    paddingVertical: 14,
+    paddingVertical: spacing.md,
     paddingRight: spacing.md,
     paddingLeft: 0,
     marginBottom: spacing.sm,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
     overflow: 'hidden',
-    borderWidth: 1,
-    borderColor: colors.border,
   },
   completedCard: {
-    backgroundColor: colors.successLight,
-    borderColor: '#BBF7D0',
+    opacity: 0.65,
   },
-  accent: {
-    width: 4,
+  accentBar: {
+    width: 3,
     alignSelf: 'stretch',
+    backgroundColor: colors.primary,
     marginRight: spacing.md,
+  },
+  accentBarDone: {
+    backgroundColor: colors.success,
   },
   checkArea: {
     marginRight: spacing.sm,
   },
   checkbox: {
-    width: 22,
-    height: 22,
-    borderRadius: radius.full,
-    borderWidth: 2,
+    width: 20,
+    height: 20,
+    borderRadius: radius.sm,
+    borderWidth: 1.5,
+    borderColor: colors.border,
     alignItems: 'center',
     justifyContent: 'center',
+    backgroundColor: colors.surface,
+  },
+  checkboxDone: {
+    backgroundColor: colors.success,
+    borderColor: colors.success,
   },
   checkmark: {
     color: colors.surface,
@@ -113,22 +115,24 @@ const styles = StyleSheet.create({
   },
   body: {
     flex: 1,
-    gap: 3,
+    gap: 2,
   },
   title: {
     fontSize: fontSize.md,
-    fontWeight: fontWeight.medium,
+    fontWeight: fontWeight.semibold,
     color: colors.textMain,
     lineHeight: 21,
   },
   titleDone: {
     textDecorationLine: 'line-through',
-    color: colors.textSub,
+    color: colors.textMuted,
   },
   xpLabel: {
     fontSize: fontSize.xs,
-    color: colors.xpGold,
-    fontWeight: fontWeight.semibold,
+    color: colors.primary,
+    fontWeight: fontWeight.bold,
+    letterSpacing: 0.5,
+    textTransform: 'uppercase',
   },
   actions: {
     flexDirection: 'row',
@@ -139,15 +143,16 @@ const styles = StyleSheet.create({
   actionBtn: {
     paddingHorizontal: spacing.sm,
     paddingVertical: spacing.xs,
-    borderRadius: radius.sm,
   },
   actionBtnPressed: {
-    backgroundColor: colors.surfaceAlt,
+    opacity: 0.5,
   },
   editText: {
     fontSize: fontSize.xs,
     color: colors.primary,
-    fontWeight: fontWeight.semibold,
+    fontWeight: fontWeight.bold,
+    letterSpacing: 0.3,
+    textTransform: 'uppercase',
   },
   deleteText: {
     fontSize: fontSize.lg,

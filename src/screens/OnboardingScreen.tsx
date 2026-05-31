@@ -10,13 +10,13 @@ const { width } = Dimensions.get('window');
 
 const SLIDES = [
   {
-    emoji: '🧠',
+    index: '01',
     title: '自分のペースで、\n続けられる',
     description: 'ADHDの特性に合わせて設計した\nタスク管理アプリ「いっぽ」です',
     features: null,
   },
   {
-    emoji: null,
+    index: '02',
     title: 'できたことを\n積み重ねよう',
     description: null,
     features: [
@@ -27,7 +27,7 @@ const SLIDES = [
     ],
   },
   {
-    emoji: '💙',
+    index: '03',
     title: 'できなかった日も、\n罰はありません',
     description: '小さく始めて、少しずつ積み重ねる。\nそれだけで十分です。',
     features: null,
@@ -50,12 +50,10 @@ export function OnboardingScreen() {
   }
 
   const isLast = currentIndex === SLIDES.length - 1;
+  const slide = SLIDES[currentIndex];
 
   return (
     <SafeAreaView style={styles.safe}>
-      {/* Decorative top band */}
-      <View style={styles.topBand} />
-
       <ScrollView
         ref={scrollRef}
         horizontal pagingEnabled
@@ -63,18 +61,22 @@ export function OnboardingScreen() {
         scrollEnabled={false}
         style={styles.slider}
       >
-        {SLIDES.map((slide, i) => (
+        {SLIDES.map((s, i) => (
           <View key={i} style={[styles.slide, { width }]}>
-            {slide.emoji && <Text style={styles.emoji}>{slide.emoji}</Text>}
-            <Text style={styles.title}>{slide.title}</Text>
-            {slide.description && <Text style={styles.description}>{slide.description}</Text>}
-            {slide.features && (
+            {/* Decorative large number */}
+            <Text style={styles.bigNum}>{s.index}</Text>
+
+            <View style={styles.rule} />
+
+            <Text style={styles.slideTitle}>{s.title}</Text>
+
+            {s.description && <Text style={styles.description}>{s.description}</Text>}
+
+            {s.features && (
               <View style={styles.featureList}>
-                {slide.features.map((f) => (
+                {s.features.map((f) => (
                   <View key={f.label} style={styles.featureRow}>
-                    <View style={styles.featureIconBox}>
-                      <Text style={styles.featureIcon}>{f.icon}</Text>
-                    </View>
+                    <Text style={styles.featureIcon}>{f.icon}</Text>
                     <View style={styles.featureText}>
                       <Text style={styles.featureLabel}>{f.label}</Text>
                       <Text style={styles.featureSub}>{f.sub}</Text>
@@ -88,7 +90,7 @@ export function OnboardingScreen() {
       </ScrollView>
 
       <View style={styles.footer}>
-        <View style={styles.dots}>
+        <View style={styles.progressRow}>
           {SLIDES.map((_, i) => (
             <View key={i} style={[styles.dot, i === currentIndex && styles.dotActive]} />
           ))}
@@ -96,17 +98,17 @@ export function OnboardingScreen() {
         <View style={styles.btnRow}>
           {currentIndex > 0 && (
             <Pressable
-              style={({ pressed }) => [styles.backBtn, pressed && { opacity: 0.7 }]}
+              style={({ pressed }) => [styles.backBtn, pressed && { opacity: 0.6 }]}
               onPress={() => goTo(currentIndex - 1)}
             >
               <Text style={styles.backBtnText}>戻る</Text>
             </Pressable>
           )}
           <Pressable
-            style={({ pressed }) => [styles.nextBtn, currentIndex === 0 && styles.nextBtnFull, pressed && { opacity: 0.88 }]}
+            style={({ pressed }) => [styles.nextBtn, currentIndex === 0 && styles.nextBtnFull, pressed && { opacity: 0.85 }]}
             onPress={handleNext}
           >
-            <Text style={styles.nextBtnText}>{isLast ? 'はじめる' : '次へ'}</Text>
+            <Text style={styles.nextBtnText}>{isLast ? 'はじめる' : '次へ →'}</Text>
           </Pressable>
         </View>
       </View>
@@ -119,102 +121,94 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: colors.background,
   },
-  topBand: {
-    height: 6,
-    backgroundColor: colors.primary,
-    borderBottomLeftRadius: radius.sm,
-    borderBottomRightRadius: radius.sm,
-  },
   slider: {
     flex: 1,
   },
   slide: {
     flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: spacing.xl,
+    paddingHorizontal: spacing.lg,
+    paddingTop: spacing.xxl,
     gap: spacing.lg,
   },
-  emoji: {
-    fontSize: 72,
+  bigNum: {
+    fontSize: fontSize.display,
+    fontWeight: fontWeight.black,
+    color: colors.primary,
+    letterSpacing: -3,
+    lineHeight: 60,
   },
-  title: {
+  rule: {
+    height: 1.5,
+    backgroundColor: colors.ink,
+  },
+  slideTitle: {
     fontSize: fontSize.xxl,
-    fontWeight: fontWeight.bold,
-    color: colors.textMain,
-    textAlign: 'center',
-    lineHeight: 42,
-    letterSpacing: -0.5,
+    fontWeight: fontWeight.black,
+    color: colors.ink,
+    lineHeight: 40,
+    letterSpacing: -1,
   },
   description: {
     fontSize: fontSize.md,
     color: colors.textSub,
-    textAlign: 'center',
     lineHeight: 26,
   },
   featureList: {
-    width: '100%',
     gap: spacing.sm,
-    marginTop: spacing.sm,
   },
   featureRow: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: colors.surface,
-    borderRadius: radius.lg,
+    borderRadius: radius.md,
     padding: spacing.md,
     gap: spacing.md,
+    borderLeftWidth: 3,
+    borderLeftColor: colors.primary,
     borderWidth: 1,
     borderColor: colors.border,
-    borderLeftWidth: 4,
-    borderLeftColor: colors.primary,
   },
-  featureIconBox: {
-    width: 38,
-    height: 38,
-    borderRadius: radius.md,
-    backgroundColor: colors.primaryLight,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  featureIcon: { fontSize: 20 },
+  featureIcon: { fontSize: 22 },
   featureText: { flex: 1, gap: 2 },
-  featureLabel: { fontSize: fontSize.md, fontWeight: fontWeight.semibold, color: colors.textMain },
-  featureSub: { fontSize: fontSize.sm, color: colors.textSub, lineHeight: 18 },
+  featureLabel: { fontSize: fontSize.md, fontWeight: fontWeight.bold, color: colors.ink },
+  featureSub: { fontSize: fontSize.sm, color: colors.textSub },
   footer: {
     paddingHorizontal: spacing.lg,
     paddingBottom: spacing.xl,
     paddingTop: spacing.md,
     gap: spacing.md,
+    borderTopWidth: 1,
+    borderTopColor: colors.border,
   },
-  dots: {
+  progressRow: {
     flexDirection: 'row',
-    justifyContent: 'center',
     gap: spacing.sm,
+    alignItems: 'center',
   },
   dot: {
-    width: 6,
-    height: 6,
+    width: 24,
+    height: 3,
     borderRadius: radius.full,
     backgroundColor: colors.border,
   },
   dotActive: {
-    width: 22,
     backgroundColor: colors.primary,
-    borderRadius: radius.full,
   },
   btnRow: { flexDirection: 'row', gap: spacing.sm },
   backBtn: {
     flex: 1, alignItems: 'center', justifyContent: 'center',
-    paddingVertical: 14, borderRadius: radius.full,
-    borderWidth: 1.5, borderColor: colors.border,
+    paddingVertical: 14, borderRadius: radius.md,
+    borderWidth: 1.5, borderColor: colors.ink,
   },
-  backBtnText: { fontSize: fontSize.md, color: colors.textSub, fontWeight: fontWeight.medium },
+  backBtnText: { fontSize: fontSize.md, color: colors.ink, fontWeight: fontWeight.bold },
   nextBtn: {
     flex: 2, alignItems: 'center', justifyContent: 'center',
-    paddingVertical: 14, borderRadius: radius.full,
-    backgroundColor: colors.primary,
+    paddingVertical: 14, borderRadius: radius.md,
+    backgroundColor: colors.ink,
   },
   nextBtnFull: { flex: 1 },
-  nextBtnText: { fontSize: fontSize.md, color: colors.surface, fontWeight: fontWeight.semibold },
+  nextBtnText: {
+    fontSize: fontSize.md, color: colors.surface,
+    fontWeight: fontWeight.black, letterSpacing: 0.5,
+  },
 });
