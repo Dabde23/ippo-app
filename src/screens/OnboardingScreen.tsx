@@ -1,12 +1,7 @@
 import React, { useState, useRef } from 'react';
 import {
-  View,
-  Text,
-  StyleSheet,
-  TouchableOpacity,
-  ScrollView,
-  Dimensions,
-  SafeAreaView,
+  View, Text, StyleSheet, Pressable,
+  ScrollView, Dimensions, SafeAreaView,
 } from 'react-native';
 import { useAppStore } from '../store/useAppStore';
 import { colors, spacing, radius, fontSize, fontWeight } from '../theme';
@@ -50,39 +45,34 @@ export function OnboardingScreen() {
   }
 
   function handleNext() {
-    if (currentIndex < SLIDES.length - 1) {
-      goTo(currentIndex + 1);
-    } else {
-      completeOnboarding();
-    }
+    if (currentIndex < SLIDES.length - 1) goTo(currentIndex + 1);
+    else completeOnboarding();
   }
 
   const isLast = currentIndex === SLIDES.length - 1;
 
   return (
     <SafeAreaView style={styles.safe}>
+      {/* Decorative top band */}
+      <View style={styles.topBand} />
+
       <ScrollView
         ref={scrollRef}
-        horizontal
-        pagingEnabled
+        horizontal pagingEnabled
         showsHorizontalScrollIndicator={false}
         scrollEnabled={false}
         style={styles.slider}
       >
         {SLIDES.map((slide, i) => (
           <View key={i} style={[styles.slide, { width }]}>
-            {slide.emoji && (
-              <Text style={styles.emoji}>{slide.emoji}</Text>
-            )}
+            {slide.emoji && <Text style={styles.emoji}>{slide.emoji}</Text>}
             <Text style={styles.title}>{slide.title}</Text>
-            {slide.description && (
-              <Text style={styles.description}>{slide.description}</Text>
-            )}
+            {slide.description && <Text style={styles.description}>{slide.description}</Text>}
             {slide.features && (
               <View style={styles.featureList}>
                 {slide.features.map((f) => (
                   <View key={f.label} style={styles.featureRow}>
-                    <View style={styles.featureIconWrap}>
+                    <View style={styles.featureIconBox}>
                       <Text style={styles.featureIcon}>{f.icon}</Text>
                     </View>
                     <View style={styles.featureText}>
@@ -100,32 +90,24 @@ export function OnboardingScreen() {
       <View style={styles.footer}>
         <View style={styles.dots}>
           {SLIDES.map((_, i) => (
-            <View
-              key={i}
-              style={[styles.dot, i === currentIndex && styles.dotActive]}
-            />
+            <View key={i} style={[styles.dot, i === currentIndex && styles.dotActive]} />
           ))}
         </View>
-
         <View style={styles.btnRow}>
           {currentIndex > 0 && (
-            <TouchableOpacity
-              style={styles.backBtn}
+            <Pressable
+              style={({ pressed }) => [styles.backBtn, pressed && { opacity: 0.7 }]}
               onPress={() => goTo(currentIndex - 1)}
-              activeOpacity={0.7}
             >
               <Text style={styles.backBtnText}>戻る</Text>
-            </TouchableOpacity>
+            </Pressable>
           )}
-          <TouchableOpacity
-            style={[styles.nextBtn, currentIndex === 0 && styles.nextBtnFull]}
+          <Pressable
+            style={({ pressed }) => [styles.nextBtn, currentIndex === 0 && styles.nextBtnFull, pressed && { opacity: 0.88 }]}
             onPress={handleNext}
-            activeOpacity={0.85}
           >
-            <Text style={styles.nextBtnText}>
-              {isLast ? 'はじめる' : '次へ'}
-            </Text>
-          </TouchableOpacity>
+            <Text style={styles.nextBtnText}>{isLast ? 'はじめる' : '次へ'}</Text>
+          </Pressable>
         </View>
       </View>
     </SafeAreaView>
@@ -136,6 +118,12 @@ const styles = StyleSheet.create({
   safe: {
     flex: 1,
     backgroundColor: colors.background,
+  },
+  topBand: {
+    height: 6,
+    backgroundColor: colors.primary,
+    borderBottomLeftRadius: radius.sm,
+    borderBottomRightRadius: radius.sm,
   },
   slider: {
     flex: 1,
@@ -178,34 +166,21 @@ const styles = StyleSheet.create({
     gap: spacing.md,
     borderWidth: 1,
     borderColor: colors.border,
-    borderLeftWidth: 3,
+    borderLeftWidth: 4,
     borderLeftColor: colors.primary,
   },
-  featureIconWrap: {
-    width: 36,
-    height: 36,
+  featureIconBox: {
+    width: 38,
+    height: 38,
     borderRadius: radius.md,
     backgroundColor: colors.primaryLight,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  featureIcon: {
-    fontSize: 20,
-  },
-  featureText: {
-    flex: 1,
-    gap: 2,
-  },
-  featureLabel: {
-    fontSize: fontSize.md,
-    fontWeight: fontWeight.semibold,
-    color: colors.textMain,
-  },
-  featureSub: {
-    fontSize: fontSize.sm,
-    color: colors.textSub,
-    lineHeight: 18,
-  },
+  featureIcon: { fontSize: 20 },
+  featureText: { flex: 1, gap: 2 },
+  featureLabel: { fontSize: fontSize.md, fontWeight: fontWeight.semibold, color: colors.textMain },
+  featureSub: { fontSize: fontSize.sm, color: colors.textSub, lineHeight: 18 },
   footer: {
     paddingHorizontal: spacing.lg,
     paddingBottom: spacing.xl,
@@ -228,38 +203,18 @@ const styles = StyleSheet.create({
     backgroundColor: colors.primary,
     borderRadius: radius.full,
   },
-  btnRow: {
-    flexDirection: 'row',
-    gap: spacing.sm,
-  },
+  btnRow: { flexDirection: 'row', gap: spacing.sm },
   backBtn: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 14,
-    borderRadius: radius.full,
-    borderWidth: 1.5,
-    borderColor: colors.border,
+    flex: 1, alignItems: 'center', justifyContent: 'center',
+    paddingVertical: 14, borderRadius: radius.full,
+    borderWidth: 1.5, borderColor: colors.border,
   },
-  backBtnText: {
-    fontSize: fontSize.md,
-    color: colors.textSub,
-    fontWeight: fontWeight.medium,
-  },
+  backBtnText: { fontSize: fontSize.md, color: colors.textSub, fontWeight: fontWeight.medium },
   nextBtn: {
-    flex: 2,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 14,
-    borderRadius: radius.full,
+    flex: 2, alignItems: 'center', justifyContent: 'center',
+    paddingVertical: 14, borderRadius: radius.full,
     backgroundColor: colors.primary,
   },
-  nextBtnFull: {
-    flex: 1,
-  },
-  nextBtnText: {
-    fontSize: fontSize.md,
-    color: colors.surface,
-    fontWeight: fontWeight.semibold,
-  },
+  nextBtnFull: { flex: 1 },
+  nextBtnText: { fontSize: fontSize.md, color: colors.surface, fontWeight: fontWeight.semibold },
 });

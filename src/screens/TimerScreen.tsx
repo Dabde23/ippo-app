@@ -1,11 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  TouchableOpacity,
-  SafeAreaView,
-} from 'react-native';
+import { View, Text, StyleSheet, Pressable, SafeAreaView } from 'react-native';
 import { TimerDisplay } from '../components/TimerDisplay';
 import { colors, spacing, radius, fontSize, fontWeight, shadow } from '../theme';
 
@@ -21,82 +15,60 @@ export function TimerScreen() {
   useEffect(() => {
     if (isRunning) {
       intervalRef.current = setInterval(() => {
-        setSeconds((s) => {
-          if (s <= 1) {
-            setIsRunning(false);
-            return 0;
-          }
-          return s - 1;
-        });
+        setSeconds((s) => { if (s <= 1) { setIsRunning(false); return 0; } return s - 1; });
       }, 1000);
     } else {
       if (intervalRef.current) clearInterval(intervalRef.current);
     }
-    return () => {
-      if (intervalRef.current) clearInterval(intervalRef.current);
-    };
+    return () => { if (intervalRef.current) clearInterval(intervalRef.current); };
   }, [isRunning]);
 
-  function handleStartPause() {
-    if (seconds === 0) return;
-    setIsRunning((r) => !r);
-  }
-
-  function handleReset() {
-    setIsRunning(false);
-    setSeconds(mode === 'work' ? WORK_DURATION : SHORT_BREAK);
-  }
-
-  function switchMode(newMode: 'work' | 'break') {
-    setIsRunning(false);
-    setMode(newMode);
-    setSeconds(newMode === 'work' ? WORK_DURATION : SHORT_BREAK);
-  }
+  function handleStartPause() { if (seconds > 0) setIsRunning((r) => !r); }
+  function handleReset() { setIsRunning(false); setSeconds(mode === 'work' ? WORK_DURATION : SHORT_BREAK); }
+  function switchMode(m: 'work' | 'break') { setIsRunning(false); setMode(m); setSeconds(m === 'work' ? WORK_DURATION : SHORT_BREAK); }
 
   const progress = 1 - seconds / (mode === 'work' ? WORK_DURATION : SHORT_BREAK);
   const ringColor = mode === 'work' ? colors.primary : colors.success;
+  const headerBg = mode === 'work' ? colors.primary : colors.success;
 
   return (
-    <SafeAreaView style={styles.safe}>
-      <View style={styles.container}>
+    <SafeAreaView style={[styles.safe, { backgroundColor: headerBg }]}>
+
+      {/* ── HEADER ── */}
+      <View style={styles.header}>
         <Text style={styles.title}>集中タイマー</Text>
-
-        {/* Mode selector */}
         <View style={styles.modeRow}>
-          <TouchableOpacity
-            style={[styles.modeBtn, mode === 'work' && styles.modeBtnActive]}
+          <Pressable
+            style={({ pressed }) => [styles.modeBtn, mode === 'work' && styles.modeBtnActive, pressed && styles.modeBtnPressed]}
             onPress={() => switchMode('work')}
-            activeOpacity={0.7}
           >
-            <Text style={[styles.modeBtnText, mode === 'work' && styles.modeBtnTextActive]}>
-              🎯 集中  25分
-            </Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[styles.modeBtn, mode === 'break' && styles.modeBtnBreak]}
+            <Text style={[styles.modeBtnText, mode === 'work' && styles.modeBtnTextActive]}>🎯 集中</Text>
+            <Text style={[styles.modeBtnSub, mode === 'work' && styles.modeBtnTextActive]}>25分</Text>
+          </Pressable>
+          <Pressable
+            style={({ pressed }) => [styles.modeBtn, mode === 'break' && styles.modeBtnActive, pressed && styles.modeBtnPressed]}
             onPress={() => switchMode('break')}
-            activeOpacity={0.7}
           >
-            <Text style={[styles.modeBtnText, mode === 'break' && styles.modeBtnTextBreak]}>
-              ☕ 休憩  5分
-            </Text>
-          </TouchableOpacity>
+            <Text style={[styles.modeBtnText, mode === 'break' && styles.modeBtnTextActive]}>☕ 休憩</Text>
+            <Text style={[styles.modeBtnSub, mode === 'break' && styles.modeBtnTextActive]}>5分</Text>
+          </Pressable>
         </View>
+      </View>
 
+      {/* ── CONTENT ── */}
+      <View style={styles.content}>
         {/* Progress ring */}
-        <View style={styles.progressContainer}>
+        <View style={styles.ringContainer}>
           <View
             style={[
-              styles.progressRing,
+              styles.ring,
               {
-                backgroundImage: `conic-gradient(${
-                  isRunning ? ringColor : progress > 0 ? ringColor : colors.border
-                } ${Math.round(progress * 360)}deg, ${colors.border} 0deg)`,
+                backgroundImage: `conic-gradient(${ringColor} ${Math.round(progress * 360)}deg, ${colors.border} 0deg)`,
               } as object,
             ]}
           >
-            <View style={styles.progressRingInner}>
-              <TimerDisplay seconds={seconds} isRunning={isRunning} />
+            <View style={styles.ringInner}>
+              <TimerDisplay seconds={seconds} isRunning={isRunning} color={isRunning ? ringColor : colors.textMain} />
             </View>
           </View>
         </View>
@@ -109,27 +81,32 @@ export function TimerScreen() {
 
         {/* Controls */}
         <View style={styles.controls}>
-          <TouchableOpacity style={styles.resetBtn} onPress={handleReset} activeOpacity={0.7}>
+          <Pressable
+            style={({ pressed }) => [styles.resetBtn, pressed && { opacity: 0.7 }]}
+            onPress={handleReset}
+          >
             <Text style={styles.resetBtnText}>リセット</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[styles.mainBtn, seconds === 0 && styles.mainBtnDone, { backgroundColor: ringColor }]}
+          </Pressable>
+          <Pressable
+            style={({ pressed }) => [
+              styles.startBtn,
+              { backgroundColor: ringColor },
+              seconds === 0 && styles.startBtnDone,
+              pressed && { opacity: 0.85 },
+            ]}
             onPress={handleStartPause}
-            activeOpacity={0.85}
             disabled={seconds === 0}
           >
-            <Text style={styles.mainBtnText}>
+            <Text style={styles.startBtnText}>
               {seconds === 0 ? '完了！' : isRunning ? '一時停止' : 'スタート'}
             </Text>
-          </TouchableOpacity>
+          </Pressable>
         </View>
 
         {/* Tip */}
-        <View style={styles.tipCard}>
-          <Text style={styles.tipTitle}>ポモドーロテクニック</Text>
-          <Text style={styles.tipText}>
-            25分集中 → 5分休憩を繰り返すと、集中力を長く保てます
-          </Text>
+        <View style={[styles.tipCard, { borderLeftColor: ringColor }]}>
+          <Text style={[styles.tipTitle, { color: ringColor }]}>ポモドーロテクニック</Text>
+          <Text style={styles.tipText}>25分集中 → 5分休憩を繰り返すと集中力を長く保てます</Text>
         </View>
       </View>
     </SafeAreaView>
@@ -139,73 +116,73 @@ export function TimerScreen() {
 const styles = StyleSheet.create({
   safe: {
     flex: 1,
-    backgroundColor: colors.background,
   },
-  container: {
-    flex: 1,
-    backgroundColor: colors.background,
+  header: {
     paddingHorizontal: spacing.md,
-    paddingTop: spacing.lg,
-    alignItems: 'center',
+    paddingTop: spacing.md,
+    paddingBottom: spacing.xl + spacing.lg,
+    gap: spacing.lg,
   },
   title: {
     fontSize: fontSize.xl,
     fontWeight: fontWeight.bold,
-    color: colors.textMain,
-    alignSelf: 'flex-start',
-    marginBottom: spacing.lg,
+    color: colors.headerText,
     letterSpacing: -0.3,
   },
   modeRow: {
     flexDirection: 'row',
     gap: spacing.sm,
-    marginBottom: spacing.xl,
-    width: '100%',
   },
   modeBtn: {
     flex: 1,
     alignItems: 'center',
     paddingVertical: spacing.sm,
-    borderRadius: radius.full,
-    borderWidth: 1.5,
-    borderColor: colors.border,
-    backgroundColor: colors.surface,
+    borderRadius: radius.lg,
+    backgroundColor: 'rgba(255,255,255,0.15)',
+    gap: 2,
   },
   modeBtnActive: {
-    borderColor: colors.primary,
-    backgroundColor: colors.primaryLight,
+    backgroundColor: 'rgba(255,255,255,0.95)',
   },
-  modeBtnBreak: {
-    borderColor: colors.success,
-    backgroundColor: colors.successLight,
+  modeBtnPressed: {
+    opacity: 0.8,
   },
   modeBtnText: {
     fontSize: fontSize.sm,
-    color: colors.textSub,
-    fontWeight: fontWeight.medium,
+    color: 'rgba(255,255,255,0.85)',
+    fontWeight: fontWeight.semibold,
+  },
+  modeBtnSub: {
+    fontSize: fontSize.xs,
+    color: 'rgba(255,255,255,0.65)',
   },
   modeBtnTextActive: {
-    color: colors.primary,
-    fontWeight: fontWeight.semibold,
+    color: colors.textMain,
   },
-  modeBtnTextBreak: {
-    color: colors.success,
-    fontWeight: fontWeight.semibold,
+  content: {
+    flex: 1,
+    backgroundColor: colors.background,
+    borderTopLeftRadius: radius.xxl,
+    borderTopRightRadius: radius.xxl,
+    marginTop: -spacing.lg,
+    paddingHorizontal: spacing.md,
+    paddingTop: spacing.xl,
+    alignItems: 'center',
   },
-  progressContainer: {
+  ringContainer: {
     marginBottom: spacing.lg,
   },
-  progressRing: {
-    width: 240,
-    height: 240,
-    borderRadius: 120,
+  ring: {
+    width: 236,
+    height: 236,
+    borderRadius: 118,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  progressRingInner: {
-    width: 210,
-    height: 210,
-    borderRadius: 105,
+  ringInner: {
+    width: 206,
+    height: 206,
+    borderRadius: 103,
     backgroundColor: colors.background,
     alignItems: 'center',
     justifyContent: 'center',
@@ -224,14 +201,14 @@ const styles = StyleSheet.create({
   },
   progressLabel: {
     fontSize: fontSize.xs,
-    color: colors.textSub,
+    color: colors.textMuted,
     marginBottom: spacing.xl,
   },
   controls: {
     flexDirection: 'row',
     gap: spacing.sm,
     width: '100%',
-    marginBottom: spacing.xl,
+    marginBottom: spacing.lg,
   },
   resetBtn: {
     flex: 1,
@@ -247,17 +224,17 @@ const styles = StyleSheet.create({
     color: colors.textSub,
     fontWeight: fontWeight.medium,
   },
-  mainBtn: {
+  startBtn: {
     flex: 2,
     alignItems: 'center',
     paddingVertical: 14,
     borderRadius: radius.full,
-    ...shadow.sm,
+    ...shadow.soft,
   },
-  mainBtnDone: {
+  startBtnDone: {
     backgroundColor: colors.success,
   },
-  mainBtnText: {
+  startBtnText: {
     fontSize: fontSize.md,
     fontWeight: fontWeight.semibold,
     color: colors.surface,
@@ -267,16 +244,14 @@ const styles = StyleSheet.create({
     backgroundColor: colors.surface,
     borderRadius: radius.lg,
     padding: spacing.md,
-    gap: spacing.xs,
+    gap: 5,
     borderWidth: 1,
     borderColor: colors.border,
-    borderLeftWidth: 3,
-    borderLeftColor: colors.primary,
+    borderLeftWidth: 4,
   },
   tipTitle: {
     fontSize: fontSize.sm,
     fontWeight: fontWeight.semibold,
-    color: colors.primary,
   },
   tipText: {
     fontSize: fontSize.sm,

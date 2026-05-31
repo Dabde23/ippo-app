@@ -5,15 +5,17 @@ import { colors, fontSize, fontWeight, spacing } from '../theme';
 interface Props {
   seconds: number;
   isRunning: boolean;
+  color?: string;
 }
 
-export function TimerDisplay({ seconds, isRunning }: Props) {
+export function TimerDisplay({ seconds, isRunning, color }: Props) {
   const mins = Math.floor(seconds / 60).toString().padStart(2, '0');
   const secs = (seconds % 60).toString().padStart(2, '0');
+  const timeColor = color ?? (isRunning ? colors.primary : colors.textMain);
 
   return (
     <View style={styles.container}>
-      <Text style={[styles.time, isRunning && styles.timeActive]}>
+      <Text style={[styles.time, { color: timeColor }]}>
         {mins}:{secs}
       </Text>
       {seconds === 0 && <Text style={styles.done}>完了！</Text>}
@@ -27,14 +29,10 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.xl,
   },
   time: {
-    fontSize: 68,
+    fontSize: 64,
     fontWeight: fontWeight.bold,
-    color: colors.textMain,
     letterSpacing: -2,
     fontVariant: ['tabular-nums'],
-  },
-  timeActive: {
-    color: colors.primary,
   },
   done: {
     fontSize: fontSize.md,

@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Alert, Platform } from 'react-native';
+import { View, Text, Pressable, StyleSheet, Alert, Platform } from 'react-native';
 import { Task, useAppStore, XP_PER_TASK } from '../store/useAppStore';
 import { colors, spacing, radius, fontSize, fontWeight } from '../theme';
 
@@ -19,57 +19,54 @@ export function TaskCard({ task, onEdit }: Props) {
       }
       return;
     }
-    Alert.alert(
-      'タスクを削除',
-      `「${task.title}」を削除しますか？`,
-      [
-        { text: 'キャンセル', style: 'cancel' },
-        { text: '削除', style: 'destructive', onPress: () => deleteTask(task.id) },
-      ]
-    );
+    Alert.alert('タスクを削除', `「${task.title}」を削除しますか？`, [
+      { text: 'キャンセル', style: 'cancel' },
+      { text: '削除', style: 'destructive', onPress: () => deleteTask(task.id) },
+    ]);
   }
+
+  const accentColor = task.completed ? colors.success : colors.primary;
 
   return (
     <View style={[styles.card, task.completed && styles.completedCard]}>
-      <View style={[styles.accentBar, task.completed && styles.accentBarDone]} />
+      <View style={[styles.accent, { backgroundColor: accentColor }]} />
 
-      <TouchableOpacity
+      <Pressable
         style={styles.checkArea}
         onPress={() => !task.completed && completeTask(task.id)}
-        activeOpacity={0.6}
         hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
       >
-        <View style={[styles.checkbox, task.completed && styles.checkboxDone]}>
+        <View style={[styles.checkbox, { borderColor: accentColor }, task.completed && { backgroundColor: accentColor }]}>
           {task.completed && <Text style={styles.checkmark}>✓</Text>}
         </View>
-      </TouchableOpacity>
+      </Pressable>
 
-      <View style={styles.content}>
-        <Text style={[styles.title, task.completed && styles.completedTitle]} numberOfLines={2}>
+      <View style={styles.body}>
+        <Text style={[styles.title, task.completed && styles.titleDone]} numberOfLines={2}>
           {task.title}
         </Text>
         {task.completed && (
-          <Text style={styles.xpLabel}>+{XP_PER_TASK} XP</Text>
+          <Text style={styles.xpLabel}>+{XP_PER_TASK} XP 獲得</Text>
         )}
       </View>
 
       <View style={styles.actions}>
         {!task.completed && (
-          <TouchableOpacity
-            style={styles.actionBtn}
+          <Pressable
+            style={({ pressed }) => [styles.actionBtn, pressed && styles.actionBtnPressed]}
             onPress={onEdit}
             hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
           >
             <Text style={styles.editText}>編集</Text>
-          </TouchableOpacity>
+          </Pressable>
         )}
-        <TouchableOpacity
-          style={styles.actionBtn}
+        <Pressable
+          style={({ pressed }) => [styles.actionBtn, pressed && styles.actionBtnPressed]}
           onPress={handleDelete}
           hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
         >
           <Text style={[styles.deleteText, task.completed && styles.dimText]}>×</Text>
-        </TouchableOpacity>
+        </Pressable>
       </View>
     </View>
   );
@@ -81,9 +78,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: colors.surface,
     borderRadius: radius.lg,
-    paddingVertical: spacing.md,
+    paddingVertical: 14,
     paddingRight: spacing.md,
-    paddingLeft: spacing.sm,
+    paddingLeft: 0,
     marginBottom: spacing.sm,
     overflow: 'hidden',
     borderWidth: 1,
@@ -93,15 +90,10 @@ const styles = StyleSheet.create({
     backgroundColor: colors.successLight,
     borderColor: '#BBF7D0',
   },
-  accentBar: {
+  accent: {
     width: 4,
     alignSelf: 'stretch',
-    backgroundColor: colors.primary,
-    borderRadius: radius.full,
-    marginRight: spacing.sm,
-  },
-  accentBarDone: {
-    backgroundColor: colors.success,
+    marginRight: spacing.md,
   },
   checkArea: {
     marginRight: spacing.sm,
@@ -111,22 +103,17 @@ const styles = StyleSheet.create({
     height: 22,
     borderRadius: radius.full,
     borderWidth: 2,
-    borderColor: colors.primary,
     alignItems: 'center',
     justifyContent: 'center',
-  },
-  checkboxDone: {
-    backgroundColor: colors.success,
-    borderColor: colors.success,
   },
   checkmark: {
     color: colors.surface,
     fontSize: fontSize.xs,
     fontWeight: fontWeight.bold,
   },
-  content: {
+  body: {
     flex: 1,
-    gap: 2,
+    gap: 3,
   },
   title: {
     fontSize: fontSize.md,
@@ -134,7 +121,7 @@ const styles = StyleSheet.create({
     color: colors.textMain,
     lineHeight: 21,
   },
-  completedTitle: {
+  titleDone: {
     textDecorationLine: 'line-through',
     color: colors.textSub,
   },
@@ -152,15 +139,19 @@ const styles = StyleSheet.create({
   actionBtn: {
     paddingHorizontal: spacing.sm,
     paddingVertical: spacing.xs,
+    borderRadius: radius.sm,
+  },
+  actionBtnPressed: {
+    backgroundColor: colors.surfaceAlt,
   },
   editText: {
     fontSize: fontSize.xs,
     color: colors.primary,
-    fontWeight: fontWeight.medium,
+    fontWeight: fontWeight.semibold,
   },
   deleteText: {
     fontSize: fontSize.lg,
-    color: colors.textSub,
+    color: colors.textMuted,
     lineHeight: 20,
   },
   dimText: {

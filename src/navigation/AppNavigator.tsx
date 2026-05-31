@@ -21,9 +21,7 @@ const TAB_ICONS: Record<string, string> = {
 export function AppNavigator() {
   const { pendingBadge, dismissBadge, hasCompletedOnboarding } = useAppStore();
 
-  if (!hasCompletedOnboarding) {
-    return <OnboardingScreen />;
-  }
+  if (!hasCompletedOnboarding) return <OnboardingScreen />;
 
   return (
     <NavigationContainer>
@@ -31,7 +29,7 @@ export function AppNavigator() {
         screenOptions={({ route }) => ({
           headerShown: false,
           tabBarActiveTintColor: colors.primary,
-          tabBarInactiveTintColor: colors.textSub,
+          tabBarInactiveTintColor: colors.textMuted,
           tabBarStyle: {
             backgroundColor: colors.surface,
             borderTopWidth: 1,
@@ -53,7 +51,6 @@ export function AppNavigator() {
         <Tab.Screen name="Timer"   component={TimerScreen}   options={{ tabBarLabel: 'タイマー' }} />
         <Tab.Screen name="Profile" component={ProfileScreen} options={{ tabBarLabel: 'プロフィール' }} />
       </Tab.Navigator>
-
       {pendingBadge && <BadgeModal badge={pendingBadge} onDismiss={dismissBadge} />}
     </NavigationContainer>
   );

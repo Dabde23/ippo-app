@@ -3,7 +3,7 @@ import {
   View,
   Text,
   StyleSheet,
-  TouchableOpacity,
+  Pressable,
   TextInput,
   Modal,
   SafeAreaView,
@@ -37,14 +37,11 @@ export function HomeScreen() {
   const availableTasks = tasks.filter((t) => !t.completed && t.skippedDate !== todayStr);
   const skippedTasks = tasks.filter((t) => !t.completed && t.skippedDate === todayStr);
   const completedTasks = tasks.filter((t) => t.completed);
-
   const currentTask = availableTasks.find((t) => t.id === currentTaskId) ?? null;
+  const nextTasks = availableTasks.filter((t) => t.id !== currentTaskId).slice(0, 2);
 
   useEffect(() => {
-    if (availableTasks.length === 0) {
-      setCurrentTaskId(null);
-      return;
-    }
+    if (availableTasks.length === 0) { setCurrentTaskId(null); return; }
     if (currentTaskId && availableTasks.find((t) => t.id === currentTaskId)) return;
     const picked = pickRandom(availableTasks);
     setCurrentTaskId(picked ? (picked as Task).id : null);
@@ -73,10 +70,7 @@ export function HomeScreen() {
     setCurrentTaskId((prev) => prev ?? newId);
   }
 
-  function openEdit(task: Task) {
-    setEditingTask(task);
-    setEditTitle(task.title);
-  }
+  function openEdit(task: Task) { setEditingTask(task); setEditTitle(task.title); }
 
   function handleEditSave() {
     if (!editingTask || !editTitle.trim()) return;
@@ -87,59 +81,69 @@ export function HomeScreen() {
 
   const available = availableTaskCount();
   const completed = completedTaskCount();
+  const dateStr = new Date().toLocaleDateString('ja-JP', { month: 'long', day: 'numeric', weekday: 'short' });
 
   return (
     <SafeAreaView style={styles.safe}>
-      <View style={styles.container}>
 
-        {/* Header */}
-        <View style={styles.header}>
+      {/* ── HEADER (sky blue) ── */}
+      <View style={styles.header}>
+        <View style={styles.headerTop}>
           <View>
             <Text style={styles.appName}>いっぽ</Text>
-            <Text style={styles.dateText}>
-              {new Date().toLocaleDateString('ja-JP', { month: 'long', day: 'numeric', weekday: 'short' })}
-            </Text>
+            <Text style={styles.dateLabel}>{dateStr}</Text>
           </View>
-          <View style={styles.headerRight}>
+          <View style={styles.headerBadges}>
             {streak >= 2 && (
-              <View style={[styles.badge, styles.streakBadge]}>
-                <Text style={styles.streakText}>🔥 {streak}日</Text>
+              <View style={styles.streakChip}>
+                <Text style={styles.streakChipText}>🔥 {streak}日</Text>
               </View>
             )}
-            <View style={[styles.badge, styles.completedBadge]}>
-              <Text style={styles.badgeNum}>{completed}</Text>
-              <Text style={styles.badgeLabel}>完了</Text>
+            <View style={styles.completedChip}>
+              <Text style={styles.completedChipNum}>{completed}</Text>
+              <Text style={styles.completedChipLabel}> 完了</Text>
             </View>
           </View>
         </View>
+        <XPBar xp={xp} variant="header" />
+      </View>
 
-        <XPBar xp={xp} />
-
-        {/* Focus area */}
-        <View style={styles.focusArea}>
+      {/* ── CONTENT (light bg, rounded top) ── */}
+      <View style={styles.content}>
+        <ScrollView
+          style={styles.scroll}
+          contentContainerStyle={styles.scrollContent}
+          showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
+        >
+          {/* Focus area */}
           {currentTask ? (
-            <>
+            <View style={styles.focusSection}>
               <Text style={styles.focusLabel}>今これをやろう</Text>
               <View style={styles.focusCard}>
-                <View style={styles.focusCardAccent} />
-                <View style={styles.focusCardBody}>
+                <View style={styles.focusAccentBar} />
+                <View style={styles.focusBody}>
                   <Text style={styles.focusTitle}>{currentTask.title}</Text>
-                  <View style={styles.xpRow}>
-                    <View style={styles.xpPill}>
-                      <Text style={styles.xpPillText}>+{XP_PER_TASK} XP</Text>
-                    </View>
+                  <View style={styles.xpPill}>
+                    <Text style={styles.xpPillText}>完了で +{XP_PER_TASK} XP</Text>
                   </View>
                 </View>
               </View>
               <View style={styles.actionRow}>
-                <TouchableOpacity style={styles.skipBtn} onPress={handleSkip} activeOpacity={0.7}>
+                <Pressable
+                  style={({ pressed }) => [styles.skipBtn, pressed && styles.btnPressed]}
+                  onPress={handleSkip}
+                >
                   <Text style={styles.skipBtnText}>あとで</Text>
-                </TouchableOpacity>
-                <TouchableOpacity style={styles.doneBtn} onPress={handleComplete} activeOpacity={0.85}>
+                </Pressable>
+                <Pressable
+                  style={({ pressed }) => [styles.doneBtn, pressed && styles.doneBtnPressed]}
+                  onPress={handleComplete}
+                >
                   <Text style={styles.doneBtnText}>やった！ ✓</Text>
-                </TouchableOpacity>
+                </Pressable>
               </View>
-            </>
+            </View>
           ) : tasks.length === 0 ? (
             <View style={styles.emptyState}>
               <Text style={styles.emptyEmoji}>✨</Text>
@@ -153,24 +157,40 @@ export function HomeScreen() {
               <Text style={styles.emptyHint}>残りは明日また表示されます</Text>
             </View>
           )}
-        </View>
 
-        {/* Footer */}
-        <View style={styles.footer}>
-          {available > 0 && (
-            <TouchableOpacity
-              style={styles.listLink}
-              onPress={() => setListModalVisible(true)}
-              activeOpacity={0.6}
-            >
-              <Text style={styles.listLinkText}>タスクを全て見る  {available} 件</Text>
-            </TouchableOpacity>
+          {/* Next tasks preview */}
+          {nextTasks.length > 0 && (
+            <View style={styles.nextSection}>
+              <Text style={styles.nextLabel}>次のタスク</Text>
+              {nextTasks.map((t) => (
+                <View key={t.id} style={styles.nextRow}>
+                  <View style={styles.nextDot} />
+                  <Text style={styles.nextTitle} numberOfLines={1}>{t.title}</Text>
+                </View>
+              ))}
+              {available > 2 && (
+                <Text style={styles.nextMore}>他 {available - 2} 件…</Text>
+              )}
+            </View>
           )}
 
+          {/* View all link */}
+          {available > 0 && (
+            <Pressable
+              style={({ pressed }) => [styles.viewAllBtn, pressed && styles.viewAllBtnPressed]}
+              onPress={() => setListModalVisible(true)}
+            >
+              <Text style={styles.viewAllText}>全タスクを見る  {available} 件 →</Text>
+            </Pressable>
+          )}
+        </ScrollView>
+
+        {/* Bottom: add task */}
+        <View style={styles.bottomBar}>
           {addInputVisible ? (
-            <View style={styles.inlineAdd}>
+            <View style={styles.inputRow}>
               <TextInput
-                style={styles.inlineInput}
+                style={styles.textInput}
                 placeholder="何をしますか？"
                 placeholderTextColor={colors.textDisabled}
                 value={inputTitle}
@@ -180,81 +200,67 @@ export function HomeScreen() {
                 onSubmitEditing={handleAddSubmit}
                 maxLength={100}
               />
-              <TouchableOpacity
-                style={[styles.inlineAddBtn, !inputTitle.trim() && styles.inlineAddBtnDisabled]}
+              <Pressable
+                style={({ pressed }) => [styles.addBtn, !inputTitle.trim() && styles.addBtnDisabled, pressed && styles.addBtnPressed]}
                 onPress={handleAddSubmit}
                 disabled={!inputTitle.trim()}
-                activeOpacity={0.85}
               >
-                <Text style={styles.inlineAddBtnText}>追加</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={styles.inlineCancelBtn}
-                onPress={() => { setAddInputVisible(false); setInputTitle(''); }}
-              >
-                <Text style={styles.inlineCancelText}>×</Text>
-              </TouchableOpacity>
+                <Text style={styles.addBtnText}>追加</Text>
+              </Pressable>
+              <Pressable style={styles.cancelBtn} onPress={() => { setAddInputVisible(false); setInputTitle(''); }}>
+                <Text style={styles.cancelBtnText}>×</Text>
+              </Pressable>
             </View>
           ) : (
-            <TouchableOpacity
-              style={styles.fab}
+            <Pressable
+              style={({ pressed }) => [styles.fab, pressed && styles.fabPressed]}
               onPress={() => setAddInputVisible(true)}
-              activeOpacity={0.85}
             >
               <Text style={styles.fabIcon}>＋</Text>
               <Text style={styles.fabText}>タスクを追加</Text>
-            </TouchableOpacity>
+            </Pressable>
           )}
         </View>
       </View>
 
-      {/* Task list modal */}
+      {/* ── MODAL: Task list ── */}
       <Modal visible={listModalVisible} animationType="slide" transparent>
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalSheet}>
+        <View style={styles.overlay}>
+          <View style={styles.sheet}>
             <View style={styles.sheetHandle} />
-            <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>全タスク</Text>
-              <TouchableOpacity onPress={() => setListModalVisible(false)} style={styles.closeBtn}>
+            <View style={styles.sheetHeader}>
+              <Text style={styles.sheetTitle}>全タスク</Text>
+              <Pressable onPress={() => setListModalVisible(false)} style={styles.closeBtn}>
                 <Text style={styles.closeBtnText}>×</Text>
-              </TouchableOpacity>
+              </Pressable>
             </View>
-
             <ScrollView showsVerticalScrollIndicator={false}>
               {availableTasks.length > 0 && (
                 <>
-                  <Text style={styles.sectionLabel}>残り {availableTasks.length} 件</Text>
-                  {availableTasks.map((t) => (
-                    <TaskCard key={t.id} task={t} onEdit={() => openEdit(t)} />
-                  ))}
+                  <Text style={styles.sheetSection}>残り {availableTasks.length} 件</Text>
+                  {availableTasks.map((t) => <TaskCard key={t.id} task={t} onEdit={() => openEdit(t)} />)}
                 </>
               )}
               {skippedTasks.length > 0 && (
                 <>
-                  <Text style={styles.sectionLabel}>今日あとで  {skippedTasks.length} 件</Text>
-                  {skippedTasks.map((t) => (
-                    <TaskCard key={t.id} task={t} onEdit={() => openEdit(t)} />
-                  ))}
+                  <Text style={styles.sheetSection}>今日あとで  {skippedTasks.length} 件</Text>
+                  {skippedTasks.map((t) => <TaskCard key={t.id} task={t} onEdit={() => openEdit(t)} />)}
                 </>
               )}
               {completedTasks.length > 0 && (
                 <>
-                  <Text style={styles.sectionLabel}>完了  {completedTasks.length} 件</Text>
-                  {completedTasks.map((t) => (
-                    <TaskCard key={t.id} task={t} onEdit={() => openEdit(t)} />
-                  ))}
+                  <Text style={styles.sheetSection}>完了  {completedTasks.length} 件</Text>
+                  {completedTasks.map((t) => <TaskCard key={t.id} task={t} onEdit={() => openEdit(t)} />)}
                 </>
               )}
-              {tasks.length === 0 && (
-                <Text style={styles.listEmpty}>タスクがありません</Text>
-              )}
-              <View style={{ height: spacing.xl }} />
+              {tasks.length === 0 && <Text style={styles.sheetEmpty}>タスクがありません</Text>}
+              <View style={{ height: spacing.xxl }} />
             </ScrollView>
           </View>
         </View>
       </Modal>
 
-      {/* Edit task modal */}
+      {/* ── MODAL: Edit task ── */}
       <Modal visible={!!editingTask} animationType="fade" transparent>
         <View style={styles.editOverlay}>
           <View style={styles.editSheet}>
@@ -270,19 +276,19 @@ export function HomeScreen() {
               placeholderTextColor={colors.textDisabled}
             />
             <View style={styles.editActions}>
-              <TouchableOpacity
-                style={styles.editCancelBtn}
+              <Pressable
+                style={({ pressed }) => [styles.editCancelBtn, pressed && styles.btnPressed]}
                 onPress={() => { setEditingTask(null); setEditTitle(''); }}
               >
                 <Text style={styles.editCancelText}>キャンセル</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[styles.editSaveBtn, !editTitle.trim() && styles.editSaveBtnDisabled]}
+              </Pressable>
+              <Pressable
+                style={({ pressed }) => [styles.editSaveBtn, !editTitle.trim() && styles.editSaveBtnDisabled, pressed && styles.editSaveBtnPressed]}
                 onPress={handleEditSave}
                 disabled={!editTitle.trim()}
               >
                 <Text style={styles.editSaveText}>保存</Text>
-              </TouchableOpacity>
+              </Pressable>
             </View>
           </View>
         </View>
@@ -294,96 +300,114 @@ export function HomeScreen() {
 const styles = StyleSheet.create({
   safe: {
     flex: 1,
-    backgroundColor: colors.background,
+    backgroundColor: colors.primary,
   },
-  container: {
-    flex: 1,
-    backgroundColor: colors.background,
-  },
+
+  // ── Header ──
   header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
     paddingHorizontal: spacing.md,
-    paddingTop: spacing.lg,
-    paddingBottom: spacing.sm,
+    paddingTop: spacing.md,
+    paddingBottom: spacing.xl + spacing.lg,
+    gap: spacing.md,
+  },
+  headerTop: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
   },
   appName: {
     fontSize: fontSize.xxl,
     fontWeight: fontWeight.bold,
-    color: colors.primary,
+    color: colors.headerText,
     letterSpacing: -0.5,
   },
-  dateText: {
+  dateLabel: {
     fontSize: fontSize.sm,
-    color: colors.textSub,
+    color: colors.headerTextSub,
     marginTop: 2,
   },
-  headerRight: {
+  headerBadges: {
     flexDirection: 'row',
-    alignItems: 'center',
     gap: spacing.sm,
-  },
-  badge: {
-    flexDirection: 'row',
     alignItems: 'center',
-    gap: spacing.xs,
+  },
+  streakChip: {
+    backgroundColor: 'rgba(255,255,255,0.2)',
     borderRadius: radius.full,
     paddingHorizontal: spacing.sm,
     paddingVertical: 5,
-  },
-  streakBadge: {
-    backgroundColor: '#FFF7ED',
     borderWidth: 1,
-    borderColor: '#FED7AA',
+    borderColor: colors.headerBorder,
   },
-  streakText: {
+  streakChipText: {
     fontSize: fontSize.xs,
-    color: colors.streak,
+    color: colors.headerText,
     fontWeight: fontWeight.semibold,
   },
-  completedBadge: {
-    backgroundColor: colors.primaryLight,
+  completedChip: {
+    flexDirection: 'row',
+    alignItems: 'baseline',
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    borderRadius: radius.full,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: 5,
     borderWidth: 1,
-    borderColor: '#BAE6FD',
+    borderColor: colors.headerBorder,
   },
-  badgeNum: {
-    fontSize: fontSize.sm,
+  completedChipNum: {
+    fontSize: fontSize.md,
     fontWeight: fontWeight.bold,
-    color: colors.primary,
+    color: colors.headerText,
   },
-  badgeLabel: {
+  completedChipLabel: {
     fontSize: fontSize.xs,
-    color: colors.primary,
+    color: colors.headerTextSub,
   },
-  focusArea: {
+
+  // ── Content ──
+  content: {
     flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: spacing.md,
+    backgroundColor: colors.background,
+    borderTopLeftRadius: radius.xxl,
+    borderTopRightRadius: radius.xxl,
+    marginTop: -spacing.lg,
+    overflow: 'hidden',
+  },
+  scroll: {
+    flex: 1,
+  },
+  scrollContent: {
+    padding: spacing.md,
+    paddingTop: spacing.lg,
     gap: spacing.lg,
+    flexGrow: 1,
+  },
+
+  // ── Focus task ──
+  focusSection: {
+    gap: spacing.md,
   },
   focusLabel: {
     fontSize: fontSize.sm,
     color: colors.textSub,
     fontWeight: fontWeight.medium,
+    textAlign: 'center',
     letterSpacing: 0.3,
   },
   focusCard: {
-    width: '100%',
     backgroundColor: colors.surface,
     borderRadius: radius.xl,
     overflow: 'hidden',
     borderWidth: 1,
     borderColor: colors.border,
-    ...shadow.md,
+    ...shadow.card,
   },
-  focusCardAccent: {
+  focusAccentBar: {
     height: 5,
     backgroundColor: colors.primary,
     width: '100%',
   },
-  focusCardBody: {
+  focusBody: {
     padding: spacing.xl,
     alignItems: 'center',
     gap: spacing.md,
@@ -395,14 +419,11 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     lineHeight: 36,
   },
-  xpRow: {
-    alignItems: 'center',
-  },
   xpPill: {
     backgroundColor: '#FEF3C7',
     borderRadius: radius.full,
     paddingHorizontal: spacing.md,
-    paddingVertical: spacing.xs,
+    paddingVertical: 5,
     borderWidth: 1,
     borderColor: '#FDE68A',
   },
@@ -413,7 +434,6 @@ const styles = StyleSheet.create({
   },
   actionRow: {
     flexDirection: 'row',
-    width: '100%',
     gap: spacing.sm,
   },
   skipBtn: {
@@ -438,7 +458,10 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
     borderRadius: radius.full,
     backgroundColor: colors.primary,
-    ...shadow.sm,
+    ...shadow.soft,
+  },
+  doneBtnPressed: {
+    backgroundColor: colors.primaryDark,
   },
   doneBtnText: {
     fontSize: fontSize.md,
@@ -446,10 +469,15 @@ const styles = StyleSheet.create({
     fontWeight: fontWeight.bold,
     letterSpacing: 0.3,
   },
+  btnPressed: {
+    opacity: 0.7,
+  },
+
+  // ── Empty states ──
   emptyState: {
     alignItems: 'center',
     gap: spacing.sm,
-    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.xl,
   },
   emptyEmoji: {
     fontSize: 56,
@@ -466,19 +494,71 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     lineHeight: 20,
   },
-  footer: {
-    paddingHorizontal: spacing.md,
-    paddingBottom: spacing.xl,
+
+  // ── Next tasks preview ──
+  nextSection: {
+    backgroundColor: colors.surface,
+    borderRadius: radius.lg,
+    padding: spacing.md,
     gap: spacing.sm,
+    borderWidth: 1,
+    borderColor: colors.border,
   },
-  listLink: {
+  nextLabel: {
+    fontSize: fontSize.xs,
+    fontWeight: fontWeight.semibold,
+    color: colors.textSub,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+    marginBottom: spacing.xs,
+  },
+  nextRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    paddingVertical: 3,
+  },
+  nextDot: {
+    width: 7,
+    height: 7,
+    borderRadius: radius.full,
+    backgroundColor: colors.border,
+    borderWidth: 1.5,
+    borderColor: colors.primary,
+  },
+  nextTitle: {
+    flex: 1,
+    fontSize: fontSize.sm,
+    color: colors.textSub,
+  },
+  nextMore: {
+    fontSize: fontSize.xs,
+    color: colors.textMuted,
+    textAlign: 'right',
+  },
+
+  // ── View all ──
+  viewAllBtn: {
     alignItems: 'center',
     paddingVertical: spacing.sm,
   },
-  listLinkText: {
+  viewAllBtnPressed: {
+    opacity: 0.6,
+  },
+  viewAllText: {
     fontSize: fontSize.sm,
     color: colors.primary,
-    fontWeight: fontWeight.medium,
+    fontWeight: fontWeight.semibold,
+  },
+
+  // ── Bottom bar ──
+  bottomBar: {
+    paddingHorizontal: spacing.md,
+    paddingBottom: spacing.lg,
+    paddingTop: spacing.sm,
+    borderTopWidth: 1,
+    borderTopColor: colors.border,
+    backgroundColor: colors.background,
   },
   fab: {
     backgroundColor: colors.primary,
@@ -488,7 +568,10 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     paddingVertical: 15,
     gap: spacing.sm,
-    ...shadow.md,
+    ...shadow.card,
+  },
+  fabPressed: {
+    backgroundColor: colors.primaryDark,
   },
   fabIcon: {
     fontSize: fontSize.lg,
@@ -501,7 +584,7 @@ const styles = StyleSheet.create({
     fontWeight: fontWeight.semibold,
     color: colors.surface,
   },
-  inlineAdd: {
+  inputRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.sm,
@@ -512,45 +595,50 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     borderColor: colors.primary,
   },
-  inlineInput: {
+  textInput: {
     flex: 1,
     fontSize: fontSize.md,
     color: colors.textMain,
     paddingVertical: spacing.xs,
   },
-  inlineAddBtn: {
+  addBtn: {
     backgroundColor: colors.primary,
     borderRadius: radius.full,
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.xs,
   },
-  inlineAddBtnDisabled: {
+  addBtnDisabled: {
     backgroundColor: colors.textDisabled,
   },
-  inlineAddBtnText: {
+  addBtnPressed: {
+    backgroundColor: colors.primaryDark,
+  },
+  addBtnText: {
     color: colors.surface,
     fontWeight: fontWeight.semibold,
     fontSize: fontSize.sm,
   },
-  inlineCancelBtn: {
+  cancelBtn: {
     paddingHorizontal: spacing.xs,
   },
-  inlineCancelText: {
+  cancelBtnText: {
     color: colors.textSub,
     fontSize: fontSize.lg,
     lineHeight: 22,
   },
-  modalOverlay: {
+
+  // ── Modals ──
+  overlay: {
     flex: 1,
     justifyContent: 'flex-end',
-    backgroundColor: 'rgba(0,0,0,0.3)',
+    backgroundColor: 'rgba(0,0,0,0.35)',
   },
-  modalSheet: {
+  sheet: {
     backgroundColor: colors.background,
     borderTopLeftRadius: radius.xxl,
     borderTopRightRadius: radius.xxl,
     padding: spacing.lg,
-    maxHeight: '82%',
+    maxHeight: '84%',
   },
   sheetHandle: {
     width: 36,
@@ -560,13 +648,13 @@ const styles = StyleSheet.create({
     alignSelf: 'center',
     marginBottom: spacing.md,
   },
-  modalHeader: {
+  sheetHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     marginBottom: spacing.md,
   },
-  modalTitle: {
+  sheetTitle: {
     fontSize: fontSize.lg,
     fontWeight: fontWeight.bold,
     color: colors.textMain,
@@ -575,20 +663,20 @@ const styles = StyleSheet.create({
     padding: spacing.xs,
   },
   closeBtnText: {
-    fontSize: fontSize.lg,
+    fontSize: fontSize.xl,
     color: colors.textSub,
-    lineHeight: 24,
+    lineHeight: 26,
   },
-  sectionLabel: {
+  sheetSection: {
     fontSize: fontSize.xs,
-    color: colors.textSub,
+    color: colors.textMuted,
     fontWeight: fontWeight.semibold,
-    marginTop: spacing.md,
-    marginBottom: spacing.xs,
     textTransform: 'uppercase',
     letterSpacing: 0.5,
+    marginTop: spacing.md,
+    marginBottom: spacing.xs,
   },
-  listEmpty: {
+  sheetEmpty: {
     textAlign: 'center',
     color: colors.textSub,
     fontSize: fontSize.md,
@@ -598,7 +686,7 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: 'rgba(0,0,0,0.3)',
+    backgroundColor: 'rgba(0,0,0,0.35)',
     padding: spacing.lg,
   },
   editSheet: {
@@ -607,6 +695,7 @@ const styles = StyleSheet.create({
     padding: spacing.xl,
     width: '100%',
     gap: spacing.md,
+    ...shadow.card,
   },
   editTitle: {
     fontSize: fontSize.lg,
@@ -646,6 +735,9 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
     borderRadius: radius.full,
     backgroundColor: colors.primary,
+  },
+  editSaveBtnPressed: {
+    backgroundColor: colors.primaryDark,
   },
   editSaveBtnDisabled: {
     backgroundColor: colors.textDisabled,
