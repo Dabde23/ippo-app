@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import {
   View, StyleSheet, ScrollView, Pressable,
-  SafeAreaView, Platform, Modal, TextInput,
+  SafeAreaView, Platform, Modal, TextInput, Linking,
 } from 'react-native';
 import { Text } from '../components/Text';
 import { XPBar } from '../components/XPBar';
@@ -22,11 +22,22 @@ export function ProfileScreen() {
   const [timePickerVisible, setTimePickerVisible] = useState(false);
   const [editingTask, setEditingTask] = useState<Task | null>(null);
   const [editTitle, setEditTitle] = useState('');
+  const [feedbackVisible, setFeedbackVisible] = useState(false);
+  const [feedbackText, setFeedbackText] = useState('');
 
   const todayStr = today();
   const availableTasks = tasks.filter((t) => !t.completed && t.skippedDate !== todayStr);
   const skippedTasks = tasks.filter((t) => !t.completed && t.skippedDate === todayStr);
   const completedTasks = tasks.filter((t) => t.completed);
+
+  function handleFeedbackSubmit() {
+    if (!feedbackText.trim()) return;
+    const subject = encodeURIComponent('いっぽ フィードバック');
+    const body = encodeURIComponent(feedbackText.trim());
+    Linking.openURL(`mailto:tttttttttttttttttttt2038@gmail.com?subject=${subject}&body=${body}`);
+    setFeedbackText('');
+    setFeedbackVisible(false);
+  }
 
   function openEdit(task: Task) { setEditingTask(task); setEditTitle(task.title); }
   function handleEditSave() {
@@ -161,6 +172,21 @@ export function ProfileScreen() {
           )}
         </View>
 
+        {/* Feedback */}
+        <View style={styles.section}>
+          <Text style={styles.sectionLabel}>フィードバック</Text>
+          <View style={styles.rule} />
+          <Text style={styles.feedbackDesc}>
+            使ってみた感想や改善してほしい点を教えてください。{'\n'}開発の参考にします。
+          </Text>
+          <Pressable
+            style={({ pressed }) => [styles.feedbackBtn, pressed && { opacity: 0.7 }]}
+            onPress={() => setFeedbackVisible(true)}
+          >
+            <Text style={styles.feedbackBtnText}>感想を送る</Text>
+          </Pressable>
+        </View>
+
         {/* Early access */}
         <View style={styles.noteCard}>
           <Text style={styles.noteTitle}>アーリーアクセス</Text>
@@ -200,6 +226,42 @@ export function ProfileScreen() {
                 disabled={!editTitle.trim()}
               >
                 <Text style={styles.editSaveText}>保存</Text>
+              </Pressable>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Feedback modal */}
+      <Modal visible={feedbackVisible} animationType="fade" transparent>
+        <View style={styles.editOverlay}>
+          <View style={styles.editSheet}>
+            <Text style={styles.editLabel}>フィードバック</Text>
+            <View style={styles.rule} />
+            <TextInput
+              style={[styles.editInput, styles.feedbackInput]}
+              value={feedbackText}
+              onChangeText={setFeedbackText}
+              placeholder="使ってみた感想・改善してほしい点など"
+              placeholderTextColor={colors.textDisabled}
+              multiline
+              textAlignVertical="top"
+              maxLength={500}
+              autoFocus
+            />
+            <View style={styles.editActions}>
+              <Pressable
+                style={({ pressed }) => [styles.editCancelBtn, pressed && { opacity: 0.6 }]}
+                onPress={() => { setFeedbackVisible(false); setFeedbackText(''); }}
+              >
+                <Text style={styles.editCancelText}>キャンセル</Text>
+              </Pressable>
+              <Pressable
+                style={({ pressed }) => [styles.editSaveBtn, !feedbackText.trim() && styles.editSaveBtnDisabled, pressed && { opacity: 0.85 }]}
+                onPress={handleFeedbackSubmit}
+                disabled={!feedbackText.trim()}
+              >
+                <Text style={styles.editSaveText}>送る</Text>
               </Pressable>
             </View>
           </View>
@@ -356,6 +418,29 @@ const styles = StyleSheet.create({
   },
   toggleOn: { backgroundColor: colors.primary, borderColor: colors.primary },
   toggleText: { fontSize: fontSize.xs, fontWeight: fontWeight.black, color: colors.ink, letterSpacing: 1 },
+  feedbackDesc: {
+    fontSize: fontSize.sm,
+    color: colors.textSub,
+    lineHeight: 20,
+  },
+  feedbackBtn: {
+    backgroundColor: colors.ink,
+    borderRadius: radius.md,
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.md,
+    alignSelf: 'flex-start',
+    marginTop: spacing.xs,
+  },
+  feedbackBtnText: {
+    fontSize: fontSize.sm,
+    color: colors.background,
+    fontWeight: fontWeight.bold,
+    letterSpacing: 1,
+  },
+  feedbackInput: {
+    height: 120,
+    textAlignVertical: 'top',
+  },
   noteCard: {
     borderWidth: 1.5,
     borderColor: colors.primary,
