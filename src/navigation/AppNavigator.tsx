@@ -38,7 +38,6 @@ export function AppNavigator() {
             borderTopColor: colors.ink,
             paddingBottom: 6 + insets.bottom,
             paddingTop: 6,
-            height: 62 + insets.bottom,
           },
           tabBarLabelStyle: {
             fontSize: fontSize.xs,
