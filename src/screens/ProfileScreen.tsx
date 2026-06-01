@@ -4,7 +4,7 @@ import {
   SafeAreaView, Platform, Modal, TextInput,
 } from 'react-native';
 
-const FORMSPREE_URL = 'https://formspree.io/f/XXXXXXXX'; // ← Formspree のエンドポイントに置き換え
+const FORMSPREE_URL = 'https://formspree.io/f/xqejvywv';
 import { Text } from '../components/Text';
 import { XPBar } from '../components/XPBar';
 import { TaskCard } from '../components/TaskCard';
