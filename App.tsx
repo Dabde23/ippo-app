@@ -1,6 +1,7 @@
 import { StatusBar } from 'expo-status-bar';
 import { useFonts, BIZUDPGothic_400Regular, BIZUDPGothic_700Bold } from '@expo-google-fonts/biz-udpgothic';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
+import { Analytics } from '@vercel/analytics/react';
 import { AppNavigator } from './src/navigation/AppNavigator';
 
 export default function App() {
@@ -11,6 +12,7 @@ export default function App() {
     <SafeAreaProvider>
       <StatusBar style="dark" />
       <AppNavigator />
+      <Analytics />
     </SafeAreaProvider>
   );
 }
