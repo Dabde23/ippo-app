@@ -4,6 +4,7 @@ import {
   Modal, SafeAreaView, ScrollView, Platform,
 } from 'react-native';
 import { Text } from '../components/Text';
+import { ScreenLogo } from '../components/ScreenLogo';
 import { XPBar } from '../components/XPBar';
 import { TaskCard } from '../components/TaskCard';
 import { useAppStore, Task, today, XP_PER_TASK } from '../store/useAppStore';
@@ -80,7 +81,7 @@ export function HomeScreen() {
         <View style={styles.headerRule} />
         <View style={styles.headerContent}>
           <View style={styles.headerLeft}>
-            <Text style={styles.appName}>いっぽ</Text>
+            <ScreenLogo title="いっぽ" accent="bar" />
             <Text style={styles.dateLabel}>{dateStr}</Text>
           </View>
           <View style={styles.headerRight}>

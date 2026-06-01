@@ -6,6 +6,7 @@ import {
 
 const FORMSPREE_URL = 'https://formspree.io/f/xqejvywv';
 import { Text } from '../components/Text';
+import { ScreenLogo } from '../components/ScreenLogo';
 import { XPBar } from '../components/XPBar';
 import { TaskCard } from '../components/TaskCard';
 import { useAppStore, Task, today } from '../store/useAppStore';
@@ -84,7 +85,7 @@ export function ProfileScreen() {
       <View style={styles.header}>
         <View style={styles.rule} />
         <View style={styles.headerContent}>
-          <Text style={styles.title}>プロフィール</Text>
+          <ScreenLogo title="プロフィール" />
         </View>
 
         {/* Stats row */}

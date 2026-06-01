@@ -60,7 +60,7 @@ export function TaskCard({ task, onEdit }: Props) {
           onPress={handleDelete}
           hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
         >
-          <Text style={[styles.deleteText, task.completed && styles.dimText]}>×</Text>
+          <Text style={styles.deleteText}>×</Text>
         </Pressable>
       </View>
     </View>
@@ -157,10 +157,7 @@ const styles = StyleSheet.create({
   },
   deleteText: {
     fontSize: fontSize.lg,
-    color: colors.textMuted,
+    color: colors.danger,
     lineHeight: 20,
-  },
-  dimText: {
-    opacity: 0.3,
   },
 });

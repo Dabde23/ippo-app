@@ -1,5 +1,5 @@
 import React from 'react';
-import { Text } from '../components/Text';
+import { Ionicons } from '@expo/vector-icons';
 import { NavigationContainer } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -7,16 +7,18 @@ import { HomeScreen } from '../screens/HomeScreen';
 import { TimerScreen } from '../screens/TimerScreen';
 import { ProfileScreen } from '../screens/ProfileScreen';
 import { OnboardingScreen } from '../screens/OnboardingScreen';
-import { colors, fontSize } from '../theme';
+import { colors } from '../theme';
 import { useAppStore } from '../store/useAppStore';
 import { BadgeModal } from './BadgeModal';
 
 const Tab = createBottomTabNavigator();
 
-const TAB_ICONS: Record<string, string> = {
-  Home:    '◻',
-  Timer:   '◷',
-  Profile: '◉',
+type IoniconName = React.ComponentProps<typeof Ionicons>['name'];
+
+const TAB_ICONS: Record<string, { outline: IoniconName; filled: IoniconName }> = {
+  Home:    { outline: 'today-outline',  filled: 'today'   },
+  Timer:   { outline: 'timer-outline',  filled: 'timer'   },
+  Profile: { outline: 'person-outline', filled: 'person'  },
 };
 
 export function AppNavigator() {
@@ -39,14 +41,11 @@ export function AppNavigator() {
             paddingBottom: 6 + insets.bottom,
             paddingTop: 6,
           },
-          tabBarLabelStyle: {
-            fontSize: fontSize.xs,
-            fontFamily: 'BIZUDPGothic_700Bold',
-            letterSpacing: 1,
+          tabBarShowLabel: false,
+          tabBarIcon: ({ color, focused }) => {
+            const icons = TAB_ICONS[route.name];
+            return <Ionicons name={focused ? icons.filled : icons.outline} size={26} color={color} />;
           },
-          tabBarIcon: ({ color }) => (
-            <Text style={{ fontSize: 12, color, letterSpacing: 0 }}>{TAB_ICONS[route.name]}</Text>
-          ),
         })}
       >
         <Tab.Screen name="Home"    component={HomeScreen}    options={{ tabBarLabel: '今日' }} />

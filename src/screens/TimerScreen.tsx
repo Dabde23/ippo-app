@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { View, StyleSheet, Pressable, SafeAreaView, ScrollView } from 'react-native';
 import { Text } from '../components/Text';
+import { ScreenLogo } from '../components/ScreenLogo';
 import { TimerDisplay } from '../components/TimerDisplay';
 import { colors, spacing, radius, fontSize, fontWeight, shadow } from '../theme';
 
@@ -41,7 +42,7 @@ export function TimerScreen() {
       <View style={styles.header}>
         <View style={styles.headerRule} />
         <View style={styles.headerContent}>
-          <Text style={styles.title}>タイマー</Text>
+          <ScreenLogo title="タイマー" />
           <Text style={styles.modeTag}>{modeLabel}</Text>
         </View>
         <View style={styles.headerRule} />
@@ -185,13 +186,13 @@ const styles = StyleSheet.create({
   modeBtnLabel: {
     fontSize: fontSize.xs,
     fontWeight: fontWeight.bold,
-    color: colors.textMuted,
+    color: colors.textSub,
     letterSpacing: 2,
   },
   modeBtnTime: {
     fontSize: fontSize.lg,
     fontWeight: fontWeight.black,
-    color: colors.textMuted,
+    color: colors.textSub,
     letterSpacing: -0.5,
   },
   modeBtnLabelActive: {
