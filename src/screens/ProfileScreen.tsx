@@ -1,8 +1,10 @@
 import React, { useState } from 'react';
 import {
   View, StyleSheet, ScrollView, Pressable,
-  SafeAreaView, Platform, Modal, TextInput, Linking,
+  SafeAreaView, Platform, Modal, TextInput,
 } from 'react-native';
+
+const FORMSPREE_URL = 'https://formspree.io/f/XXXXXXXX'; // ← Formspree のエンドポイントに置き換え
 import { Text } from '../components/Text';
 import { XPBar } from '../components/XPBar';
 import { TaskCard } from '../components/TaskCard';
@@ -24,19 +26,35 @@ export function ProfileScreen() {
   const [editTitle, setEditTitle] = useState('');
   const [feedbackVisible, setFeedbackVisible] = useState(false);
   const [feedbackText, setFeedbackText] = useState('');
+  const [feedbackSending, setFeedbackSending] = useState(false);
+  const [feedbackSent, setFeedbackSent] = useState(false);
 
   const todayStr = today();
   const availableTasks = tasks.filter((t) => !t.completed && t.skippedDate !== todayStr);
   const skippedTasks = tasks.filter((t) => !t.completed && t.skippedDate === todayStr);
   const completedTasks = tasks.filter((t) => t.completed);
 
-  function handleFeedbackSubmit() {
-    if (!feedbackText.trim()) return;
-    const subject = encodeURIComponent('いっぽ フィードバック');
-    const body = encodeURIComponent(feedbackText.trim());
-    Linking.openURL(`mailto:tttttttttttttttttttt2038@gmail.com?subject=${subject}&body=${body}`);
-    setFeedbackText('');
-    setFeedbackVisible(false);
+  async function handleFeedbackSubmit() {
+    if (!feedbackText.trim() || feedbackSending) return;
+    setFeedbackSending(true);
+    try {
+      await fetch(FORMSPREE_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ message: feedbackText.trim() }),
+      });
+      setFeedbackSent(true);
+      setFeedbackText('');
+      setTimeout(() => {
+        setFeedbackSent(false);
+        setFeedbackVisible(false);
+      }, 1500);
+    } catch {
+      setFeedbackVisible(false);
+      setFeedbackText('');
+    } finally {
+      setFeedbackSending(false);
+    }
   }
 
   function openEdit(task: Task) { setEditingTask(task); setEditTitle(task.title); }
@@ -238,32 +256,42 @@ export function ProfileScreen() {
           <View style={styles.editSheet}>
             <Text style={styles.editLabel}>フィードバック</Text>
             <View style={styles.rule} />
-            <TextInput
-              style={[styles.editInput, styles.feedbackInput]}
-              value={feedbackText}
-              onChangeText={setFeedbackText}
-              placeholder="使ってみた感想・改善してほしい点など"
-              placeholderTextColor={colors.textDisabled}
-              multiline
-              textAlignVertical="top"
-              maxLength={500}
-              autoFocus
-            />
-            <View style={styles.editActions}>
-              <Pressable
-                style={({ pressed }) => [styles.editCancelBtn, pressed && { opacity: 0.6 }]}
-                onPress={() => { setFeedbackVisible(false); setFeedbackText(''); }}
-              >
-                <Text style={styles.editCancelText}>キャンセル</Text>
-              </Pressable>
-              <Pressable
-                style={({ pressed }) => [styles.editSaveBtn, !feedbackText.trim() && styles.editSaveBtnDisabled, pressed && { opacity: 0.85 }]}
-                onPress={handleFeedbackSubmit}
-                disabled={!feedbackText.trim()}
-              >
-                <Text style={styles.editSaveText}>送る</Text>
-              </Pressable>
-            </View>
+            {feedbackSent ? (
+              <View style={styles.feedbackSentContainer}>
+                <Text style={styles.feedbackSentText}>ありがとうございます！</Text>
+              </View>
+            ) : (
+              <>
+                <TextInput
+                  style={[styles.editInput, styles.feedbackInput]}
+                  value={feedbackText}
+                  onChangeText={setFeedbackText}
+                  placeholder="使ってみた感想・改善してほしい点など"
+                  placeholderTextColor={colors.textDisabled}
+                  multiline
+                  textAlignVertical="top"
+                  maxLength={500}
+                  autoFocus
+                  editable={!feedbackSending}
+                />
+                <View style={styles.editActions}>
+                  <Pressable
+                    style={({ pressed }) => [styles.editCancelBtn, pressed && { opacity: 0.6 }]}
+                    onPress={() => { setFeedbackVisible(false); setFeedbackText(''); }}
+                    disabled={feedbackSending}
+                  >
+                    <Text style={styles.editCancelText}>キャンセル</Text>
+                  </Pressable>
+                  <Pressable
+                    style={({ pressed }) => [styles.editSaveBtn, (!feedbackText.trim() || feedbackSending) && styles.editSaveBtnDisabled, pressed && { opacity: 0.85 }]}
+                    onPress={handleFeedbackSubmit}
+                    disabled={!feedbackText.trim() || feedbackSending}
+                  >
+                    <Text style={styles.editSaveText}>{feedbackSending ? '送信中...' : '送る'}</Text>
+                  </Pressable>
+                </View>
+              </>
+            )}
           </View>
         </View>
       </Modal>
@@ -440,6 +468,16 @@ const styles = StyleSheet.create({
   feedbackInput: {
     height: 120,
     textAlignVertical: 'top',
+  },
+  feedbackSentContainer: {
+    paddingVertical: spacing.xl,
+    alignItems: 'center',
+  },
+  feedbackSentText: {
+    fontSize: fontSize.lg,
+    fontWeight: fontWeight.bold,
+    color: colors.primary,
+    letterSpacing: 1,
   },
   noteCard: {
     borderWidth: 1.5,
