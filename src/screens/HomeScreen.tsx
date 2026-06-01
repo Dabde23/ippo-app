@@ -32,7 +32,6 @@ export function HomeScreen() {
   const skippedTasks = tasks.filter((t) => !t.completed && t.skippedDate === todayStr);
   const completedTasks = tasks.filter((t) => t.completed);
   const currentTask = availableTasks.find((t) => t.id === currentTaskId) ?? null;
-  const nextTasks = availableTasks.filter((t) => t.id !== currentTaskId).slice(0, 2);
 
   useEffect(() => {
     if (availableTasks.length === 0) { setCurrentTaskId(null); return; }
@@ -148,29 +147,13 @@ export function HomeScreen() {
           </View>
         )}
 
-        {/* Next tasks */}
-        {nextTasks.length > 0 && (
-          <View style={styles.nextSection}>
-            <Text style={styles.sectionTag}>ネクスト</Text>
-            {nextTasks.map((t, i) => (
-              <View key={t.id} style={styles.nextRow}>
-                <Text style={styles.nextIndex}>{String(i + 2).padStart(2, '0')}</Text>
-                <Text style={styles.nextTitle} numberOfLines={1}>{t.title}</Text>
-              </View>
-            ))}
-            {available > 2 && (
-              <Text style={styles.nextMore}>他 {available - 2} 件</Text>
-            )}
-          </View>
-        )}
-
         {/* View all */}
         {available > 0 && (
           <Pressable
             style={({ pressed }) => [styles.viewAllBtn, pressed && { opacity: 0.5 }]}
             onPress={() => setListModalVisible(true)}
           >
-            <Text style={styles.viewAllText}>全タスクを見る — {available} 件</Text>
+            <Text style={styles.viewAllText}>全タスクを見る</Text>
           </Pressable>
         )}
 
@@ -464,40 +447,6 @@ const styles = StyleSheet.create({
     fontSize: fontSize.sm,
     color: colors.textSub,
     lineHeight: 20,
-  },
-
-  // ── Next tasks ──
-  nextSection: {
-    marginBottom: spacing.lg,
-    gap: spacing.sm,
-  },
-  nextRow: {
-    flexDirection: 'row',
-    alignItems: 'baseline',
-    gap: spacing.md,
-    paddingVertical: spacing.xs,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.surfaceAlt,
-  },
-  nextIndex: {
-    fontSize: fontSize.xs,
-    fontWeight: fontWeight.bold,
-    color: colors.primary,
-    letterSpacing: 1,
-    width: 24,
-  },
-  nextTitle: {
-    flex: 1,
-    fontSize: fontSize.sm,
-    color: colors.textSub,
-    fontWeight: fontWeight.medium,
-  },
-  nextMore: {
-    fontSize: fontSize.xs,
-    color: colors.textMuted,
-    letterSpacing: 0.5,
-    textAlign: 'right',
-    marginTop: spacing.xs,
   },
 
   // ── View all ──
