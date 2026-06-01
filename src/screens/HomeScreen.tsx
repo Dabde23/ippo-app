@@ -18,7 +18,7 @@ function pickRandom<T>(arr: T[], excludeId?: string): T | null {
 }
 
 export function HomeScreen() {
-  const { tasks, xp, streak, addTask, completeTask, skipTask, availableTaskCount, completedTaskCount } = useAppStore();
+  const { tasks, xp, addTask, completeTask, skipTask, availableTaskCount, completedTaskCount } = useAppStore();
 
   const [currentTaskId, setCurrentTaskId] = useState<string | null>(null);
   const [addInputVisible, setAddInputVisible] = useState(false);
@@ -83,12 +83,7 @@ export function HomeScreen() {
             <Text style={styles.dateLabel}>{dateStr}</Text>
           </View>
           <View style={styles.headerRight}>
-            {streak >= 2 && (
-              <View style={styles.streakTag}>
-                <Text style={styles.streakTagText}>🔥 {streak}</Text>
-              </View>
-            )}
-            <View style={styles.completedTag}>
+<View style={styles.completedTag}>
               <Text style={styles.completedTagNum}>{completed}</Text>
               <Text style={styles.completedTagLabel}>完了</Text>
             </View>
@@ -330,19 +325,6 @@ const styles = StyleSheet.create({
     gap: spacing.sm,
     alignItems: 'center',
     paddingBottom: spacing.xs,
-  },
-  streakTag: {
-    borderWidth: 1,
-    borderColor: colors.primary,
-    borderRadius: radius.sm,
-    paddingHorizontal: spacing.sm,
-    paddingVertical: 3,
-  },
-  streakTagText: {
-    fontSize: fontSize.xs,
-    color: colors.primary,
-    fontWeight: fontWeight.bold,
-    letterSpacing: 0.5,
   },
   completedTag: {
     flexDirection: 'row',

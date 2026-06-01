@@ -17,7 +17,6 @@ export const colors = {
   textSub: '#6B5F4A',       // warm brown-gray
   textMuted: '#9A8E7A',
   textDisabled: '#C0B8A8',
-  streak: '#C4603A',
   xpGold: '#C4603A',        // use terracotta for XP
   badge: '#6B4A8C',
 };

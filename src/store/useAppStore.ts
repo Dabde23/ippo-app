@@ -39,12 +39,6 @@ export function today(): string {
   return new Date().toISOString().split('T')[0];
 }
 
-function yesterday(): string {
-  const d = new Date();
-  d.setDate(d.getDate() - 1);
-  return d.toISOString().split('T')[0];
-}
-
 function earnedBadgeCount(xp: number): number {
   return BADGE_THRESHOLDS.filter((t) => xp >= t).length;
 }
@@ -53,8 +47,6 @@ interface AppState {
   tasks: Task[];
   xp: number;
   badges: Badge[];
-  streak: number;
-  lastCompletedDate: string | null;
   isPremium: boolean;
   pendingBadge: Badge | null;
   reminderEnabled: boolean;
@@ -80,8 +72,6 @@ export const useAppStore = create<AppState>()(
       tasks: [],
       xp: 0,
       badges: [],
-      streak: 0,
-      lastCompletedDate: null,
       isPremium: true,
       pendingBadge: null,
       reminderEnabled: false,
@@ -123,17 +113,7 @@ export const useAppStore = create<AppState>()(
             pendingBadge = newBadge;
           }
 
-          const todayStr = today();
-          let newStreak = state.streak;
-          if (state.lastCompletedDate === todayStr) {
-            // no change
-          } else if (state.lastCompletedDate === yesterday()) {
-            newStreak = state.streak + 1;
-          } else {
-            newStreak = 1;
-          }
-
-          return { tasks, xp: newXp, badges, pendingBadge, streak: newStreak, lastCompletedDate: todayStr };
+          return { tasks, xp: newXp, badges, pendingBadge };
         });
       },
 
@@ -179,8 +159,6 @@ export const useAppStore = create<AppState>()(
         tasks: state.tasks,
         xp: state.xp,
         badges: state.badges,
-        streak: state.streak,
-        lastCompletedDate: state.lastCompletedDate,
         isPremium: state.isPremium,
         reminderEnabled: state.reminderEnabled,
         reminderTime: state.reminderTime,
