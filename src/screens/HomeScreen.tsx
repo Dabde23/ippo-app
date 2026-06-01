@@ -81,7 +81,7 @@ export function HomeScreen() {
         <View style={styles.headerRule} />
         <View style={styles.headerContent}>
           <View style={styles.headerLeft}>
-            <ScreenLogo title="いっぽ" accent="bar" />
+            <ScreenLogo title="いっぽ" />
             <Text style={styles.dateLabel}>{dateStr}</Text>
           </View>
           <View style={styles.headerRight}>
