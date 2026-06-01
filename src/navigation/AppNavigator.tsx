@@ -2,6 +2,7 @@ import React from 'react';
 import { Text } from '../components/Text';
 import { NavigationContainer } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { HomeScreen } from '../screens/HomeScreen';
 import { TimerScreen } from '../screens/TimerScreen';
 import { ProfileScreen } from '../screens/ProfileScreen';
@@ -20,6 +21,7 @@ const TAB_ICONS: Record<string, string> = {
 
 export function AppNavigator() {
   const { pendingBadge, dismissBadge, hasCompletedOnboarding } = useAppStore();
+  const insets = useSafeAreaInsets();
 
   if (!hasCompletedOnboarding) return <OnboardingScreen />;
 
@@ -34,9 +36,9 @@ export function AppNavigator() {
             backgroundColor: colors.surface,
             borderTopWidth: 1.5,
             borderTopColor: colors.ink,
-            paddingBottom: 6,
+            paddingBottom: 6 + insets.bottom,
             paddingTop: 6,
-            height: 62,
+            height: 62 + insets.bottom,
           },
           tabBarLabelStyle: {
             fontSize: fontSize.xs,
