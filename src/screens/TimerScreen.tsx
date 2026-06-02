@@ -47,6 +47,14 @@ export function TimerScreen() {
     return () => { if (autostartRef.current) clearTimeout(autostartRef.current); };
   }, []);
 
+  useEffect(() => {
+    if (!timerTaskId) return;
+    if (autostartRef.current) clearTimeout(autostartRef.current);
+    setIsRunning(false);
+    setSeconds(WORK_DURATION);
+    setMode('work');
+  }, [timerTaskId]);
+
   function handleStartPause() { setIsRunning((r) => !r); }
   function switchMode(m: 'work' | 'break') {
     if (autostartRef.current) clearTimeout(autostartRef.current);
