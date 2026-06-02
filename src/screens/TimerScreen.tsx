@@ -131,32 +131,30 @@ export function TimerScreen() {
 
         {/* Ring + start/pause */}
         <View style={styles.ringRow}>
-          <View style={styles.ringContainer}>
-            <View
-              style={[
-                styles.ring,
-                {
-                  backgroundImage: `conic-gradient(${ringColor} ${Math.round(progress * 360)}deg, ${colors.surfaceAlt} 0deg)`,
-                } as object,
-              ]}
-            >
-              <View style={styles.ringInner}>
-                <TimerDisplay seconds={seconds} isRunning={isRunning} color={isRunning ? ringColor : colors.ink} />
-              </View>
+          <View
+            style={[
+              styles.ring,
+              {
+                backgroundImage: `conic-gradient(${ringColor} ${Math.round(progress * 360)}deg, ${colors.surfaceAlt} 0deg)`,
+              } as object,
+            ]}
+          >
+            <View style={styles.ringInner}>
+              <TimerDisplay seconds={seconds} isRunning={isRunning} color={isRunning ? ringColor : colors.ink} />
             </View>
-            <Pressable
-              style={({ pressed }) => [styles.startBtn, pressed && { opacity: 0.7 }]}
-              onPress={handleStartPause}
-              accessibilityRole="button"
-              accessibilityLabel={isRunning ? '一時停止' : 'スタート'}
-            >
-              <Ionicons
-                name={isRunning ? 'pause' : 'play'}
-                size={32}
-                color={colors.primary}
-              />
-            </Pressable>
           </View>
+          <Pressable
+            style={({ pressed }) => [styles.startBtn, pressed && { opacity: 0.7 }]}
+            onPress={handleStartPause}
+            accessibilityRole="button"
+            accessibilityLabel={isRunning ? '一時停止' : 'スタート'}
+          >
+            <Ionicons
+              name={isRunning ? 'pause' : 'play'}
+              size={26}
+              color={colors.primary}
+            />
+          </Pressable>
         </View>
 
         {/* Progress bar */}
@@ -280,11 +278,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'flex-end',
     justifyContent: 'center',
-    gap: spacing.md,
     width: '100%',
-  },
-  ringContainer: {
-    position: 'relative',
   },
   ring: {
     width: 240,
@@ -318,9 +312,9 @@ const styles = StyleSheet.create({
   startBtn: {
     position: 'absolute',
     bottom: 0,
-    right: -40,
-    width: 72,
-    height: 72,
+    right: 0,
+    width: 56,
+    height: 56,
     alignItems: 'center',
     justifyContent: 'center',
     borderRadius: radius.lg,
