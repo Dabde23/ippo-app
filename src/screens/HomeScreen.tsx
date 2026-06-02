@@ -107,18 +107,18 @@ export function HomeScreen() {
                 <Text style={styles.focusTitle}>{currentTask.title}</Text>
                 <View style={styles.focusFooter}>
                   <Text style={styles.focusXp}>+{XP_PER_TASK} XP</Text>
+                  <Pressable
+                    style={({ pressed }) => [styles.skipBtn, pressed && { opacity: 0.65 }]}
+                    onPress={handleSkip}
+                  >
+                    <Text style={styles.skipBtnText}>後に回す</Text>
+                  </Pressable>
                 </View>
               </View>
             </View>
 
-            {/* Action buttons */}
+            {/* Action button */}
             <View style={styles.actionRow}>
-              <Pressable
-                style={({ pressed }) => [styles.skipBtn, pressed && { opacity: 0.65 }]}
-                onPress={handleSkip}
-              >
-                <Text style={styles.skipBtnText}>後に回す</Text>
-              </Pressable>
               <Pressable
                 style={({ pressed }) => [styles.doneBtn, pressed && { backgroundColor: colors.primaryDark }]}
                 onPress={() => { setTimerTask(currentTask!.id); navigation.navigate('Timer'); }}
@@ -370,6 +370,7 @@ const styles = StyleSheet.create({
   focusFooter: {
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'space-between',
   },
   focusXp: {
     fontSize: fontSize.xs,
@@ -386,39 +387,36 @@ const styles = StyleSheet.create({
 
   // ── Action buttons ──
   actionRow: {
-    flexDirection: 'row',
-    gap: spacing.sm,
     marginBottom: spacing.xl,
   },
   skipBtn: {
-    flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 14,
-    borderRadius: radius.md,
-    borderWidth: 1.5,
-    borderColor: colors.ink,
-    backgroundColor: 'transparent',
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.xs,
+    borderRadius: radius.sm,
+    backgroundColor: colors.surfaceAlt,
+    borderWidth: 1,
+    borderColor: colors.border,
   },
   skipBtnText: {
-    fontSize: fontSize.md,
-    color: colors.ink,
+    fontSize: fontSize.xs,
+    color: colors.textSub,
     fontWeight: fontWeight.bold,
     letterSpacing: 0.5,
   },
   doneBtn: {
-    flex: 2,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 14,
-    borderRadius: radius.md,
+    paddingVertical: 28,
+    borderRadius: radius.lg,
     backgroundColor: colors.primary,
   },
   doneBtnText: {
-    fontSize: fontSize.md,
+    fontSize: fontSize.lg,
     color: colors.surface,
     fontWeight: fontWeight.black,
-    letterSpacing: 0.5,
+    letterSpacing: 1,
   },
 
   // ── Empty states ──

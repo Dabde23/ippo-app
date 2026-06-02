@@ -53,6 +53,8 @@ export function TimerScreen() {
     setIsRunning(false);
     setSeconds(WORK_DURATION);
     setMode('work');
+    autostartRef.current = setTimeout(() => setIsRunning(true), 1000);
+    return () => { if (autostartRef.current) clearTimeout(autostartRef.current); };
   }, [timerTaskId]);
 
   function handleStartPause() { setIsRunning((r) => !r); }
@@ -126,37 +128,37 @@ export function TimerScreen() {
           </Pressable>
         </View>
 
-        {/* Ring */}
-        <View style={styles.ringContainer}>
-          <View
-            style={[
-              styles.ring,
-              {
-                backgroundImage: `conic-gradient(${ringColor} ${Math.round(progress * 360)}deg, ${colors.surfaceAlt} 0deg)`,
-              } as object,
-            ]}
-          >
-            <View style={styles.ringInner}>
-              <TimerDisplay seconds={seconds} isRunning={isRunning} color={isRunning ? ringColor : colors.ink} />
+        {/* Ring + start/pause */}
+        <View style={styles.ringRow}>
+          <View style={styles.ringContainer}>
+            <View
+              style={[
+                styles.ring,
+                {
+                  backgroundImage: `conic-gradient(${ringColor} ${Math.round(progress * 360)}deg, ${colors.surfaceAlt} 0deg)`,
+                } as object,
+              ]}
+            >
+              <View style={styles.ringInner}>
+                <TimerDisplay seconds={seconds} isRunning={isRunning} color={isRunning ? ringColor : colors.ink} />
+              </View>
             </View>
+          </View>
+          <View style={styles.controls}>
+            <Pressable
+              style={({ pressed }) => [styles.startBtn, { backgroundColor: ringColor }, pressed && { opacity: 0.85 }]}
+              onPress={handleStartPause}
+            >
+              <Text style={styles.startBtnText}>
+                {isRunning ? '一時停止' : 'スタート'}
+              </Text>
+            </Pressable>
           </View>
         </View>
 
         {/* Progress bar */}
         <View style={styles.progressBar}>
           <View style={[styles.progressFill, { width: `${progress * 100}%` as any, backgroundColor: ringColor }]} />
-        </View>
-
-        {/* Controls */}
-        <View style={styles.controls}>
-          <Pressable
-            style={({ pressed }) => [styles.startBtn, { backgroundColor: ringColor }, pressed && { opacity: 0.85 }]}
-            onPress={handleStartPause}
-          >
-            <Text style={styles.startBtnText}>
-              {isRunning ? '一時停止' : 'スタート'}
-            </Text>
-          </Pressable>
         </View>
 
         {/* Task actions */}
@@ -271,6 +273,13 @@ const styles = StyleSheet.create({
   modeBtnLabelBreak: {
     color: colors.success,
   },
+  ringRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-end',
+    justifyContent: 'center',
+    gap: spacing.md,
+    width: '100%',
+  },
   ringContainer: {},
   ring: {
     width: 240,
@@ -299,18 +308,20 @@ const styles = StyleSheet.create({
     borderRadius: radius.full,
   },
   controls: {
-    width: '100%',
+    paddingBottom: spacing.lg,
   },
   startBtn: {
+    width: 84,
+    height: 84,
     alignItems: 'center',
-    paddingVertical: 14,
-    borderRadius: radius.md,
+    justifyContent: 'center',
+    borderRadius: radius.lg,
   },
   startBtnText: {
     fontSize: fontSize.sm,
     fontWeight: fontWeight.black,
     color: colors.surface,
-    letterSpacing: 2.5,
+    letterSpacing: 1.5,
   },
   taskActions: {
     width: '100%',
@@ -319,12 +330,12 @@ const styles = StyleSheet.create({
   },
   completeBtn: {
     alignItems: 'center',
-    paddingVertical: 16,
-    borderRadius: radius.md,
+    paddingVertical: 24,
+    borderRadius: radius.lg,
     backgroundColor: colors.primary,
   },
   completeBtnText: {
-    fontSize: fontSize.md,
+    fontSize: fontSize.lg,
     fontWeight: fontWeight.black,
     color: colors.surface,
     letterSpacing: 1,
@@ -332,6 +343,7 @@ const styles = StyleSheet.create({
   subActions: {
     flexDirection: 'row',
     gap: spacing.sm,
+    marginTop: spacing.xl,
   },
   subBtn: {
     flex: 1,
@@ -339,11 +351,12 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     borderRadius: radius.md,
     borderWidth: 1.5,
-    borderColor: colors.border,
+    borderColor: colors.textMuted,
+    backgroundColor: colors.surfaceAlt,
   },
   subBtnText: {
     fontSize: fontSize.sm,
-    color: colors.textSub,
+    color: colors.textMuted,
     fontWeight: fontWeight.bold,
     letterSpacing: 1,
   },

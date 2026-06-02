@@ -19,7 +19,7 @@ import { colors, spacing, radius, fontSize, fontWeight, shadow } from '../theme'
 const TIME_OPTIONS = ['07:00','08:00','09:00','10:00','12:00','18:00','20:00','21:00','22:00'];
 
 export function ProfileScreen() {
-  const { xp, badges, tasks, reminderEnabled, reminderTime, setReminder } = useAppStore();
+  const { xp, badges, tasks, reminderEnabled, reminderTime, setReminder, deleteTask } = useAppStore();
   const completedTotal = tasks.filter((t) => t.completed).length;
   const [timePickerVisible, setTimePickerVisible] = useState(false);
   const [editingTask, setEditingTask] = useState<Task | null>(null);
@@ -127,8 +127,18 @@ export function ProfileScreen() {
                   {skippedTasks.map((t) => <TaskCard key={t.id} task={t} onEdit={() => openEdit(t)} />)}</>
               )}
               {completedTasks.length > 0 && (
-                <><Text style={styles.groupLabel}>完了 {completedTasks.length} 件</Text>
-                  {completedTasks.map((t) => <TaskCard key={t.id} task={t} onEdit={() => openEdit(t)} />)}</>
+                <>
+                  <View style={styles.groupHeader}>
+                    <Text style={styles.groupLabel}>完了 {completedTasks.length} 件</Text>
+                    <Pressable
+                      style={({ pressed }) => [styles.clearBtn, pressed && { opacity: 0.6 }]}
+                      onPress={() => completedTasks.forEach((t) => deleteTask(t.id))}
+                    >
+                      <Text style={styles.clearBtnText}>全削除</Text>
+                    </Pressable>
+                  </View>
+                  {completedTasks.map((t) => <TaskCard key={t.id} task={t} onEdit={() => openEdit(t)} />)}
+                </>
               )}
             </>
           )}
@@ -389,6 +399,26 @@ const styles = StyleSheet.create({
     textTransform: 'uppercase',
     marginTop: spacing.sm,
     marginBottom: 2,
+  },
+  groupHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  clearBtn: {
+    paddingHorizontal: spacing.sm,
+    paddingVertical: 3,
+    borderRadius: radius.sm,
+    backgroundColor: colors.surfaceAlt,
+    borderWidth: 1,
+    borderColor: colors.border,
+    marginTop: spacing.sm,
+  },
+  clearBtnText: {
+    fontSize: fontSize.xs,
+    color: colors.textMuted,
+    fontWeight: fontWeight.bold,
+    letterSpacing: 0.5,
   },
   emptyCard: {
     paddingVertical: spacing.xl,
