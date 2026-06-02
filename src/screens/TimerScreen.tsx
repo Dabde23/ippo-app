@@ -144,8 +144,6 @@ export function TimerScreen() {
                 <TimerDisplay seconds={seconds} isRunning={isRunning} color={isRunning ? ringColor : colors.ink} />
               </View>
             </View>
-          </View>
-          <View style={styles.controls}>
             <Pressable
               style={({ pressed }) => [styles.startBtn, pressed && { opacity: 0.7 }]}
               onPress={handleStartPause}
@@ -285,7 +283,9 @@ const styles = StyleSheet.create({
     gap: spacing.md,
     width: '100%',
   },
-  ringContainer: {},
+  ringContainer: {
+    position: 'relative',
+  },
   ring: {
     width: 240,
     height: 240,
@@ -316,6 +316,9 @@ const styles = StyleSheet.create({
     paddingBottom: spacing.lg,
   },
   startBtn: {
+    position: 'absolute',
+    bottom: 0,
+    right: -40,
     width: 72,
     height: 72,
     alignItems: 'center',
