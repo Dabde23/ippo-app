@@ -1,8 +1,10 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { View, StyleSheet, Pressable, SafeAreaView, ScrollView } from 'react-native';
+import { useNavigation } from '@react-navigation/native';
 import { Text } from '../components/Text';
 import { TimerDisplay } from '../components/TimerDisplay';
 import { colors, spacing, radius, fontSize, fontWeight, shadow } from '../theme';
+import { useAppStore } from '../store/useAppStore';
 
 const WORK_DURATION = 25 * 60;
 const SHORT_BREAK = 5 * 60;
@@ -12,11 +14,28 @@ export function TimerScreen() {
   const [isRunning, setIsRunning] = useState(false);
   const [mode, setMode] = useState<'work' | 'break'>('work');
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const autostartRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const { timerTaskId, tasks, completeTask, skipTask, setTimerTask } = useAppStore();
+  const navigation = useNavigation<any>();
+  const timerTask = tasks.find((t) => t.id === timerTaskId) ?? null;
 
   useEffect(() => {
     if (isRunning) {
       intervalRef.current = setInterval(() => {
-        setSeconds((s) => { if (s <= 1) { setIsRunning(false); return 0; } return s - 1; });
+        setSeconds((s) => {
+          if (s <= 1) {
+            setIsRunning(false);
+            setMode((m) => {
+              const next = m === 'work' ? 'break' : 'work';
+              setSeconds(next === 'work' ? WORK_DURATION : SHORT_BREAK);
+              autostartRef.current = setTimeout(() => setIsRunning(true), 2000);
+              return next;
+            });
+            return 0;
+          }
+          return s - 1;
+        });
       }, 1000);
     } else {
       if (intervalRef.current) clearInterval(intervalRef.current);
@@ -24,12 +43,43 @@ export function TimerScreen() {
     return () => { if (intervalRef.current) clearInterval(intervalRef.current); };
   }, [isRunning]);
 
-  function handleStartPause() { if (seconds > 0) setIsRunning((r) => !r); }
-  function handleReset() { setIsRunning(false); setSeconds(mode === 'work' ? WORK_DURATION : SHORT_BREAK); }
+  useEffect(() => {
+    return () => { if (autostartRef.current) clearTimeout(autostartRef.current); };
+  }, []);
+
+  function handleStartPause() { setIsRunning((r) => !r); }
   function switchMode(m: 'work' | 'break') {
+    if (autostartRef.current) clearTimeout(autostartRef.current);
     setIsRunning(false); setMode(m);
     setSeconds(m === 'work' ? WORK_DURATION : SHORT_BREAK);
   }
+
+  const handleComplete = useCallback(() => {
+    if (!timerTask) return;
+    if (autostartRef.current) clearTimeout(autostartRef.current);
+    completeTask(timerTask.id);
+    setTimerTask(null);
+    setIsRunning(false);
+    navigation.navigate('Home');
+  }, [timerTask, completeTask, setTimerTask, navigation]);
+
+  const handleAbort = useCallback(() => {
+    if (autostartRef.current) clearTimeout(autostartRef.current);
+    setTimerTask(null);
+    setIsRunning(false);
+    setSeconds(WORK_DURATION);
+    setMode('work');
+    navigation.navigate('Home');
+  }, [setTimerTask, navigation]);
+
+  const handleSkip = useCallback(() => {
+    if (!timerTask) return;
+    if (autostartRef.current) clearTimeout(autostartRef.current);
+    skipTask(timerTask.id);
+    setTimerTask(null);
+    setIsRunning(false);
+    navigation.navigate('Home');
+  }, [timerTask, skipTask, setTimerTask, navigation]);
 
   const progress = 1 - seconds / (mode === 'work' ? WORK_DURATION : SHORT_BREAK);
   const ringColor = mode === 'work' ? colors.primary : colors.success;
@@ -43,6 +93,9 @@ export function TimerScreen() {
         <View style={styles.headerContent}>
           <Text style={styles.modeTag}>{modeLabel}</Text>
         </View>
+        {timerTask && (
+          <Text style={styles.taskName} numberOfLines={2}>{timerTask.title}</Text>
+        )}
         <View style={styles.headerRule} />
       </View>
 
@@ -89,29 +142,40 @@ export function TimerScreen() {
         {/* Controls */}
         <View style={styles.controls}>
           <Pressable
-            style={({ pressed }) => [styles.resetBtn, pressed && { opacity: 0.6 }]}
-            onPress={handleReset}
-          >
-            <Text style={styles.resetBtnText}>リセット</Text>
-          </Pressable>
-          <Pressable
             style={({ pressed }) => [styles.startBtn, { backgroundColor: ringColor }, pressed && { opacity: 0.85 }]}
             onPress={handleStartPause}
-            disabled={seconds === 0}
           >
             <Text style={styles.startBtnText}>
-              {seconds === 0 ? '完了' : isRunning ? '一時停止' : 'スタート'}
+              {isRunning ? '一時停止' : 'スタート'}
             </Text>
           </Pressable>
         </View>
 
-        {/* Tip */}
-        <View style={styles.tipBlock}>
-          <Text style={styles.tipLabel}>使い方</Text>
-          <View style={styles.headerRule} />
-          <Text style={styles.tipTitle}>ポモドーロテクニック</Text>
-          <Text style={styles.tipText}>25分集中 → 5分休憩を繰り返すと集中力を長く保てます</Text>
-        </View>
+        {/* Task actions */}
+        {timerTask && (
+          <View style={styles.taskActions}>
+            <Pressable
+              style={({ pressed }) => [styles.completeBtn, pressed && { backgroundColor: colors.primaryDark }]}
+              onPress={handleComplete}
+            >
+              <Text style={styles.completeBtnText}>タスク完了！</Text>
+            </Pressable>
+            <View style={styles.subActions}>
+              <Pressable
+                style={({ pressed }) => [styles.subBtn, pressed && { opacity: 0.6 }]}
+                onPress={handleAbort}
+              >
+                <Text style={styles.subBtnText}>中断</Text>
+              </Pressable>
+              <Pressable
+                style={({ pressed }) => [styles.subBtn, pressed && { opacity: 0.6 }]}
+                onPress={handleSkip}
+              >
+                <Text style={styles.subBtnText}>後に回す</Text>
+              </Pressable>
+            </View>
+          </View>
+        )}
       </ScrollView>
     </SafeAreaView>
   );
@@ -227,26 +291,9 @@ const styles = StyleSheet.create({
     borderRadius: radius.full,
   },
   controls: {
-    flexDirection: 'row',
-    gap: spacing.sm,
     width: '100%',
   },
-  resetBtn: {
-    flex: 1,
-    alignItems: 'center',
-    paddingVertical: 14,
-    borderRadius: radius.md,
-    borderWidth: 1.5,
-    borderColor: colors.ink,
-  },
-  resetBtnText: {
-    fontSize: fontSize.sm,
-    color: colors.ink,
-    fontWeight: fontWeight.black,
-    letterSpacing: 2,
-  },
   startBtn: {
-    flex: 2,
     alignItems: 'center',
     paddingVertical: 14,
     borderRadius: radius.md,
@@ -257,26 +304,46 @@ const styles = StyleSheet.create({
     color: colors.surface,
     letterSpacing: 2.5,
   },
-  tipBlock: {
+  taskActions: {
     width: '100%',
     gap: spacing.sm,
+    marginTop: spacing.xs,
   },
-  tipLabel: {
-    fontSize: fontSize.xs,
+  completeBtn: {
+    alignItems: 'center',
+    paddingVertical: 16,
+    borderRadius: radius.md,
+    backgroundColor: colors.primary,
+  },
+  completeBtnText: {
+    fontSize: fontSize.md,
+    fontWeight: fontWeight.black,
+    color: colors.surface,
+    letterSpacing: 1,
+  },
+  subActions: {
+    flexDirection: 'row',
+    gap: spacing.sm,
+  },
+  subBtn: {
+    flex: 1,
+    alignItems: 'center',
+    paddingVertical: 12,
+    borderRadius: radius.md,
+    borderWidth: 1.5,
+    borderColor: colors.border,
+  },
+  subBtnText: {
+    fontSize: fontSize.sm,
+    color: colors.textSub,
     fontWeight: fontWeight.bold,
-    color: colors.primary,
-    letterSpacing: 2.5,
-    textTransform: 'uppercase',
+    letterSpacing: 1,
   },
-  tipTitle: {
+  taskName: {
     fontSize: fontSize.md,
     fontWeight: fontWeight.black,
     color: colors.ink,
-    marginTop: spacing.xs,
-  },
-  tipText: {
-    fontSize: fontSize.sm,
-    color: colors.textSub,
-    lineHeight: 20,
+    paddingVertical: spacing.xs,
+    letterSpacing: -0.3,
   },
 });

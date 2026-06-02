@@ -52,6 +52,7 @@ interface AppState {
   reminderEnabled: boolean;
   reminderTime: string;
   hasCompletedOnboarding: boolean;
+  timerTaskId: string | null;
 
   addTask: (title: string) => string;
   completeTask: (id: string) => void;
@@ -64,6 +65,7 @@ interface AppState {
   completeOnboarding: () => void;
   availableTaskCount: () => number;
   completedTaskCount: () => number;
+  setTimerTask: (id: string | null) => void;
 }
 
 export const useAppStore = create<AppState>()(
@@ -77,6 +79,7 @@ export const useAppStore = create<AppState>()(
       reminderEnabled: false,
       reminderTime: '09:00',
       hasCompletedOnboarding: false,
+      timerTaskId: null,
 
       addTask: (title) => {
         const task: Task = {
@@ -142,6 +145,8 @@ export const useAppStore = create<AppState>()(
       setReminder: (enabled, time) => set({ reminderEnabled: enabled, reminderTime: time }),
 
       completeOnboarding: () => set({ hasCompletedOnboarding: true }),
+
+      setTimerTask: (id) => set({ timerTaskId: id }),
 
       availableTaskCount: () => {
         const t = today();

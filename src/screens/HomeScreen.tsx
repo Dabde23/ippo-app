@@ -3,6 +3,7 @@ import {
   View, StyleSheet, Pressable, TextInput,
   Modal, SafeAreaView, ScrollView, Platform,
 } from 'react-native';
+import { useNavigation } from '@react-navigation/native';
 import { Text } from '../components/Text';
 import { XPBar } from '../components/XPBar';
 import { TaskCard } from '../components/TaskCard';
@@ -18,7 +19,8 @@ function pickRandom<T>(arr: T[], excludeId?: string): T | null {
 }
 
 export function HomeScreen() {
-  const { tasks, xp, addTask, completeTask, skipTask, availableTaskCount, completedTaskCount } = useAppStore();
+  const { tasks, xp, addTask, skipTask, setTimerTask, availableTaskCount, completedTaskCount } = useAppStore();
+  const navigation = useNavigation<any>();
 
   const [currentTaskId, setCurrentTaskId] = useState<string | null>(null);
   const [addInputVisible, setAddInputVisible] = useState(false);
@@ -39,12 +41,6 @@ export function HomeScreen() {
     const picked = pickRandom(availableTasks);
     setCurrentTaskId(picked ? (picked as Task).id : null);
   }, [availableTasks.length]);
-
-  const handleComplete = useCallback(() => {
-    if (!currentTask) return;
-    completeTask(currentTask.id);
-    setCurrentTaskId((pickRandom(availableTasks, currentTask.id) as Task | null)?.id ?? null);
-  }, [currentTask, availableTasks]);
 
   const handleSkip = useCallback(() => {
     if (!currentTask) return;
@@ -121,13 +117,13 @@ export function HomeScreen() {
                 style={({ pressed }) => [styles.skipBtn, pressed && { opacity: 0.65 }]}
                 onPress={handleSkip}
               >
-                <Text style={styles.skipBtnText}>あとで</Text>
+                <Text style={styles.skipBtnText}>後に回す</Text>
               </Pressable>
               <Pressable
                 style={({ pressed }) => [styles.doneBtn, pressed && { backgroundColor: colors.primaryDark }]}
-                onPress={handleComplete}
+                onPress={() => { setTimerTask(currentTask!.id); navigation.navigate('Timer'); }}
               >
-                <Text style={styles.doneBtnText}>やった！</Text>
+                <Text style={styles.doneBtnText}>開始！</Text>
               </Pressable>
             </View>
           </>
