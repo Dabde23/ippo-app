@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { View, StyleSheet, Pressable, SafeAreaView, ScrollView } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import { Text } from '../components/Text';
 import { TimerDisplay } from '../components/TimerDisplay';
@@ -146,12 +147,16 @@ export function TimerScreen() {
           </View>
           <View style={styles.controls}>
             <Pressable
-              style={({ pressed }) => [styles.startBtn, { backgroundColor: ringColor }, pressed && { opacity: 0.85 }]}
+              style={({ pressed }) => [styles.startBtn, pressed && { opacity: 0.7 }]}
               onPress={handleStartPause}
+              accessibilityRole="button"
+              accessibilityLabel={isRunning ? '一時停止' : 'スタート'}
             >
-              <Text style={styles.startBtnText}>
-                {isRunning ? '一時停止' : 'スタート'}
-              </Text>
+              <Ionicons
+                name={isRunning ? 'pause' : 'play'}
+                size={32}
+                color={colors.primary}
+              />
             </Pressable>
           </View>
         </View>
@@ -172,16 +177,16 @@ export function TimerScreen() {
             </Pressable>
             <View style={styles.subActions}>
               <Pressable
-                style={({ pressed }) => [styles.subBtn, pressed && { opacity: 0.6 }]}
+                style={({ pressed }) => [styles.subBtn, styles.abortBtn, pressed && { opacity: 0.6 }]}
                 onPress={handleAbort}
               >
-                <Text style={styles.subBtnText}>中断</Text>
+                <Text style={[styles.subBtnText, styles.abortBtnText]}>中断</Text>
               </Pressable>
               <Pressable
-                style={({ pressed }) => [styles.subBtn, pressed && { opacity: 0.6 }]}
+                style={({ pressed }) => [styles.subBtn, styles.skipBtn, pressed && { opacity: 0.6 }]}
                 onPress={handleSkip}
               >
-                <Text style={styles.subBtnText}>後に回す</Text>
+                <Text style={[styles.subBtnText, styles.skipBtnText]}>後に回す</Text>
               </Pressable>
             </View>
           </View>
@@ -311,17 +316,12 @@ const styles = StyleSheet.create({
     paddingBottom: spacing.lg,
   },
   startBtn: {
-    width: 84,
-    height: 84,
+    width: 72,
+    height: 72,
     alignItems: 'center',
     justifyContent: 'center',
     borderRadius: radius.lg,
-  },
-  startBtnText: {
-    fontSize: fontSize.sm,
-    fontWeight: fontWeight.black,
-    color: colors.surface,
-    letterSpacing: 1.5,
+    backgroundColor: colors.primaryLight,
   },
   taskActions: {
     width: '100%',
@@ -342,7 +342,7 @@ const styles = StyleSheet.create({
   },
   subActions: {
     flexDirection: 'row',
-    gap: spacing.sm,
+    gap: spacing.lg,
     marginTop: spacing.xl,
   },
   subBtn: {
@@ -351,14 +351,25 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     borderRadius: radius.md,
     borderWidth: 1.5,
-    borderColor: colors.textMuted,
-    backgroundColor: colors.surfaceAlt,
   },
   subBtnText: {
     fontSize: fontSize.sm,
-    color: colors.textMuted,
     fontWeight: fontWeight.bold,
     letterSpacing: 1,
+  },
+  abortBtn: {
+    borderColor: colors.danger,
+    backgroundColor: '#F6E4E4',
+  },
+  abortBtnText: {
+    color: colors.danger,
+  },
+  skipBtn: {
+    borderColor: colors.border,
+    backgroundColor: colors.surfaceAlt,
+  },
+  skipBtnText: {
+    color: colors.textSub,
   },
   taskName: {
     fontSize: fontSize.md,
