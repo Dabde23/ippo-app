@@ -163,7 +163,7 @@ export const useAppStore = create<AppState>()(
       syncRoutineTasks: () => {
         set((state) => {
           const t = today();
-          const templates = state.tasks.filter((task) => task.isRoutine);
+          const templates = state.tasks.filter((task) => task.isRoutine === true);
           const newInstances: Task[] = [];
           for (const tpl of templates) {
             const alreadySpawned = state.tasks.some(
@@ -200,39 +200,20 @@ export const useAppStore = create<AppState>()(
 
       availableTaskCount: () => {
         const t = today();
-        return get().tasks.filter((task) => !task.isRoutine && !task.completed && task.skippedDate !== t).length;
+        return get().tasks.filter((task) => task.isRoutine !== true && !task.completed && task.skippedDate !== t).length;
       },
 
       completedTaskCount: () => {
-        return get().tasks.filter((task) => !task.isRoutine && task.completed).length;
+        return get().tasks.filter((task) => task.isRoutine !== true && task.completed).length;
       },
 
       routineTasks: () => {
-        return get().tasks.filter((task) => task.isRoutine);
+        return get().tasks.filter((task) => task.isRoutine === true);
       },
     }),
     {
       name: 'adhd-app-storage',
       storage: createJSONStorage(() => AsyncStorage),
-      version: 1,
-      // Backfill fields that were added after data was first persisted.
-      // Without this, tasks saved before `isRoutine`/`routineCreatedAt`
-      // existed rehydrate with those fields `undefined`, so routine filters
-      // (e.g. `t.isRoutine`) silently match nothing.
-      migrate: (persisted: any) => {
-        if (!persisted || !Array.isArray(persisted.tasks)) return persisted;
-        return {
-          ...persisted,
-          tasks: persisted.tasks.map((t: any) => ({
-            ...t,
-            isRoutine: t.isRoutine ?? false,
-            routineCreatedAt: t.routineCreatedAt ?? '',
-            skippedDate: t.skippedDate ?? null,
-            completed: t.completed ?? false,
-            xpAwarded: t.xpAwarded ?? false,
-          })),
-        };
-      },
       partialize: (state) => ({
         tasks: state.tasks,
         xp: state.xp,

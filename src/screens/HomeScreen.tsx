@@ -37,7 +37,7 @@ export function HomeScreen() {
   const fabRef = useRef<View>(null);
 
   const todayStr = today();
-  const doableTasks = tasks.filter((t) => !t.isRoutine);
+  const doableTasks = tasks.filter((t) => t.isRoutine !== true);
   const availableTasks = doableTasks.filter((t) => !t.completed && t.skippedDate !== todayStr);
   const skippedTasks = doableTasks.filter((t) => !t.completed && t.skippedDate === todayStr);
   const completedTasks = doableTasks.filter((t) => t.completed);

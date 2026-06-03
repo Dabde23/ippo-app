@@ -18,7 +18,7 @@ export function RoutinePanel({ visible, onClose }: RoutinePanelProps) {
   const { width } = useWindowDimensions();
   const panelWidth = Math.round(width * PANEL_RATIO);
 
-  const routines = useAppStore((s) => s.tasks.filter((t) => t.isRoutine));
+  const routines = useAppStore((s) => s.tasks.filter((t) => t.isRoutine === true));
   const deleteRoutine = useAppStore((s) => s.deleteRoutine);
 
   // translateX: panelWidth (off-screen, right) -> 0 (fully open)
