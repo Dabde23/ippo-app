@@ -78,10 +78,12 @@ export function HomeScreen() {
             <Text style={styles.dateLabel}>{dateStr}</Text>
           </View>
           <View style={styles.headerRight}>
-<View style={styles.completedTag}>
-              <Text style={styles.completedTagNum}>{completed}</Text>
-              <Text style={styles.completedTagLabel}>完了</Text>
-            </View>
+            {completed > 0 && (
+              <View style={styles.completedTag}>
+                <Text style={styles.completedTagNum}>{completed}</Text>
+                <Text style={styles.completedTagLabel}>完了</Text>
+              </View>
+            )}
           </View>
         </View>
         <XPBar xp={xp} />
