@@ -1,7 +1,7 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   View, StyleSheet, Pressable, TextInput,
-  Modal, SafeAreaView, ScrollView, Platform,
+  Modal, SafeAreaView, ScrollView, Platform, Switch, Dimensions,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { Text } from '../components/Text';
@@ -9,6 +9,8 @@ import { XPBar } from '../components/XPBar';
 import { TaskCard } from '../components/TaskCard';
 import { useAppStore, Task, today, XP_PER_TASK } from '../store/useAppStore';
 import { colors, spacing, radius, fontSize, fontWeight, shadow } from '../theme';
+
+const ARROW_GAP = 10; // px between the bubble's arrow tip and the button top
 
 function pickRandom<T>(arr: T[], excludeId?: string): T | null {
   const pool = excludeId
@@ -25,15 +27,25 @@ export function HomeScreen() {
   const [currentTaskId, setCurrentTaskId] = useState<string | null>(null);
   const [addInputVisible, setAddInputVisible] = useState(false);
   const [inputTitle, setInputTitle] = useState('');
+  const [inputIsRoutine, setInputIsRoutine] = useState(false);
+  const [popoverRect, setPopoverRect] = useState<{ x: number; y: number; width: number } | null>(null);
   const [listModalVisible, setListModalVisible] = useState(false);
   const [editingTask, setEditingTask] = useState<Task | null>(null);
   const [editTitle, setEditTitle] = useState('');
 
+  const fabRef = useRef<View>(null);
+
   const todayStr = today();
-  const availableTasks = tasks.filter((t) => !t.completed && t.skippedDate !== todayStr);
-  const skippedTasks = tasks.filter((t) => !t.completed && t.skippedDate === todayStr);
-  const completedTasks = tasks.filter((t) => t.completed);
+  const doableTasks = tasks.filter((t) => !t.isRoutine);
+  const availableTasks = doableTasks.filter((t) => !t.completed && t.skippedDate !== todayStr);
+  const skippedTasks = doableTasks.filter((t) => !t.completed && t.skippedDate === todayStr);
+  const completedTasks = doableTasks.filter((t) => t.completed);
   const currentTask = availableTasks.find((t) => t.id === currentTaskId) ?? null;
+
+  // Spawn today's routine instances on mount and whenever the app surfaces.
+  useEffect(() => {
+    useAppStore.getState().syncRoutineTasks();
+  }, []);
 
   useEffect(() => {
     if (availableTasks.length === 0) { setCurrentTaskId(null); return; }
@@ -48,12 +60,32 @@ export function HomeScreen() {
     setCurrentTaskId((pickRandom(availableTasks, currentTask.id) as Task | null)?.id ?? null);
   }, [currentTask, availableTasks]);
 
+  function openAddPopover() {
+    const node = fabRef.current;
+    if (!node) { setAddInputVisible(true); return; }
+    node.measureInWindow((x, y, width) => {
+      setPopoverRect({ x, y, width });
+      setAddInputVisible(true);
+    });
+  }
+
+  function closeAddPopover() {
+    setAddInputVisible(false);
+    setInputTitle('');
+    setInputIsRoutine(false);
+  }
+
   function handleAddSubmit() {
     const title = inputTitle.trim();
     if (!title) return;
-    const newId = addTask(title);
-    setInputTitle(''); setAddInputVisible(false);
-    setCurrentTaskId((prev) => prev ?? newId);
+    const newId = addTask(title, inputIsRoutine);
+    if (inputIsRoutine) {
+      // spawn today's instance immediately so it shows up right away
+      useAppStore.getState().syncRoutineTasks();
+    } else {
+      setCurrentTaskId((prev) => prev ?? newId);
+    }
+    closeAddPopover();
   }
 
   function openEdit(task: Task) { setEditingTask(task); setEditTitle(task.title); }
@@ -129,7 +161,7 @@ export function HomeScreen() {
               </Pressable>
             </View>
           </>
-        ) : tasks.length === 0 ? (
+        ) : doableTasks.length === 0 ? (
           <View style={styles.emptyState}>
             <Text style={styles.emptyNum}>00</Text>
             <View style={styles.headerRule} />
@@ -160,39 +192,69 @@ export function HomeScreen() {
 
       {/* ── BOTTOM BAR ── */}
       <View style={styles.bottomBar}>
-        {addInputVisible ? (
-          <View style={styles.inputRow}>
-            <TextInput
-              style={styles.textInput}
-              placeholder="何をしますか？"
-              placeholderTextColor={colors.textDisabled}
-              value={inputTitle}
-              onChangeText={setInputTitle}
-              autoFocus
-              returnKeyType="done"
-              onSubmitEditing={handleAddSubmit}
-              maxLength={100}
-            />
-            <Pressable
-              style={({ pressed }) => [styles.addBtn, !inputTitle.trim() && styles.addBtnDisabled, pressed && { opacity: 0.8 }]}
-              onPress={handleAddSubmit}
-              disabled={!inputTitle.trim()}
-            >
-              <Text style={styles.addBtnText}>追加</Text>
-            </Pressable>
-            <Pressable onPress={() => { setAddInputVisible(false); setInputTitle(''); }}>
-              <Text style={styles.cancelText}>×</Text>
-            </Pressable>
-          </View>
-        ) : (
-          <Pressable
-            style={({ pressed }) => [styles.fab, pressed && { backgroundColor: colors.primaryDark }]}
-            onPress={() => setAddInputVisible(true)}
-          >
-            <Text style={styles.fabText}>＋ タスクを追加</Text>
-          </Pressable>
-        )}
+        <Pressable
+          ref={fabRef}
+          collapsable={false}
+          style={({ pressed }) => [styles.fab, pressed && { backgroundColor: colors.primaryDark }]}
+          onPress={openAddPopover}
+        >
+          <Text style={styles.fabText}>＋ タスクを追加</Text>
+        </Pressable>
       </View>
+
+      {/* ── POPOVER: Add task ── */}
+      <Modal visible={addInputVisible} transparent animationType="fade" onRequestClose={closeAddPopover}>
+        <Pressable style={styles.popoverOverlay} onPress={closeAddPopover}>
+          {popoverRect && (
+            <Pressable
+              // Bubble: same width as the button, bottom edge anchored just
+              // above the button top so the arrow points down at it.
+              style={[
+                styles.popover,
+                {
+                  left: popoverRect.x,
+                  width: popoverRect.width,
+                  bottom: Dimensions.get('window').height - popoverRect.y + ARROW_GAP,
+                },
+              ]}
+              onPress={() => {}}
+            >
+              <TextInput
+                style={styles.popoverInput}
+                placeholder="何をしますか？"
+                placeholderTextColor={colors.textDisabled}
+                value={inputTitle}
+                onChangeText={setInputTitle}
+                autoFocus
+                returnKeyType="done"
+                onSubmitEditing={handleAddSubmit}
+                maxLength={100}
+              />
+              <View style={styles.popoverToggleRow}>
+                <Text style={styles.popoverToggleLabel}>毎日繰り返す</Text>
+                <Switch
+                  value={inputIsRoutine}
+                  onValueChange={setInputIsRoutine}
+                  trackColor={{ false: colors.border, true: colors.primary }}
+                  thumbColor={colors.surface}
+                  ios_backgroundColor={colors.border}
+                />
+              </View>
+              <Pressable
+                style={({ pressed }) => [styles.popoverAddBtn, !inputTitle.trim() && styles.popoverAddBtnDisabled, pressed && { opacity: 0.85 }]}
+                onPress={handleAddSubmit}
+                disabled={!inputTitle.trim()}
+              >
+                <Text style={styles.popoverAddText}>追加</Text>
+              </Pressable>
+
+              {/* downward arrow pointing to the button (border triangle) */}
+              <View style={styles.arrowBorder} />
+              <View style={styles.arrowFill} />
+            </Pressable>
+          )}
+        </Pressable>
+      </Modal>
 
       {/* ── MODAL: Task list ── */}
       <Modal visible={listModalVisible} animationType="slide" transparent>
@@ -219,7 +281,7 @@ export function HomeScreen() {
                 <><Text style={styles.sheetSection}>完了 {completedTasks.length} 件</Text>
                   {completedTasks.map((t) => <TaskCard key={t.id} task={t} onEdit={() => openEdit(t)} />)}</>
               )}
-              {tasks.length === 0 && <Text style={styles.sheetEmpty}>タスクがありません</Text>}
+              {doableTasks.length === 0 && <Text style={styles.sheetEmpty}>タスクがありません</Text>}
               <View style={{ height: spacing.xxl }} />
             </ScrollView>
           </View>
@@ -480,42 +542,86 @@ const styles = StyleSheet.create({
     color: colors.surface,
     letterSpacing: 0.5,
   },
-  inputRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.sm,
+  // ── Popover: add task ──
+  popoverOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(26,16,7,0.30)',
+  },
+  popover: {
+    position: 'absolute',
     backgroundColor: colors.surface,
-    borderRadius: radius.md,
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm,
+    borderRadius: radius.lg,
     borderWidth: 1.5,
     borderColor: colors.ink,
+    padding: spacing.md,
+    gap: spacing.md,
+    ...shadow.card,
   },
-  textInput: {
-    flex: 1,
+  popoverInput: {
     fontSize: fontSize.md,
     color: colors.textMain,
-    paddingVertical: spacing.xs,
-  },
-  addBtn: {
-    backgroundColor: colors.primary,
-    borderRadius: radius.sm,
+    backgroundColor: colors.background,
+    borderRadius: radius.md,
+    borderWidth: 1.5,
+    borderColor: colors.border,
     paddingHorizontal: spacing.md,
-    paddingVertical: spacing.xs,
+    paddingVertical: spacing.sm,
   },
-  addBtnDisabled: {
+  popoverToggleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: spacing.xs,
+  },
+  popoverToggleLabel: {
+    fontSize: fontSize.sm,
+    color: colors.textMain,
+    fontWeight: fontWeight.bold,
+    letterSpacing: 0.5,
+  },
+  popoverAddBtn: {
+    backgroundColor: colors.primary,
+    borderRadius: radius.md,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 13,
+  },
+  popoverAddBtnDisabled: {
     backgroundColor: colors.textDisabled,
   },
-  addBtnText: {
+  popoverAddText: {
     color: colors.surface,
-    fontWeight: fontWeight.bold,
-    fontSize: fontSize.sm,
-    letterSpacing: 0.3,
+    fontWeight: fontWeight.black,
+    fontSize: fontSize.md,
+    letterSpacing: 1,
   },
-  cancelText: {
-    color: colors.textSub,
-    fontSize: fontSize.lg,
-    lineHeight: 22,
+  // Arrow: an outer (ink) triangle for the border and an inner (surface)
+  // triangle laid on top to leave only a 1.5px outline showing.
+  arrowBorder: {
+    position: 'absolute',
+    bottom: -10,
+    left: spacing.xl,
+    width: 0,
+    height: 0,
+    borderLeftWidth: 10,
+    borderRightWidth: 10,
+    borderTopWidth: 10,
+    borderLeftColor: 'transparent',
+    borderRightColor: 'transparent',
+    borderTopColor: colors.ink,
+  },
+  arrowFill: {
+    position: 'absolute',
+    bottom: -7,
+    left: spacing.xl + 1.5,
+    width: 0,
+    height: 0,
+    borderLeftWidth: 8.5,
+    borderRightWidth: 8.5,
+    borderTopWidth: 8.5,
+    borderLeftColor: 'transparent',
+    borderRightColor: 'transparent',
+    borderTopColor: colors.surface,
   },
 
   // ── Modal: list ──

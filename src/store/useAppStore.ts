@@ -12,6 +12,10 @@ export interface Task {
   xpAwarded: boolean;
   createdAt: string;
   skippedDate: string | null;
+  isRoutine: boolean;
+  routineCreatedAt: string; // 登録日 YYYY-MM-DD ('' for non-routine tasks)
+  routineSourceId?: string; // daily instance -> id of the routine template it came from
+  routineSpawnDate?: string; // daily instance -> the date (YYYY-MM-DD) it was spawned for
 }
 
 export interface Badge {
@@ -54,17 +58,20 @@ interface AppState {
   hasCompletedOnboarding: boolean;
   timerTaskId: string | null;
 
-  addTask: (title: string) => string;
+  addTask: (title: string, isRoutine?: boolean) => string;
   completeTask: (id: string) => void;
   skipTask: (id: string) => void;
   editTask: (id: string, title: string) => void;
   deleteTask: (id: string) => void;
+  deleteRoutine: (id: string) => void;
+  syncRoutineTasks: () => void;
   dismissBadge: () => void;
   togglePremium: () => void;
   setReminder: (enabled: boolean, time: string) => void;
   completeOnboarding: () => void;
   availableTaskCount: () => number;
   completedTaskCount: () => number;
+  routineTasks: () => Task[];
   setTimerTask: (id: string | null) => void;
 }
 
@@ -81,14 +88,17 @@ export const useAppStore = create<AppState>()(
       hasCompletedOnboarding: false,
       timerTaskId: null,
 
-      addTask: (title) => {
+      addTask: (title, isRoutine = false) => {
+        const t = today();
         const task: Task = {
           id: Date.now().toString(),
           title,
           completed: false,
           xpAwarded: false,
-          createdAt: today(),
+          createdAt: t,
           skippedDate: null,
+          isRoutine,
+          routineCreatedAt: isRoutine ? t : '',
         };
         set((s) => ({ tasks: [task, ...s.tasks] }));
         return task.id;
@@ -138,6 +148,46 @@ export const useAppStore = create<AppState>()(
         set((state) => ({ tasks: state.tasks.filter((t) => t.id !== id) }));
       },
 
+      // Delete a routine template. Already-spawned daily instances are kept
+      // so the user doesn't lose today's progress.
+      deleteRoutine: (id) => {
+        set((state) => ({
+          tasks: state.tasks.map((t) =>
+            t.routineSourceId === id ? { ...t, routineSourceId: undefined } : t
+          ).filter((t) => t.id !== id),
+        }));
+      },
+
+      // Spawn a daily instance for each routine template that hasn't been
+      // added for the current day yet. Idempotent: safe to call repeatedly.
+      syncRoutineTasks: () => {
+        set((state) => {
+          const t = today();
+          const templates = state.tasks.filter((task) => task.isRoutine);
+          const newInstances: Task[] = [];
+          for (const tpl of templates) {
+            const alreadySpawned = state.tasks.some(
+              (task) => task.routineSourceId === tpl.id && task.routineSpawnDate === t
+            );
+            if (alreadySpawned) continue;
+            newInstances.push({
+              id: `${tpl.id}-${t}`,
+              title: tpl.title,
+              completed: false,
+              xpAwarded: false,
+              createdAt: t,
+              skippedDate: null,
+              isRoutine: false,
+              routineCreatedAt: '',
+              routineSourceId: tpl.id,
+              routineSpawnDate: t,
+            });
+          }
+          if (newInstances.length === 0) return state;
+          return { tasks: [...newInstances, ...state.tasks] };
+        });
+      },
+
       dismissBadge: () => set({ pendingBadge: null }),
 
       togglePremium: () => set((s) => ({ isPremium: !s.isPremium })),
@@ -150,11 +200,15 @@ export const useAppStore = create<AppState>()(
 
       availableTaskCount: () => {
         const t = today();
-        return get().tasks.filter((task) => !task.completed && task.skippedDate !== t).length;
+        return get().tasks.filter((task) => !task.isRoutine && !task.completed && task.skippedDate !== t).length;
       },
 
       completedTaskCount: () => {
-        return get().tasks.filter((task) => task.completed).length;
+        return get().tasks.filter((task) => !task.isRoutine && task.completed).length;
+      },
+
+      routineTasks: () => {
+        return get().tasks.filter((task) => task.isRoutine);
       },
     }),
     {

@@ -3,6 +3,7 @@ import {
   View, StyleSheet, ScrollView, Pressable,
   SafeAreaView, Platform, Modal, TextInput,
 } from 'react-native';
+import { useNavigation } from '@react-navigation/native';
 
 const FORMSPREE_URL = 'https://formspree.io/f/xqejvywv';
 import { Text } from '../components/Text';
@@ -19,6 +20,7 @@ import { colors, spacing, radius, fontSize, fontWeight, shadow } from '../theme'
 const TIME_OPTIONS = ['07:00','08:00','09:00','10:00','12:00','18:00','20:00','21:00','22:00'];
 
 export function ProfileScreen() {
+  const navigation = useNavigation<any>();
   const { xp, badges, tasks, reminderEnabled, reminderTime, setReminder, deleteTask } = useAppStore();
   const completedTotal = tasks.filter((t) => t.completed).length;
   const [timePickerVisible, setTimePickerVisible] = useState(false);
@@ -166,6 +168,15 @@ export function ProfileScreen() {
             </View>
           )}
         </View>
+
+        {/* Routine management link */}
+        <Pressable
+          style={({ pressed }) => [styles.routineLink, pressed && { opacity: 0.6 }]}
+          onPress={() => navigation.navigate('Routine')}
+        >
+          <Text style={styles.routineLinkText}>ルーティン管理</Text>
+          <Text style={styles.routineLinkArrow}>→</Text>
+        </Pressable>
 
         {/* Reminder */}
         <View style={styles.section}>
@@ -446,6 +457,28 @@ const styles = StyleSheet.create({
   badgeEmoji: { fontSize: 28 },
   badgeName: { fontSize: fontSize.xs, color: colors.textMain, fontWeight: fontWeight.semibold, textAlign: 'center' },
   badgeDate: { fontSize: 12, color: colors.textMuted, letterSpacing: 0.3 },
+  routineLink: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: colors.surface,
+    borderWidth: 1.5,
+    borderColor: colors.ink,
+    borderRadius: radius.md,
+    paddingVertical: spacing.md,
+    paddingHorizontal: spacing.md,
+  },
+  routineLinkText: {
+    fontSize: fontSize.md,
+    fontWeight: fontWeight.bold,
+    color: colors.textMain,
+    letterSpacing: 0.5,
+  },
+  routineLinkArrow: {
+    fontSize: fontSize.lg,
+    fontWeight: fontWeight.black,
+    color: colors.primary,
+  },
   reminderRow: {
     flexDirection: 'row',
     alignItems: 'center',
