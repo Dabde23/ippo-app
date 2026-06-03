@@ -246,8 +246,8 @@ export function HomeScreen() {
                 <Switch
                   value={inputIsRoutine}
                   onValueChange={setInputIsRoutine}
-                  trackColor={{ false: colors.border, true: colors.primary }}
-                  thumbColor={colors.surface}
+                  trackColor={{ false: colors.border, true: colors.success }}
+                  thumbColor='#FFFFFF'
                   ios_backgroundColor={colors.border}
                 />
               </View>
