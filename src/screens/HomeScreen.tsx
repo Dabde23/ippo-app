@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   View, StyleSheet, Pressable, TextInput,
   Modal, SafeAreaView, ScrollView, Platform, Switch, Dimensions,
+  AppState,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { Text } from '../components/Text';
@@ -43,8 +44,18 @@ export function HomeScreen() {
   const currentTask = availableTasks.find((t) => t.id === currentTaskId) ?? null;
 
   // Spawn today's routine instances on mount and whenever the app surfaces.
+  // Returning from the background across a date boundary must re-sync so
+  // today's routine tasks get generated.
   useEffect(() => {
     useAppStore.getState().syncRoutineTasks();
+
+    const subscription = AppState.addEventListener('change', (nextState) => {
+      if (nextState === 'active') {
+        useAppStore.getState().syncRoutineTasks();
+      }
+    });
+
+    return () => subscription.remove();
   }, []);
 
   useEffect(() => {
