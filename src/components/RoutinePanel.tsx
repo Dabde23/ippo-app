@@ -1,7 +1,7 @@
 import React, { useEffect, useRef } from 'react';
 import {
   View, StyleSheet, Pressable, ScrollView,
-  Alert, Platform, Animated, useWindowDimensions,
+  Alert, Platform, Animated, useWindowDimensions, Modal,
 } from 'react-native';
 import { Text } from './Text';
 import { useAppStore, Task } from '../store/useAppStore';
@@ -100,34 +100,37 @@ export function RoutinePanel({ onClose }: RoutinePanelProps) {
   );
 
   return (
-    <View style={styles.root}>
-      {/* Overlay */}
-      <Animated.View style={[styles.overlay, { opacity: overlayOpacity }]}>
-        <Pressable style={StyleSheet.absoluteFill} onPress={handleClose} />
-      </Animated.View>
-
-      {/* Panel — web: plain View, native: Animated.View with slide */}
-      {IS_WEB ? (
-        <View style={[styles.panel, { width: panelWidth }]}>
-          {panelContent}
-        </View>
-      ) : (
-        <Animated.View style={[styles.panel, { width: panelWidth, transform: [{ translateX }] }]}>
-          {panelContent}
+    <Modal
+      visible
+      transparent
+      animationType="none"
+      onRequestClose={handleClose}
+      statusBarTranslucent
+    >
+      <View style={styles.root}>
+        {/* Overlay */}
+        <Animated.View style={[styles.overlay, { opacity: overlayOpacity }]}>
+          <Pressable style={StyleSheet.absoluteFill} onPress={handleClose} />
         </Animated.View>
-      )}
-    </View>
+
+        {/* Panel — web: plain View, native: Animated.View with slide */}
+        {IS_WEB ? (
+          <View style={[styles.panel, { width: panelWidth }]}>
+            {panelContent}
+          </View>
+        ) : (
+          <Animated.View style={[styles.panel, { width: panelWidth, transform: [{ translateX }] }]}>
+            {panelContent}
+          </Animated.View>
+        )}
+      </View>
+    </Modal>
   );
 }
 
 const styles = StyleSheet.create({
   root: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    zIndex: 999,
+    flex: 1,
   },
   overlay: {
     position: 'absolute',
