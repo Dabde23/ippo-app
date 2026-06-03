@@ -581,8 +581,9 @@ const styles = StyleSheet.create({
   popoverToggleRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
+    justifyContent: 'flex-end',
     paddingHorizontal: spacing.xs,
+    gap: spacing.sm,
   },
   popoverToggleLabel: {
     fontSize: fontSize.sm,
