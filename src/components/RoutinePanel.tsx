@@ -18,7 +18,8 @@ export function RoutinePanel({ onClose }: RoutinePanelProps) {
   const { width } = useWindowDimensions();
   const panelWidth = Math.round(width * PANEL_RATIO);
 
-  const routines = useAppStore((s) => s.tasks.filter((t) => t.isRoutine === true));
+  const tasks = useAppStore((s) => s.tasks);
+  const routines = tasks.filter((t) => t.isRoutine === true);
   const deleteRoutine = useAppStore((s) => s.deleteRoutine);
 
   const translateX = useRef(new Animated.Value(IS_WEB ? 0 : panelWidth)).current;
