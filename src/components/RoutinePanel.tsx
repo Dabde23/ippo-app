@@ -8,7 +8,7 @@ import { useAppStore, Task } from '../store/useAppStore';
 import { colors, spacing, radius, fontSize, fontWeight } from '../theme';
 
 const PANEL_RATIO = 0.85;
-const USE_NATIVE_DRIVER = Platform.OS !== 'web';
+const IS_WEB = Platform.OS === 'web';
 
 interface RoutinePanelProps {
   onClose: () => void;
@@ -21,36 +21,22 @@ export function RoutinePanel({ onClose }: RoutinePanelProps) {
   const routines = useAppStore((s) => s.tasks.filter((t) => t.isRoutine === true));
   const deleteRoutine = useAppStore((s) => s.deleteRoutine);
 
-  const translateX = useRef(new Animated.Value(panelWidth)).current;
-  const overlayOpacity = useRef(new Animated.Value(0)).current;
+  const translateX = useRef(new Animated.Value(IS_WEB ? 0 : panelWidth)).current;
+  const overlayOpacity = useRef(new Animated.Value(IS_WEB ? 1 : 0)).current;
 
   useEffect(() => {
+    if (IS_WEB) return;
     Animated.parallel([
-      Animated.timing(translateX, {
-        toValue: 0,
-        duration: 260,
-        useNativeDriver: USE_NATIVE_DRIVER,
-      }),
-      Animated.timing(overlayOpacity, {
-        toValue: 1,
-        duration: 260,
-        useNativeDriver: USE_NATIVE_DRIVER,
-      }),
+      Animated.timing(translateX, { toValue: 0, duration: 260, useNativeDriver: true }),
+      Animated.timing(overlayOpacity, { toValue: 1, duration: 260, useNativeDriver: true }),
     ]).start();
   }, []);
 
   function handleClose() {
+    if (IS_WEB) { onClose(); return; }
     Animated.parallel([
-      Animated.timing(translateX, {
-        toValue: panelWidth,
-        duration: 220,
-        useNativeDriver: USE_NATIVE_DRIVER,
-      }),
-      Animated.timing(overlayOpacity, {
-        toValue: 0,
-        duration: 220,
-        useNativeDriver: USE_NATIVE_DRIVER,
-      }),
+      Animated.timing(translateX, { toValue: panelWidth, duration: 220, useNativeDriver: true }),
+      Animated.timing(overlayOpacity, { toValue: 0, duration: 220, useNativeDriver: true }),
     ]).start(() => onClose());
   }
 
@@ -65,6 +51,54 @@ export function RoutinePanel({ onClose }: RoutinePanelProps) {
     ]);
   }
 
+  const panelContent = (
+    <>
+      <View style={styles.header}>
+        <View style={styles.rule} />
+        <View style={styles.headerRow}>
+          <Text style={styles.title}>ルーティン管理</Text>
+          <Pressable
+            style={({ pressed }) => [styles.closeBtn, pressed && { opacity: 0.6 }]}
+            onPress={handleClose}
+            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+          >
+            <Text style={styles.closeText}>閉じる ✕</Text>
+          </Pressable>
+        </View>
+        <View style={styles.rule} />
+      </View>
+      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
+        {routines.length === 0 ? (
+          <View style={styles.emptyState}>
+            <Text style={styles.emptyIcon}>🔁</Text>
+            <Text style={styles.emptyTitle}>ルーティンがありません</Text>
+            <Text style={styles.emptyHint}>
+              タスク追加時に「毎日繰り返す」をオンにすると、{'\n'}毎日そのタスクが自動で表示されます。
+            </Text>
+          </View>
+        ) : (
+          routines.map((task) => (
+            <View key={task.id} style={styles.row}>
+              <View style={styles.accentBar} />
+              <View style={styles.rowBody}>
+                <Text style={styles.rowTitle} numberOfLines={2}>{task.title}</Text>
+                <Text style={styles.rowDate}>登録日 {task.routineCreatedAt}</Text>
+              </View>
+              <Pressable
+                style={({ pressed }) => [styles.deleteBtn, pressed && { opacity: 0.5 }]}
+                onPress={() => handleDelete(task)}
+                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+              >
+                <Text style={styles.deleteText}>削除</Text>
+              </Pressable>
+            </View>
+          ))
+        )}
+        <View style={{ height: spacing.xxl }} />
+      </ScrollView>
+    </>
+  );
+
   return (
     <View style={styles.root}>
       {/* Overlay */}
@@ -72,60 +106,16 @@ export function RoutinePanel({ onClose }: RoutinePanelProps) {
         <Pressable style={StyleSheet.absoluteFill} onPress={handleClose} />
       </Animated.View>
 
-      {/* Panel */}
-      <Animated.View
-        style={[
-          styles.panel,
-          { width: panelWidth, transform: [{ translateX }] },
-        ]}
-      >
-        {/* HEADER */}
-        <View style={styles.header}>
-          <View style={styles.rule} />
-          <View style={styles.headerRow}>
-            <Text style={styles.title}>ルーティン管理</Text>
-            <Pressable
-              style={({ pressed }) => [styles.closeBtn, pressed && { opacity: 0.6 }]}
-              onPress={handleClose}
-              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-            >
-              <Text style={styles.closeText}>閉じる ✕</Text>
-            </Pressable>
-          </View>
-          <View style={styles.rule} />
+      {/* Panel — web: plain View, native: Animated.View with slide */}
+      {IS_WEB ? (
+        <View style={[styles.panel, { width: panelWidth }]}>
+          {panelContent}
         </View>
-
-        {/* CONTENT */}
-        <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
-          {routines.length === 0 ? (
-            <View style={styles.emptyState}>
-              <Text style={styles.emptyIcon}>🔁</Text>
-              <Text style={styles.emptyTitle}>ルーティンがありません</Text>
-              <Text style={styles.emptyHint}>
-                タスク追加時に「毎日繰り返す」をオンにすると、{'\n'}毎日そのタスクが自動で表示されます。
-              </Text>
-            </View>
-          ) : (
-            routines.map((task) => (
-              <View key={task.id} style={styles.row}>
-                <View style={styles.accentBar} />
-                <View style={styles.rowBody}>
-                  <Text style={styles.rowTitle} numberOfLines={2}>{task.title}</Text>
-                  <Text style={styles.rowDate}>登録日 {task.routineCreatedAt}</Text>
-                </View>
-                <Pressable
-                  style={({ pressed }) => [styles.deleteBtn, pressed && { opacity: 0.5 }]}
-                  onPress={() => handleDelete(task)}
-                  hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-                >
-                  <Text style={styles.deleteText}>削除</Text>
-                </Pressable>
-              </View>
-            ))
-          )}
-          <View style={{ height: spacing.xxl }} />
-        </ScrollView>
-      </Animated.View>
+      ) : (
+        <Animated.View style={[styles.panel, { width: panelWidth, transform: [{ translateX }] }]}>
+          {panelContent}
+        </Animated.View>
+      )}
     </View>
   );
 }
@@ -138,7 +128,6 @@ const styles = StyleSheet.create({
     right: 0,
     bottom: 0,
     zIndex: 999,
-    flexDirection: 'row',
   },
   overlay: {
     position: 'absolute',
@@ -164,10 +153,7 @@ const styles = StyleSheet.create({
     paddingBottom: spacing.sm,
     gap: spacing.sm,
   },
-  rule: {
-    height: 1,
-    backgroundColor: colors.ink,
-  },
+  rule: { height: 1, backgroundColor: colors.ink },
   headerRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -181,9 +167,7 @@ const styles = StyleSheet.create({
     color: colors.ink,
     letterSpacing: 0.5,
   },
-  closeBtn: {
-    paddingVertical: spacing.xs,
-  },
+  closeBtn: { paddingVertical: spacing.xs },
   closeText: {
     fontSize: fontSize.sm,
     color: colors.primary,
@@ -212,10 +196,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.primary,
     marginRight: spacing.md,
   },
-  rowBody: {
-    flex: 1,
-    gap: 2,
-  },
+  rowBody: { flex: 1, gap: 2 },
   rowTitle: {
     fontSize: fontSize.md,
     fontWeight: fontWeight.semibold,
@@ -243,9 +224,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: spacing.md,
   },
-  emptyIcon: {
-    fontSize: 40,
-  },
+  emptyIcon: { fontSize: 40 },
   emptyTitle: {
     fontSize: fontSize.lg,
     fontWeight: fontWeight.black,
