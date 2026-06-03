@@ -223,6 +223,14 @@ export const useAppStore = create<AppState>()(
         reminderTime: state.reminderTime,
         hasCompletedOnboarding: state.hasCompletedOnboarding,
       }),
+      onRehydrateStorage: () => (state) => {
+        if (!state) return;
+        // タスクやXPが存在するのにhasCompletedOnboardingがfalseの場合は
+        // migration起因のデータ破損と判断して復元する
+        if (!state.hasCompletedOnboarding && (state.tasks.length > 0 || state.xp > 0)) {
+          state.hasCompletedOnboarding = true;
+        }
+      },
     }
   )
 );
