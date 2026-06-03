@@ -3,12 +3,11 @@ import {
   View, StyleSheet, ScrollView, Pressable,
   SafeAreaView, Platform, Modal, TextInput,
 } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
-
 const FORMSPREE_URL = 'https://formspree.io/f/xqejvywv';
 import { Text } from '../components/Text';
 import { XPBar } from '../components/XPBar';
 import { TaskCard } from '../components/TaskCard';
+import { RoutinePanel } from '../components/RoutinePanel';
 import { useAppStore, Task, today } from '../store/useAppStore';
 import {
   requestNotificationPermission,
@@ -20,8 +19,8 @@ import { colors, spacing, radius, fontSize, fontWeight, shadow } from '../theme'
 const TIME_OPTIONS = ['07:00','08:00','09:00','10:00','12:00','18:00','20:00','21:00','22:00'];
 
 export function ProfileScreen() {
-  const navigation = useNavigation<any>();
   const { xp, badges, tasks, reminderEnabled, reminderTime, setReminder, deleteTask } = useAppStore();
+  const [routinePanelVisible, setRoutinePanelVisible] = useState(false);
   const completedTotal = tasks.filter((t) => t.completed).length;
   const [timePickerVisible, setTimePickerVisible] = useState(false);
   const [editingTask, setEditingTask] = useState<Task | null>(null);
@@ -172,7 +171,7 @@ export function ProfileScreen() {
         {/* Routine management link */}
         <Pressable
           style={({ pressed }) => [styles.routineLink, pressed && { opacity: 0.6 }]}
-          onPress={() => navigation.navigate('Routine')}
+          onPress={() => setRoutinePanelVisible(true)}
         >
           <Text style={styles.routineLinkText}>ルーティン管理</Text>
           <Text style={styles.routineLinkArrow}>→</Text>
@@ -331,6 +330,9 @@ export function ProfileScreen() {
           </View>
         </Pressable>
       </Modal>
+
+      {/* Routine management panel */}
+      <RoutinePanel visible={routinePanelVisible} onClose={() => setRoutinePanelVisible(false)} />
     </SafeAreaView>
   );
 }

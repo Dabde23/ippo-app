@@ -2,28 +2,16 @@ import React from 'react';
 import { Ionicons } from '@expo/vector-icons';
 import { NavigationContainer } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
-import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { HomeScreen } from '../screens/HomeScreen';
 import { TimerScreen } from '../screens/TimerScreen';
 import { ProfileScreen } from '../screens/ProfileScreen';
-import { RoutineScreen } from '../screens/RoutineScreen';
 import { OnboardingScreen } from '../screens/OnboardingScreen';
 import { colors } from '../theme';
 import { useAppStore } from '../store/useAppStore';
 import { BadgeModal } from './BadgeModal';
 
 const Tab = createBottomTabNavigator();
-const ProfileStack = createNativeStackNavigator();
-
-function ProfileStackScreen() {
-  return (
-    <ProfileStack.Navigator screenOptions={{ headerShown: false }}>
-      <ProfileStack.Screen name="ProfileMain" component={ProfileScreen} />
-      <ProfileStack.Screen name="Routine" component={RoutineScreen} />
-    </ProfileStack.Navigator>
-  );
-}
 
 type IoniconName = React.ComponentProps<typeof Ionicons>['name'];
 
@@ -62,7 +50,7 @@ export function AppNavigator() {
       >
         <Tab.Screen name="Home"    component={HomeScreen}    options={{ tabBarLabel: '今日' }} />
         <Tab.Screen name="Timer"   component={TimerScreen}   options={{ tabBarLabel: 'タイマー' }} />
-        <Tab.Screen name="Profile" component={ProfileStackScreen} options={{ tabBarLabel: 'プロフィール' }} />
+        <Tab.Screen name="Profile" component={ProfileScreen} options={{ tabBarLabel: 'プロフィール' }} />
       </Tab.Navigator>
       {pendingBadge && <BadgeModal badge={pendingBadge} onDismiss={dismissBadge} />}
     </NavigationContainer>

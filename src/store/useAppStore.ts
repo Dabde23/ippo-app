@@ -214,6 +214,25 @@ export const useAppStore = create<AppState>()(
     {
       name: 'adhd-app-storage',
       storage: createJSONStorage(() => AsyncStorage),
+      version: 1,
+      // Backfill fields that were added after data was first persisted.
+      // Without this, tasks saved before `isRoutine`/`routineCreatedAt`
+      // existed rehydrate with those fields `undefined`, so routine filters
+      // (e.g. `t.isRoutine`) silently match nothing.
+      migrate: (persisted: any) => {
+        if (!persisted || !Array.isArray(persisted.tasks)) return persisted;
+        return {
+          ...persisted,
+          tasks: persisted.tasks.map((t: any) => ({
+            ...t,
+            isRoutine: t.isRoutine ?? false,
+            routineCreatedAt: t.routineCreatedAt ?? '',
+            skippedDate: t.skippedDate ?? null,
+            completed: t.completed ?? false,
+            xpAwarded: t.xpAwarded ?? false,
+          })),
+        };
+      },
       partialize: (state) => ({
         tasks: state.tasks,
         xp: state.xp,
