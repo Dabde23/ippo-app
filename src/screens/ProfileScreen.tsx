@@ -331,8 +331,10 @@ export function ProfileScreen() {
         </Pressable>
       </Modal>
 
-      {/* Routine management panel */}
-      <RoutinePanel visible={routinePanelVisible} onClose={() => setRoutinePanelVisible(false)} />
+      {/* Routine management panel - Modal/Animated を使わない実装に差し替え */}
+      {routinePanelVisible && (
+        <RoutinePanel visible={routinePanelVisible} onClose={() => setRoutinePanelVisible(false)} />
+      )}
     </SafeAreaView>
   );
 }
