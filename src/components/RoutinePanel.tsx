@@ -99,23 +99,30 @@ export function RoutinePanel({ onClose }: RoutinePanelProps) {
     </>
   );
 
-  return (
-    <View style={[styles.root, IS_WEB && { position: 'fixed' as any }]}>
-      {/* Overlay */}
-      <Animated.View style={[styles.overlay, { opacity: overlayOpacity }]}>
-        <Pressable style={StyleSheet.absoluteFill} onPress={handleClose} />
-      </Animated.View>
-
-      {/* Panel — web: plain View, native: Animated.View with slide */}
-      {IS_WEB ? (
+  // Web: Animated.View causes infinite re-render loop (RN Web setState issue),
+  // so use plain Views with position:fixed to cover the full viewport.
+  if (IS_WEB) {
+    return (
+      <View style={styles.rootFixed}>
+        <Pressable
+          style={[StyleSheet.absoluteFill, styles.overlayWeb]}
+          onPress={handleClose}
+        />
         <View style={[styles.panel, { width: panelWidth }]}>
           {panelContent}
         </View>
-      ) : (
-        <Animated.View style={[styles.panel, { width: panelWidth, transform: [{ translateX }] }]}>
-          {panelContent}
-        </Animated.View>
-      )}
+      </View>
+    );
+  }
+
+  return (
+    <View style={styles.root}>
+      <Animated.View style={[styles.overlay, { opacity: overlayOpacity }]}>
+        <Pressable style={StyleSheet.absoluteFill} onPress={handleClose} />
+      </Animated.View>
+      <Animated.View style={[styles.panel, { width: panelWidth, transform: [{ translateX }] }]}>
+        {panelContent}
+      </Animated.View>
     </View>
   );
 }
@@ -129,12 +136,23 @@ const styles = StyleSheet.create({
     bottom: 0,
     zIndex: 999,
   },
+  rootFixed: {
+    position: 'fixed' as any,
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    zIndex: 999,
+  },
   overlay: {
     position: 'absolute',
     top: 0,
     left: 0,
     right: 0,
     bottom: 0,
+    backgroundColor: 'rgba(26,16,7,0.45)',
+  },
+  overlayWeb: {
     backgroundColor: 'rgba(26,16,7,0.45)',
   },
   panel: {
