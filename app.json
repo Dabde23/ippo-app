@@ -40,6 +40,12 @@
     },
     "plugins": [
       "expo-font"
-    ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "8d3d6aca-2415-4638-abe7-7db7583c422a"
+      }
+    },
+    "owner": "dabde"
   }
 }
