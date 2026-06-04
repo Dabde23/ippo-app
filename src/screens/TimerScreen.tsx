@@ -3,6 +3,7 @@ import { View, StyleSheet, Pressable, ScrollView } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
+import Svg, { Circle } from 'react-native-svg';
 import { Text } from '../components/Text';
 import { TimerDisplay } from '../components/TimerDisplay';
 import { colors, spacing, radius, fontSize, fontWeight, shadow } from '../theme';
@@ -10,6 +11,11 @@ import { useAppStore } from '../store/useAppStore';
 
 const WORK_DURATION = 25 * 60;
 const SHORT_BREAK = 5 * 60;
+
+const RING_SIZE = 240;
+const RING_STROKE = 16;
+const RING_R = (RING_SIZE - RING_STROKE) / 2;
+const RING_CIRCUMFERENCE = 2 * Math.PI * RING_R;
 
 export function TimerScreen() {
   const [seconds, setSeconds] = useState(WORK_DURATION);
@@ -132,14 +138,30 @@ export function TimerScreen() {
 
         {/* Ring + start/pause */}
         <View style={styles.ringRow}>
-          <View
-            style={[
-              styles.ring,
-              {
-                backgroundImage: `conic-gradient(${ringColor} ${Math.round(progress * 360)}deg, ${colors.surfaceAlt} 0deg)`,
-              } as object,
-            ]}
-          >
+          <View style={styles.ring}>
+            <Svg width={RING_SIZE} height={RING_SIZE} style={StyleSheet.absoluteFill}>
+              <Circle
+                cx={RING_SIZE / 2}
+                cy={RING_SIZE / 2}
+                r={RING_R}
+                stroke={colors.surfaceAlt}
+                strokeWidth={RING_STROKE}
+                fill="none"
+              />
+              <Circle
+                cx={RING_SIZE / 2}
+                cy={RING_SIZE / 2}
+                r={RING_R}
+                stroke={ringColor}
+                strokeWidth={RING_STROKE}
+                fill="none"
+                strokeDasharray={RING_CIRCUMFERENCE}
+                strokeDashoffset={RING_CIRCUMFERENCE * (1 - progress)}
+                strokeLinecap="round"
+                rotation="-90"
+                origin={`${RING_SIZE / 2}, ${RING_SIZE / 2}`}
+              />
+            </Svg>
             <View style={styles.ringInner}>
               <TimerDisplay seconds={seconds} isRunning={isRunning} color={isRunning ? ringColor : colors.ink} />
             </View>
@@ -282,9 +304,9 @@ const styles = StyleSheet.create({
     width: '100%',
   },
   ring: {
-    width: 240,
-    height: 240,
-    borderRadius: 120,
+    width: RING_SIZE,
+    height: RING_SIZE,
+    position: 'relative',
     alignItems: 'center',
     justifyContent: 'center',
   },
