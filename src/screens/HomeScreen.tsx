@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   View, StyleSheet, Pressable, TextInput,
   Modal, ScrollView, Platform, Switch,
-  AppState,
+  AppState, KeyboardAvoidingView,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
@@ -212,8 +212,12 @@ export function HomeScreen() {
         onRequestClose={closeAddPopover}
         onShow={() => inputRef.current?.focus()}
       >
-        <Pressable style={styles.popoverOverlay} onPress={closeAddPopover}>
-          <Pressable style={styles.popover} onPress={() => {}}>
+        <KeyboardAvoidingView
+          style={{ flex: 1 }}
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        >
+          <Pressable style={styles.popoverOverlay} onPress={closeAddPopover}>
+            <Pressable style={styles.popover} onPress={() => {}}>
             <TextInput
               ref={inputRef}
               style={styles.popoverInput}
@@ -243,8 +247,9 @@ export function HomeScreen() {
             >
               <Text style={styles.popoverAddText}>追加</Text>
             </Pressable>
+            </Pressable>
           </Pressable>
-        </Pressable>
+        </KeyboardAvoidingView>
       </Modal>
 
       {/* ── MODAL: Task list ── */}
@@ -537,9 +542,9 @@ const styles = StyleSheet.create({
   popoverOverlay: {
     flex: 1,
     backgroundColor: 'rgba(26,16,7,0.30)',
-    justifyContent: 'flex-start',
+    justifyContent: 'flex-end',
     alignItems: 'center',
-    paddingTop: '25%',
+    paddingBottom: 8,
   },
   popover: {
     width: '85%',
