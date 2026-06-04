@@ -55,6 +55,7 @@ interface AppState {
   pendingBadge: Badge | null;
   reminderEnabled: boolean;
   reminderTime: string;
+  reminderMessage: string;
   hasCompletedOnboarding: boolean;
   timerTaskId: string | null;
 
@@ -67,7 +68,7 @@ interface AppState {
   syncRoutineTasks: () => void;
   dismissBadge: () => void;
   togglePremium: () => void;
-  setReminder: (enabled: boolean, time: string) => void;
+  setReminder: (enabled: boolean, time: string, message?: string) => void;
   completeOnboarding: () => void;
   availableTaskCount: () => number;
   completedTaskCount: () => number;
@@ -85,6 +86,7 @@ export const useAppStore = create<AppState>()(
       pendingBadge: null,
       reminderEnabled: false,
       reminderTime: '09:00',
+      reminderMessage: '今日のタスクを確認しよう！ひとつだけでも大丈夫。',
       hasCompletedOnboarding: false,
       timerTaskId: null,
 
@@ -192,7 +194,11 @@ export const useAppStore = create<AppState>()(
 
       togglePremium: () => set((s) => ({ isPremium: !s.isPremium })),
 
-      setReminder: (enabled, time) => set({ reminderEnabled: enabled, reminderTime: time }),
+      setReminder: (enabled, time, message) => set((s) => ({
+        reminderEnabled: enabled,
+        reminderTime: time,
+        reminderMessage: message ?? s.reminderMessage,
+      })),
 
       completeOnboarding: () => set({ hasCompletedOnboarding: true }),
 
@@ -221,6 +227,7 @@ export const useAppStore = create<AppState>()(
         isPremium: state.isPremium,
         reminderEnabled: state.reminderEnabled,
         reminderTime: state.reminderTime,
+        reminderMessage: state.reminderMessage,
         hasCompletedOnboarding: state.hasCompletedOnboarding,
       }),
       onRehydrateStorage: () => (state) => {

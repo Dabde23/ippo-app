@@ -20,10 +20,12 @@ import { colors, spacing, radius, fontSize, fontWeight, shadow } from '../theme'
 const TIME_OPTIONS = ['07:00','08:00','09:00','10:00','12:00','18:00','20:00','21:00','22:00'];
 
 export function ProfileScreen() {
-  const { xp, badges, tasks, reminderEnabled, reminderTime, setReminder, deleteTask } = useAppStore();
+  const { xp, badges, tasks, reminderEnabled, reminderTime, reminderMessage, setReminder, deleteTask } = useAppStore();
   const [routinePanelVisible, setRoutinePanelVisible] = useState(false);
   const completedTotal = tasks.filter((t) => t.completed).length;
   const [timePickerVisible, setTimePickerVisible] = useState(false);
+  const [messageDraft, setMessageDraft] = useState(reminderMessage);
+  const [timeDraft, setTimeDraft] = useState(reminderTime);
   const [editingTask, setEditingTask] = useState<Task | null>(null);
   const [editTitle, setEditTitle] = useState('');
   const [feedbackVisible, setFeedbackVisible] = useState(false);
@@ -68,16 +70,40 @@ export function ProfileScreen() {
 
   async function handleReminderToggle() {
     if (reminderEnabled) {
-      await cancelDailyReminder(); setReminder(false, reminderTime);
+      await cancelDailyReminder(); setReminder(false, reminderTime, reminderMessage);
     } else {
       const granted = await requestNotificationPermission();
-      if (!granted && Platform.OS !== 'web') return;
-      await scheduleDailyReminder(reminderTime); setReminder(true, reminderTime);
+      if (!granted) return;
+      await scheduleDailyReminder(reminderTime, reminderMessage); setReminder(true, reminderTime, reminderMessage);
     }
   }
 
   async function handleTimeSelect(time: string) {
-    setTimePickerVisible(false); setReminder(true, time); await scheduleDailyReminder(time);
+    setTimePickerVisible(false); setTimeDraft(time); setReminder(true, time, reminderMessage);
+    await scheduleDailyReminder(time, reminderMessage);
+  }
+
+  // web: HH:MM 文字列入力からの時刻変更
+  async function handleTimeInputBlur() {
+    const trimmed = timeDraft.trim();
+    if (!/^([01]\d|2[0-3]):([0-5]\d)$/.test(trimmed)) {
+      setTimeDraft(reminderTime); // 不正な入力は元に戻す
+      return;
+    }
+    if (trimmed === reminderTime) return;
+    setReminder(true, trimmed, reminderMessage);
+    await scheduleDailyReminder(trimmed, reminderMessage);
+  }
+
+  // 通知メッセージ変更（フォーカスが外れたとき保存）
+  async function handleMessageBlur() {
+    const trimmed = messageDraft.trim();
+    if (!trimmed || trimmed === reminderMessage) {
+      setMessageDraft(reminderMessage);
+      return;
+    }
+    setReminder(true, reminderTime, trimmed);
+    await scheduleDailyReminder(reminderTime, trimmed);
   }
 
   return (
@@ -186,24 +212,53 @@ export function ProfileScreen() {
             <View style={{ flex: 1 }}>
               <Text style={styles.reminderLabel}>毎日の通知</Text>
               <Text style={styles.reminderSub}>
-                {Platform.OS === 'web'
-                  ? 'モバイルアプリで利用できます'
-                  : reminderEnabled ? `毎日 ${reminderTime} に通知` : 'オフ'}
+                {reminderEnabled ? `毎日 ${reminderTime} に通知` : 'オフ'}
               </Text>
             </View>
-            {Platform.OS !== 'web' && (
-              <Pressable
-                style={[styles.toggle, reminderEnabled && styles.toggleOn]}
-                onPress={handleReminderToggle}
-              >
-                <Text style={styles.toggleText}>{reminderEnabled ? 'オン' : 'オフ'}</Text>
-              </Pressable>
-            )}
-          </View>
-          {Platform.OS !== 'web' && reminderEnabled && (
-            <Pressable style={styles.timeBtn} onPress={() => setTimePickerVisible(true)}>
-              <Text style={styles.timeBtnText}>時刻を変更: {reminderTime}</Text>
+            <Pressable
+              style={[styles.toggle, reminderEnabled && styles.toggleOn]}
+              onPress={handleReminderToggle}
+            >
+              <Text style={styles.toggleText}>{reminderEnabled ? 'オン' : 'オフ'}</Text>
             </Pressable>
+          </View>
+          {reminderEnabled && (
+            <>
+              {Platform.OS === 'web' ? (
+                <View style={styles.reminderField}>
+                  <Text style={styles.reminderFieldLabel}>時刻を変更（HH:MM）</Text>
+                  <TextInput
+                    style={styles.reminderInput}
+                    value={timeDraft}
+                    onChangeText={setTimeDraft}
+                    onBlur={handleTimeInputBlur}
+                    placeholder="09:00"
+                    placeholderTextColor={colors.textDisabled}
+                    maxLength={5}
+                    keyboardType="numbers-and-punctuation"
+                  />
+                </View>
+              ) : (
+                <Pressable style={styles.timeBtn} onPress={() => setTimePickerVisible(true)}>
+                  <Text style={styles.timeBtnText}>時刻を変更: {reminderTime}</Text>
+                </Pressable>
+              )}
+
+              <View style={styles.reminderField}>
+                <Text style={styles.reminderFieldLabel}>通知メッセージ</Text>
+                <TextInput
+                  style={[styles.reminderInput, styles.reminderMessageInput]}
+                  value={messageDraft}
+                  onChangeText={setMessageDraft}
+                  onBlur={handleMessageBlur}
+                  placeholder="今日のタスクを確認しよう！"
+                  placeholderTextColor={colors.textDisabled}
+                  maxLength={100}
+                  multiline
+                  textAlignVertical="top"
+                />
+              </View>
+            </>
           )}
         </View>
 
@@ -499,6 +554,24 @@ const styles = StyleSheet.create({
     alignSelf: 'flex-start',
   },
   timeBtnText: { fontSize: fontSize.sm, color: colors.primary, fontWeight: fontWeight.bold, letterSpacing: 0.5 },
+  reminderField: { gap: spacing.xs, marginTop: spacing.sm },
+  reminderFieldLabel: {
+    fontSize: fontSize.xs,
+    color: colors.textMuted,
+    fontWeight: fontWeight.bold,
+    letterSpacing: 1,
+  },
+  reminderInput: {
+    backgroundColor: colors.background,
+    borderRadius: radius.md,
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.md,
+    fontSize: fontSize.md,
+    color: colors.textMain,
+    borderWidth: 1.5,
+    borderColor: colors.border,
+  },
+  reminderMessageInput: { minHeight: 64 },
   toggle: {
     backgroundColor: colors.surfaceAlt,
     borderRadius: radius.sm,

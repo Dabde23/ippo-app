@@ -15,14 +15,41 @@ if (Platform.OS !== 'web') {
 
 const DAILY_REMINDER_ID = 'daily-reminder';
 
+// web 用のタイマー管理（モジュールスコープ）
+let webReminderTimer: ReturnType<typeof setTimeout> | null = null;
+
 export async function requestNotificationPermission(): Promise<boolean> {
-  if (Platform.OS === 'web') return false;
+  if (Platform.OS === 'web') {
+    if (!('Notification' in window)) return false;
+    const permission = await Notification.requestPermission();
+    return permission === 'granted';
+  }
   const { status } = await Notifications.requestPermissionsAsync();
   return status === 'granted';
 }
 
-export async function scheduleDailyReminder(time: string): Promise<void> {
-  if (Platform.OS === 'web') return;
+export async function scheduleDailyReminder(time: string, message: string): Promise<void> {
+  if (Platform.OS === 'web') {
+    cancelDailyReminder(); // 既存タイマーをクリア
+    if (!('Notification' in window) || Notification.permission !== 'granted') return;
+
+    const scheduleNext = () => {
+      const [hour, minute] = time.split(':').map(Number);
+      const now = new Date();
+      const target = new Date();
+      target.setHours(hour, minute, 0, 0);
+      if (target <= now) target.setDate(target.getDate() + 1);
+
+      const delay = target.getTime() - now.getTime();
+      webReminderTimer = setTimeout(() => {
+        new Notification('ippo からのお知らせ', { body: message });
+        scheduleNext(); // 翌日の同時刻に再スケジュール
+      }, delay);
+    };
+
+    scheduleNext();
+    return;
+  }
 
   const [hour, minute] = time.split(':').map(Number);
 
@@ -31,8 +58,8 @@ export async function scheduleDailyReminder(time: string): Promise<void> {
   await Notifications.scheduleNotificationAsync({
     identifier: DAILY_REMINDER_ID,
     content: {
-      title: '今日のタスクを確認しよう 📋',
-      body: 'ひとつだけでも大丈夫。小さく始めましょう！',
+      title: 'ippo からのお知らせ',
+      body: message,
     },
     trigger: {
       type: Notifications.SchedulableTriggerInputTypes.DAILY,
@@ -43,6 +70,12 @@ export async function scheduleDailyReminder(time: string): Promise<void> {
 }
 
 export async function cancelDailyReminder(): Promise<void> {
-  if (Platform.OS === 'web') return;
+  if (Platform.OS === 'web') {
+    if (webReminderTimer !== null) {
+      clearTimeout(webReminderTimer);
+      webReminderTimer = null;
+    }
+    return;
+  }
   await Notifications.cancelScheduledNotificationAsync(DAILY_REMINDER_ID).catch(() => {});
 }
