@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   View, StyleSheet, Pressable, TextInput,
-  Modal, ScrollView, Platform, Switch, Dimensions,
+  Modal, ScrollView, Platform, Switch,
   AppState,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -11,8 +11,6 @@ import { XPBar } from '../components/XPBar';
 import { TaskCard } from '../components/TaskCard';
 import { useAppStore, Task, today, XP_PER_TASK } from '../store/useAppStore';
 import { colors, spacing, radius, fontSize, fontWeight, shadow } from '../theme';
-
-const ARROW_GAP = 10; // px between the bubble's arrow tip and the button top
 
 function pickRandom<T>(arr: T[], excludeId?: string): T | null {
   const pool = excludeId
@@ -30,12 +28,11 @@ export function HomeScreen() {
   const [addInputVisible, setAddInputVisible] = useState(false);
   const [inputTitle, setInputTitle] = useState('');
   const [inputIsRoutine, setInputIsRoutine] = useState(false);
-  const [popoverRect, setPopoverRect] = useState<{ x: number; y: number; width: number } | null>(null);
   const [listModalVisible, setListModalVisible] = useState(false);
   const [editingTask, setEditingTask] = useState<Task | null>(null);
   const [editTitle, setEditTitle] = useState('');
 
-  const fabRef = useRef<View>(null);
+  const inputRef = useRef<TextInput>(null);
 
   const todayStr = today();
   const doableTasks = tasks.filter((t) => t.isRoutine !== true);
@@ -73,12 +70,7 @@ export function HomeScreen() {
   }, [currentTask, availableTasks]);
 
   function openAddPopover() {
-    const node = fabRef.current;
-    if (!node) { setAddInputVisible(true); return; }
-    node.measureInWindow((x, y, width) => {
-      setPopoverRect({ x, y, width });
-      setAddInputVisible(true);
-    });
+    setAddInputVisible(true);
   }
 
   function closeAddPopover() {
@@ -205,8 +197,6 @@ export function HomeScreen() {
       {/* ── BOTTOM BAR ── */}
       <View style={styles.bottomBar}>
         <Pressable
-          ref={fabRef}
-          collapsable={false}
           style={({ pressed }) => [styles.fab, pressed && { backgroundColor: colors.primaryDark }]}
           onPress={openAddPopover}
         >
@@ -215,56 +205,45 @@ export function HomeScreen() {
       </View>
 
       {/* ── POPOVER: Add task ── */}
-      <Modal visible={addInputVisible} transparent animationType="fade" onRequestClose={closeAddPopover}>
+      <Modal
+        visible={addInputVisible}
+        transparent
+        animationType="fade"
+        onRequestClose={closeAddPopover}
+        onShow={() => inputRef.current?.focus()}
+      >
         <Pressable style={styles.popoverOverlay} onPress={closeAddPopover}>
-          {popoverRect && (
-            <Pressable
-              // Bubble: same width as the button, bottom edge anchored just
-              // above the button top so the arrow points down at it.
-              style={[
-                styles.popover,
-                {
-                  left: popoverRect.x,
-                  width: popoverRect.width,
-                  bottom: Dimensions.get('window').height - popoverRect.y + ARROW_GAP,
-                },
-              ]}
-              onPress={() => {}}
-            >
-              <TextInput
-                style={styles.popoverInput}
-                placeholder="何をしますか？"
-                placeholderTextColor={colors.textDisabled}
-                value={inputTitle}
-                onChangeText={setInputTitle}
-                autoFocus
-                returnKeyType="done"
-                onSubmitEditing={handleAddSubmit}
-                maxLength={100}
+          <Pressable style={styles.popover} onPress={() => {}}>
+            <TextInput
+              ref={inputRef}
+              style={styles.popoverInput}
+              placeholder="何をしますか？"
+              placeholderTextColor={colors.textDisabled}
+              value={inputTitle}
+              onChangeText={setInputTitle}
+              autoFocus
+              returnKeyType="done"
+              onSubmitEditing={handleAddSubmit}
+              maxLength={100}
+            />
+            <View style={styles.popoverToggleRow}>
+              <Text style={styles.popoverToggleLabel}>毎日繰り返す</Text>
+              <Switch
+                value={inputIsRoutine}
+                onValueChange={setInputIsRoutine}
+                trackColor={{ false: colors.border, true: colors.success }}
+                thumbColor='#FFFFFF'
+                ios_backgroundColor={colors.border}
               />
-              <View style={styles.popoverToggleRow}>
-                <Text style={styles.popoverToggleLabel}>毎日繰り返す</Text>
-                <Switch
-                  value={inputIsRoutine}
-                  onValueChange={setInputIsRoutine}
-                  trackColor={{ false: colors.border, true: colors.success }}
-                  thumbColor='#FFFFFF'
-                  ios_backgroundColor={colors.border}
-                />
-              </View>
-              <Pressable
-                style={({ pressed }) => [styles.popoverAddBtn, !inputTitle.trim() && styles.popoverAddBtnDisabled, pressed && { opacity: 0.85 }]}
-                onPress={handleAddSubmit}
-                disabled={!inputTitle.trim()}
-              >
-                <Text style={styles.popoverAddText}>追加</Text>
-              </Pressable>
-
-              {/* downward arrow pointing to the button (border triangle) */}
-              <View style={styles.arrowBorder} />
-              <View style={styles.arrowFill} />
+            </View>
+            <Pressable
+              style={({ pressed }) => [styles.popoverAddBtn, !inputTitle.trim() && styles.popoverAddBtnDisabled, pressed && { opacity: 0.85 }]}
+              onPress={handleAddSubmit}
+              disabled={!inputTitle.trim()}
+            >
+              <Text style={styles.popoverAddText}>追加</Text>
             </Pressable>
-          )}
+          </Pressable>
         </Pressable>
       </Modal>
 
@@ -558,9 +537,12 @@ const styles = StyleSheet.create({
   popoverOverlay: {
     flex: 1,
     backgroundColor: 'rgba(26,16,7,0.30)',
+    justifyContent: 'flex-start',
+    alignItems: 'center',
+    paddingTop: '25%',
   },
   popover: {
-    position: 'absolute',
+    width: '85%',
     backgroundColor: colors.surface,
     borderRadius: radius.lg,
     borderWidth: 1.5,
@@ -608,35 +590,6 @@ const styles = StyleSheet.create({
     fontSize: fontSize.md,
     letterSpacing: 1,
   },
-  // Arrow: an outer (ink) triangle for the border and an inner (surface)
-  // triangle laid on top to leave only a 1.5px outline showing.
-  arrowBorder: {
-    position: 'absolute',
-    bottom: -10,
-    left: spacing.xl,
-    width: 0,
-    height: 0,
-    borderLeftWidth: 10,
-    borderRightWidth: 10,
-    borderTopWidth: 10,
-    borderLeftColor: 'transparent',
-    borderRightColor: 'transparent',
-    borderTopColor: colors.ink,
-  },
-  arrowFill: {
-    position: 'absolute',
-    bottom: -7,
-    left: spacing.xl + 1.5,
-    width: 0,
-    height: 0,
-    borderLeftWidth: 8.5,
-    borderRightWidth: 8.5,
-    borderTopWidth: 8.5,
-    borderLeftColor: 'transparent',
-    borderRightColor: 'transparent',
-    borderTopColor: colors.surface,
-  },
-
   // ── Modal: list ──
   modalOverlay: {
     flex: 1, justifyContent: 'flex-end',
