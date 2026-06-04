@@ -1,8 +1,9 @@
 import React, { useState, useRef } from 'react';
 import {
   View, StyleSheet, Pressable,
-  ScrollView, Dimensions, SafeAreaView,
+  ScrollView, Dimensions,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { Text } from '../components/Text';
 import { useAppStore } from '../store/useAppStore';
 import { colors, spacing, radius, fontSize, fontWeight } from '../theme';

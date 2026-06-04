@@ -1,9 +1,10 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   View, StyleSheet, Pressable, TextInput,
-  Modal, SafeAreaView, ScrollView, Platform, Switch, Dimensions,
+  Modal, ScrollView, Platform, Switch, Dimensions,
   AppState,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { Text } from '../components/Text';
 import { XPBar } from '../components/XPBar';
