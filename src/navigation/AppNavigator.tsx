@@ -21,6 +21,17 @@ const TAB_ICONS: Record<string, { outline: IoniconName; filled: IoniconName }> =
   Profile: { outline: 'person-outline', filled: 'person'  },
 };
 
+const linking = {
+  prefixes: ['https://ippo-app-phi.vercel.app', 'http://localhost:8081'],
+  config: {
+    screens: {
+      Home: '',
+      Timer: 'timer',
+      Profile: 'profile',
+    },
+  },
+};
+
 export function AppNavigator() {
   const { pendingBadge, dismissBadge, hasCompletedOnboarding } = useAppStore();
   const insets = useSafeAreaInsets();
@@ -28,7 +39,7 @@ export function AppNavigator() {
   if (!hasCompletedOnboarding) return <OnboardingScreen />;
 
   return (
-    <NavigationContainer>
+    <NavigationContainer linking={linking}>
       <Tab.Navigator
         screenOptions={({ route }) => ({
           headerShown: false,
