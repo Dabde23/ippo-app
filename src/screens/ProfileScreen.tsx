@@ -313,6 +313,9 @@ export function ProfileScreen() {
                   );
                 })}
               </View>
+              {reminder.days.length === 0 && (
+                <Text style={styles.noDayWarning}>曜日が未選択です。通知は届きません。</Text>
+              )}
             </View>
           ))}
 
@@ -738,6 +741,12 @@ const styles = StyleSheet.create({
   },
   dayChipTextOn: {
     color: colors.surface,
+  },
+  noDayWarning: {
+    fontSize: fontSize.xs,
+    fontWeight: fontWeight.bold,
+    color: colors.danger,
+    marginTop: spacing.xs,
   },
   addReminderBtn: {
     paddingVertical: spacing.sm,
