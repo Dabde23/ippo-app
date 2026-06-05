@@ -5,6 +5,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 const FORMSPREE_URL = 'https://formspree.io/f/xqejvywv';
+const EARLY_ACCESS_FORMSPREE_URL = 'https://formspree.io/f/REPLACE_ME';
 import { Text } from '../components/Text';
 import { XPBar } from '../components/XPBar';
 import { TaskCard } from '../components/TaskCard';
@@ -32,6 +33,11 @@ export function ProfileScreen() {
   const [feedbackText, setFeedbackText] = useState('');
   const [feedbackSending, setFeedbackSending] = useState(false);
   const [feedbackSent, setFeedbackSent] = useState(false);
+  const [earlyAccessVisible, setEarlyAccessVisible] = useState(false);
+  const [earlyEmail, setEarlyEmail] = useState('');
+  const [earlyBeta, setEarlyBeta] = useState(false);
+  const [earlySending, setEarlySending] = useState(false);
+  const [earlySent, setEarlySent] = useState(false);
 
   const todayStr = today();
   const availableTasks = tasks.filter((t) => !t.completed && t.skippedDate !== todayStr);
@@ -58,6 +64,36 @@ export function ProfileScreen() {
       setFeedbackText('');
     } finally {
       setFeedbackSending(false);
+    }
+  }
+
+  async function handleEarlyAccessSubmit() {
+    const email = earlyEmail.trim();
+    if (!email.includes('@') || earlySending) return;
+    setEarlySending(true);
+    try {
+      await fetch(EARLY_ACCESS_FORMSPREE_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email,
+          beta: earlyBeta ? 'はい' : 'いいえ',
+          type: 'early_access_registration',
+        }),
+      });
+      setEarlySent(true);
+      setEarlyEmail('');
+      setEarlyBeta(false);
+      setTimeout(() => {
+        setEarlySent(false);
+        setEarlyAccessVisible(false);
+      }, 1500);
+    } catch {
+      setEarlyAccessVisible(false);
+      setEarlyEmail('');
+      setEarlyBeta(false);
+    } finally {
+      setEarlySending(false);
     }
   }
 
@@ -284,6 +320,12 @@ export function ProfileScreen() {
           <Text style={styles.noteText}>
             現在、全機能を無料でご利用いただけます。{'\n'}ネイティブアプリ公開時に有料プランへ移行予定です。
           </Text>
+          <Pressable
+            style={({ pressed }) => [styles.earlyBtn, pressed && { opacity: 0.7 }]}
+            onPress={() => setEarlyAccessVisible(true)}
+          >
+            <Text style={styles.earlyBtnText}>事前登録する →</Text>
+          </Pressable>
         </View>
 
         <View style={{ height: spacing.xxl }} />
@@ -360,6 +402,66 @@ export function ProfileScreen() {
                     disabled={!feedbackText.trim() || feedbackSending}
                   >
                     <Text style={styles.editSaveText}>{feedbackSending ? '送信中...' : '送る'}</Text>
+                  </Pressable>
+                </View>
+              </>
+            )}
+          </View>
+        </View>
+      </Modal>
+
+      {/* Early access modal */}
+      <Modal visible={earlyAccessVisible} animationType="fade" transparent>
+        <View style={styles.editOverlay}>
+          <View style={styles.editSheet}>
+            <Text style={styles.editLabel}>アーリーアクセス事前登録</Text>
+            <View style={styles.rule} />
+            {earlySent ? (
+              <View style={styles.feedbackSentContainer}>
+                <Text style={styles.feedbackSentText}>登録ありがとうございます！</Text>
+              </View>
+            ) : (
+              <>
+                <TextInput
+                  style={styles.editInput}
+                  value={earlyEmail}
+                  onChangeText={setEarlyEmail}
+                  placeholder="メールアドレス"
+                  placeholderTextColor={colors.textDisabled}
+                  keyboardType="email-address"
+                  autoCapitalize="none"
+                  autoCorrect={false}
+                  maxLength={200}
+                  autoFocus
+                  editable={!earlySending}
+                />
+                <View style={styles.reminderRow}>
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.reminderLabel}>先行テスターとして参加したいですか？</Text>
+                    <Text style={styles.reminderSub}>クローズドベータへのご招待をお送りします</Text>
+                  </View>
+                  <Pressable
+                    style={[styles.toggle, earlyBeta && styles.toggleOn]}
+                    onPress={() => setEarlyBeta((v) => !v)}
+                    disabled={earlySending}
+                  >
+                    <Text style={styles.toggleText}>{earlyBeta ? 'オン' : 'オフ'}</Text>
+                  </Pressable>
+                </View>
+                <View style={styles.editActions}>
+                  <Pressable
+                    style={({ pressed }) => [styles.editCancelBtn, pressed && { opacity: 0.6 }]}
+                    onPress={() => { setEarlyAccessVisible(false); setEarlyEmail(''); setEarlyBeta(false); }}
+                    disabled={earlySending}
+                  >
+                    <Text style={styles.editCancelText}>キャンセル</Text>
+                  </Pressable>
+                  <Pressable
+                    style={({ pressed }) => [styles.editSaveBtn, (!earlyEmail.includes('@') || earlySending) && styles.editSaveBtnDisabled, pressed && { opacity: 0.85 }]}
+                    onPress={handleEarlyAccessSubmit}
+                    disabled={!earlyEmail.includes('@') || earlySending}
+                  >
+                    <Text style={styles.editSaveText}>{earlySending ? '送信中...' : '送信'}</Text>
                   </Pressable>
                 </View>
               </>
@@ -633,6 +735,22 @@ const styles = StyleSheet.create({
     color: colors.textSub,
     lineHeight: 20,
     marginTop: spacing.xs,
+  },
+  earlyBtn: {
+    backgroundColor: colors.surface,
+    borderRadius: radius.md,
+    borderWidth: 1.5,
+    borderColor: colors.primary,
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.md,
+    alignSelf: 'flex-start',
+    marginTop: spacing.xs,
+  },
+  earlyBtnText: {
+    fontSize: fontSize.sm,
+    color: colors.primary,
+    fontWeight: fontWeight.bold,
+    letterSpacing: 1,
   },
   editOverlay: {
     flex: 1, justifyContent: 'center', alignItems: 'center',
