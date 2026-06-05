@@ -5,7 +5,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 const FORMSPREE_URL = 'https://formspree.io/f/xqejvywv';
-const EARLY_ACCESS_FORMSPREE_URL = 'https://formspree.io/f/REPLACE_ME';
+const EARLY_ACCESS_FORMSPREE_URL = 'https://formspree.io/f/xzdqzqnz';
 import { Text } from '../components/Text';
 import { XPBar } from '../components/XPBar';
 import { TaskCard } from '../components/TaskCard';
