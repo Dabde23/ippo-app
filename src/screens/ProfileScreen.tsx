@@ -13,20 +13,20 @@ import { RoutinePanel } from '../components/RoutinePanel';
 import { useAppStore, Task, today } from '../store/useAppStore';
 import {
   requestNotificationPermission,
-  scheduleDailyReminder,
-  cancelDailyReminder,
+  scheduleReminders,
 } from '../services/NotificationService';
 import { colors, spacing, radius, fontSize, fontWeight, shadow } from '../theme';
 
 const TIME_OPTIONS = ['07:00','08:00','09:00','10:00','12:00','18:00','20:00','21:00','22:00'];
+const DAY_LABELS = ['月','火','水','木','金','土','日']; // index 0..6 -> day 1..7
 
 export function ProfileScreen() {
-  const { xp, badges, tasks, reminderEnabled, reminderTime, reminderMessage, setReminder, deleteTask } = useAppStore();
+  const { xp, badges, tasks, reminders, reminderMessage, addReminder, removeReminder, updateReminder, setReminderMessage, deleteTask } = useAppStore();
   const [routinePanelVisible, setRoutinePanelVisible] = useState(false);
   const completedTotal = tasks.filter((t) => t.completed).length;
   const [timePickerVisible, setTimePickerVisible] = useState(false);
+  const [editingReminderId, setEditingReminderId] = useState<string | null>(null);
   const [messageDraft, setMessageDraft] = useState(reminderMessage);
-  const [timeDraft, setTimeDraft] = useState(reminderTime);
   const [editingTask, setEditingTask] = useState<Task | null>(null);
   const [editTitle, setEditTitle] = useState('');
   const [feedbackVisible, setFeedbackVisible] = useState(false);
@@ -104,31 +104,50 @@ export function ProfileScreen() {
     setEditingTask(null); setEditTitle('');
   }
 
-  async function handleReminderToggle() {
-    if (reminderEnabled) {
-      await cancelDailyReminder(); setReminder(false, reminderTime, reminderMessage);
-    } else {
+  // 最新の reminders を使って通知を再スケジュール
+  async function reschedule() {
+    const current = useAppStore.getState().reminders;
+    const msg = useAppStore.getState().reminderMessage;
+    await scheduleReminders(current, msg);
+  }
+
+  // ＋ 時刻を追加
+  async function handleAddReminder() {
+    // 初回追加時に通知許可をリクエスト
+    if (reminders.length === 0) {
       const granted = await requestNotificationPermission();
       if (!granted) return;
-      await scheduleDailyReminder(reminderTime, reminderMessage); setReminder(true, reminderTime, reminderMessage);
     }
+    addReminder('09:00');
+    await reschedule();
+  }
+
+  async function handleRemoveReminder(id: string) {
+    removeReminder(id);
+    await reschedule();
+  }
+
+  // 曜日チップをトグル
+  async function handleToggleDay(reminder: { id: string; days: number[] }, day: number) {
+    const next = reminder.days.includes(day)
+      ? reminder.days.filter((d) => d !== day)
+      : [...reminder.days, day].sort((a, b) => a - b);
+    updateReminder(reminder.id, undefined, next);
+    await reschedule();
+  }
+
+  function openTimePicker(reminderId: string) {
+    setEditingReminderId(reminderId);
+    setTimePickerVisible(true);
   }
 
   async function handleTimeSelect(time: string) {
-    setTimePickerVisible(false); setTimeDraft(time); setReminder(true, time, reminderMessage);
-    await scheduleDailyReminder(time, reminderMessage);
-  }
-
-  // web: HH:MM 文字列入力からの時刻変更
-  async function handleTimeInputBlur() {
-    const trimmed = timeDraft.trim();
-    if (!/^([01]\d|2[0-3]):([0-5]\d)$/.test(trimmed)) {
-      setTimeDraft(reminderTime); // 不正な入力は元に戻す
-      return;
+    setTimePickerVisible(false);
+    if (editingReminderId) {
+      updateReminder(editingReminderId, time);
+      setEditingReminderId(null);
+      await reschedule();
     }
-    if (trimmed === reminderTime) return;
-    setReminder(true, trimmed, reminderMessage);
-    await scheduleDailyReminder(trimmed, reminderMessage);
   }
 
   // 通知メッセージ変更（フォーカスが外れたとき保存）
@@ -138,8 +157,8 @@ export function ProfileScreen() {
       setMessageDraft(reminderMessage);
       return;
     }
-    setReminder(true, reminderTime, trimmed);
-    await scheduleDailyReminder(reminderTime, trimmed);
+    setReminderMessage(trimmed);
+    await reschedule();
   }
 
   return (
@@ -257,59 +276,68 @@ export function ProfileScreen() {
 
         {/* Reminder */}
         <View style={styles.section}>
-          <Text style={styles.sectionLabel}>リマインダー</Text>
+          <Text style={styles.sectionLabel}>毎日の通知</Text>
           <View style={styles.rule} />
-          <View style={styles.reminderRow}>
-            <View style={{ flex: 1 }}>
-              <Text style={styles.reminderLabel}>毎日の通知</Text>
-              <Text style={styles.reminderSub}>
-                {reminderEnabled ? `毎日 ${reminderTime} に通知` : 'オフ'}
-              </Text>
-            </View>
-            <Pressable
-              style={[styles.toggle, reminderEnabled && styles.toggleOn]}
-              onPress={handleReminderToggle}
-            >
-              <Text style={styles.toggleText}>{reminderEnabled ? 'オン' : 'オフ'}</Text>
-            </Pressable>
-          </View>
-          {reminderEnabled && (
-            <>
-              {Platform.OS === 'web' ? (
-                <View style={styles.reminderField}>
-                  <Text style={styles.reminderFieldLabel}>時刻を変更（HH:MM）</Text>
-                  <TextInput
-                    style={styles.reminderInput}
-                    value={timeDraft}
-                    onChangeText={setTimeDraft}
-                    onBlur={handleTimeInputBlur}
-                    placeholder="09:00"
-                    placeholderTextColor={colors.textDisabled}
-                    maxLength={5}
-                    keyboardType="numbers-and-punctuation"
-                  />
-                </View>
-              ) : (
-                <Pressable style={styles.timeBtn} onPress={() => setTimePickerVisible(true)}>
-                  <Text style={styles.timeBtnText}>時刻を変更: {reminderTime}</Text>
-                </Pressable>
-              )}
 
-              <View style={styles.reminderField}>
-                <Text style={styles.reminderFieldLabel}>通知メッセージ</Text>
-                <TextInput
-                  style={[styles.reminderInput, styles.reminderMessageInput]}
-                  value={messageDraft}
-                  onChangeText={setMessageDraft}
-                  onBlur={handleMessageBlur}
-                  placeholder="今日のタスクを確認しよう！"
-                  placeholderTextColor={colors.textDisabled}
-                  maxLength={100}
-                  multiline
-                  textAlignVertical="top"
-                />
+          {reminders.map((reminder) => (
+            <View key={reminder.id} style={styles.reminderCard}>
+              <View style={styles.reminderCardTop}>
+                <Pressable
+                  style={({ pressed }) => [styles.reminderTimeBtn, pressed && { opacity: 0.6 }]}
+                  onPress={() => openTimePicker(reminder.id)}
+                  hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                >
+                  <Text style={styles.reminderTimeText}>🔔 {reminder.time}</Text>
+                </Pressable>
+                <Pressable
+                  style={({ pressed }) => [styles.reminderRemoveBtn, pressed && { opacity: 0.5 }]}
+                  onPress={() => handleRemoveReminder(reminder.id)}
+                  hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                >
+                  <Text style={styles.reminderRemoveText}>×</Text>
+                </Pressable>
               </View>
-            </>
+              <View style={styles.dayChipRow}>
+                {DAY_LABELS.map((label, i) => {
+                  const day = i + 1;
+                  const on = reminder.days.includes(day);
+                  return (
+                    <Pressable
+                      key={day}
+                      style={[styles.dayChip, on && styles.dayChipOn]}
+                      onPress={() => handleToggleDay(reminder, day)}
+                      hitSlop={{ top: 6, bottom: 6, left: 2, right: 2 }}
+                    >
+                      <Text style={[styles.dayChipText, on && styles.dayChipTextOn]}>{label}</Text>
+                    </Pressable>
+                  );
+                })}
+              </View>
+            </View>
+          ))}
+
+          <Pressable
+            style={({ pressed }) => [styles.addReminderBtn, pressed && { opacity: 0.6 }]}
+            onPress={handleAddReminder}
+          >
+            <Text style={styles.addReminderText}>＋ 時刻を追加</Text>
+          </Pressable>
+
+          {reminders.length > 0 && (
+            <View style={styles.reminderField}>
+              <Text style={styles.reminderFieldLabel}>通知メッセージ</Text>
+              <TextInput
+                style={[styles.reminderInput, styles.reminderMessageInput]}
+                value={messageDraft}
+                onChangeText={setMessageDraft}
+                onBlur={handleMessageBlur}
+                placeholder="今日のタスクを確認しよう！"
+                placeholderTextColor={colors.textDisabled}
+                maxLength={100}
+                multiline
+                textAlignVertical="top"
+              />
+            </View>
           )}
         </View>
 
@@ -472,19 +500,22 @@ export function ProfileScreen() {
 
       {/* Time picker */}
       <Modal visible={timePickerVisible} transparent animationType="fade">
-        <Pressable style={styles.timeOverlay} onPress={() => setTimePickerVisible(false)}>
+        <Pressable style={styles.timeOverlay} onPress={() => { setTimePickerVisible(false); setEditingReminderId(null); }}>
           <View style={styles.timeSheet}>
             <Text style={styles.timeSheetLabel}>時刻を選択</Text>
             <View style={styles.rule} />
-            {TIME_OPTIONS.map((t) => (
-              <Pressable
-                key={t}
-                style={({ pressed }) => [styles.timeOption, reminderTime === t && styles.timeOptionActive, pressed && { opacity: 0.6 }]}
-                onPress={() => handleTimeSelect(t)}
-              >
-                <Text style={[styles.timeOptionText, reminderTime === t && styles.timeOptionTextActive]}>{t}</Text>
-              </Pressable>
-            ))}
+            {TIME_OPTIONS.map((t) => {
+              const current = reminders.find((r) => r.id === editingReminderId)?.time;
+              return (
+                <Pressable
+                  key={t}
+                  style={({ pressed }) => [styles.timeOption, current === t && styles.timeOptionActive, pressed && { opacity: 0.6 }]}
+                  onPress={() => handleTimeSelect(t)}
+                >
+                  <Text style={[styles.timeOptionText, current === t && styles.timeOptionTextActive]}>{t}</Text>
+                </Pressable>
+              );
+            })}
           </View>
         </Pressable>
       </Modal>
@@ -648,6 +679,78 @@ const styles = StyleSheet.create({
   },
   reminderLabel: { fontSize: fontSize.md, fontWeight: fontWeight.bold, color: colors.textMain },
   reminderSub: { fontSize: fontSize.xs, color: colors.textSub, marginTop: 2 },
+  reminderCard: {
+    backgroundColor: colors.surface,
+    borderWidth: 1.5,
+    borderColor: colors.border,
+    borderRadius: radius.md,
+    padding: spacing.md,
+    gap: spacing.sm,
+    marginTop: spacing.sm,
+  },
+  reminderCardTop: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  reminderTimeBtn: {
+    paddingVertical: spacing.xs,
+    paddingHorizontal: spacing.xs,
+  },
+  reminderTimeText: {
+    fontSize: fontSize.lg,
+    fontWeight: fontWeight.black,
+    color: colors.textMain,
+    letterSpacing: 0.5,
+  },
+  reminderRemoveBtn: {
+    paddingHorizontal: spacing.sm,
+    paddingVertical: spacing.xs,
+  },
+  reminderRemoveText: {
+    fontSize: fontSize.xl,
+    color: colors.danger,
+    lineHeight: 22,
+  },
+  dayChipRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    gap: 4,
+  },
+  dayChip: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: spacing.sm,
+    borderRadius: radius.sm,
+    backgroundColor: colors.surfaceAlt,
+    borderWidth: 1.5,
+    borderColor: colors.border,
+  },
+  dayChipOn: {
+    backgroundColor: colors.primary,
+    borderColor: colors.primary,
+  },
+  dayChipText: {
+    fontSize: fontSize.sm,
+    fontWeight: fontWeight.bold,
+    color: colors.textSub,
+  },
+  dayChipTextOn: {
+    color: colors.surface,
+  },
+  addReminderBtn: {
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.md,
+    alignSelf: 'flex-start',
+    marginTop: spacing.sm,
+  },
+  addReminderText: {
+    fontSize: fontSize.md,
+    color: colors.primary,
+    fontWeight: fontWeight.bold,
+    letterSpacing: 0.5,
+  },
   timeBtn: {
     backgroundColor: colors.surfaceAlt,
     borderRadius: radius.md,

@@ -1,14 +1,20 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
   View, StyleSheet, Pressable, ScrollView,
-  Alert, Platform, Animated, useWindowDimensions,
+  Alert, Platform, Animated, useWindowDimensions, Modal,
 } from 'react-native';
 import { Text } from './Text';
 import { useAppStore, Task } from '../store/useAppStore';
+import {
+  requestNotificationPermission,
+  scheduleTaskReminder,
+  cancelTaskReminder,
+} from '../services/NotificationService';
 import { colors, spacing, radius, fontSize, fontWeight } from '../theme';
 
 const PANEL_RATIO = 0.85;
 const IS_WEB = Platform.OS === 'web';
+const TIME_OPTIONS = ['07:00','08:00','09:00','10:00','12:00','18:00','20:00','21:00','22:00'];
 
 interface RoutinePanelProps {
   onClose: () => void;
@@ -21,6 +27,8 @@ export function RoutinePanel({ onClose }: RoutinePanelProps) {
   const tasks = useAppStore((s) => s.tasks);
   const routines = tasks.filter((t) => t.isRoutine === true);
   const deleteRoutine = useAppStore((s) => s.deleteRoutine);
+  const setTaskReminder = useAppStore((s) => s.setTaskReminder);
+  const [pickerRoutineId, setPickerRoutineId] = useState<string | null>(null);
 
   const translateX = useRef(new Animated.Value(IS_WEB ? 0 : panelWidth)).current;
   const overlayOpacity = useRef(new Animated.Value(IS_WEB ? 1 : 0)).current;
@@ -41,15 +49,41 @@ export function RoutinePanel({ onClose }: RoutinePanelProps) {
     ]).start(() => onClose());
   }
 
+  function doDelete(task: Task) {
+    if (task.taskReminderTime) cancelTaskReminder(task.id);
+    deleteRoutine(task.id);
+  }
+
   function handleDelete(task: Task) {
     if (Platform.OS === 'web') {
-      if (window.confirm(`ルーティン「${task.title}」を削除しますか？`)) deleteRoutine(task.id);
+      if (window.confirm(`ルーティン「${task.title}」を削除しますか？`)) doDelete(task);
       return;
     }
     Alert.alert('ルーティンを削除', `「${task.title}」を削除しますか？`, [
       { text: 'キャンセル', style: 'cancel' },
-      { text: '削除', style: 'destructive', onPress: () => deleteRoutine(task.id) },
+      { text: '削除', style: 'destructive', onPress: () => doDelete(task) },
     ]);
+  }
+
+  async function handleReminderPress(task: Task) {
+    if (task.taskReminderTime) {
+      setTaskReminder(task.id, null);
+      await cancelTaskReminder(task.id);
+      return;
+    }
+    setPickerRoutineId(task.id);
+  }
+
+  async function handleTimeSelect(time: string) {
+    const routineId = pickerRoutineId;
+    setPickerRoutineId(null);
+    if (!routineId) return;
+    const routine = routines.find((r) => r.id === routineId);
+    if (!routine) return;
+    const granted = await requestNotificationPermission();
+    if (!granted) return;
+    setTaskReminder(routineId, time);
+    await scheduleTaskReminder(routineId, routine.title, time, true);
   }
 
   const panelContent = (
@@ -86,6 +120,15 @@ export function RoutinePanel({ onClose }: RoutinePanelProps) {
                 <Text style={styles.rowDate}>登録日 {task.routineCreatedAt}</Text>
               </View>
               <Pressable
+                style={({ pressed }) => [styles.reminderBtn, pressed && { opacity: 0.5 }]}
+                onPress={() => handleReminderPress(task)}
+                hitSlop={{ top: 8, bottom: 8, left: 4, right: 4 }}
+              >
+                <Text style={task.taskReminderTime ? styles.reminderTextOn : styles.reminderTextOff}>
+                  {task.taskReminderTime ? `🔔 ${task.taskReminderTime}` : '🔔'}
+                </Text>
+              </Pressable>
+              <Pressable
                 style={({ pressed }) => [styles.deleteBtn, pressed && { opacity: 0.5 }]}
                 onPress={() => handleDelete(task)}
                 hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
@@ -97,6 +140,25 @@ export function RoutinePanel({ onClose }: RoutinePanelProps) {
         )}
         <View style={{ height: spacing.xxl }} />
       </ScrollView>
+
+      {/* Routine reminder time picker */}
+      <Modal visible={pickerRoutineId !== null} transparent animationType="fade">
+        <Pressable style={styles.timeOverlay} onPress={() => setPickerRoutineId(null)}>
+          <View style={styles.timeSheet}>
+            <Text style={styles.timeSheetLabel}>毎日のリマインダー</Text>
+            <View style={styles.rule} />
+            {TIME_OPTIONS.map((t) => (
+              <Pressable
+                key={t}
+                style={({ pressed }) => [styles.timeOption, pressed && { opacity: 0.6 }]}
+                onPress={() => handleTimeSelect(t)}
+              >
+                <Text style={styles.timeOptionText}>{t}</Text>
+              </Pressable>
+            ))}
+          </View>
+        </Pressable>
+      </Modal>
     </>
   );
 
@@ -227,10 +289,25 @@ const styles = StyleSheet.create({
     color: colors.textMuted,
     letterSpacing: 0.5,
   },
+  reminderBtn: {
+    paddingHorizontal: spacing.xs,
+    paddingVertical: spacing.xs,
+    marginLeft: spacing.xs,
+  },
+  reminderTextOff: {
+    fontSize: fontSize.md,
+    color: colors.textDisabled,
+  },
+  reminderTextOn: {
+    fontSize: fontSize.xs,
+    color: colors.primary,
+    fontWeight: fontWeight.bold,
+    letterSpacing: 0.3,
+  },
   deleteBtn: {
     paddingHorizontal: spacing.sm,
     paddingVertical: spacing.xs,
-    marginLeft: spacing.sm,
+    marginLeft: spacing.xs,
   },
   deleteText: {
     fontSize: fontSize.xs,
@@ -238,6 +315,35 @@ const styles = StyleSheet.create({
     fontWeight: fontWeight.bold,
     letterSpacing: 0.5,
   },
+  timeOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(26,16,7,0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  timeSheet: {
+    backgroundColor: colors.surface,
+    borderRadius: radius.xl,
+    padding: spacing.lg,
+    width: 240,
+    gap: spacing.xs,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  timeSheetLabel: {
+    fontSize: fontSize.xs,
+    fontWeight: fontWeight.bold,
+    color: colors.primary,
+    letterSpacing: 2.5,
+    marginBottom: spacing.xs,
+  },
+  timeOption: {
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.md,
+    borderRadius: radius.md,
+    alignItems: 'center',
+  },
+  timeOptionText: { fontSize: fontSize.md, color: colors.textSub },
   emptyState: {
     paddingVertical: spacing.xxl,
     alignItems: 'center',

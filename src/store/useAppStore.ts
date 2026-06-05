@@ -16,6 +16,13 @@ export interface Task {
   routineCreatedAt: string; // 登録日 YYYY-MM-DD ('' for non-routine tasks)
   routineSourceId?: string; // daily instance -> id of the routine template it came from
   routineSpawnDate?: string; // daily instance -> the date (YYYY-MM-DD) it was spawned for
+  taskReminderTime?: string; // HH:MM、タスク連動リマインダー。未設定なら undefined
+}
+
+export interface Reminder {
+  id: string;
+  time: string;    // HH:MM
+  days: number[];  // 1=月 2=火 3=水 4=木 5=金 6=土 7=日
 }
 
 export interface Badge {
@@ -53,8 +60,7 @@ interface AppState {
   badges: Badge[];
   isPremium: boolean;
   pendingBadge: Badge | null;
-  reminderEnabled: boolean;
-  reminderTime: string;
+  reminders: Reminder[];
   reminderMessage: string;
   hasCompletedOnboarding: boolean;
   timerTaskId: string | null;
@@ -68,7 +74,11 @@ interface AppState {
   syncRoutineTasks: () => void;
   dismissBadge: () => void;
   togglePremium: () => void;
-  setReminder: (enabled: boolean, time: string, message?: string) => void;
+  addReminder: (time: string, days?: number[]) => string;
+  removeReminder: (id: string) => void;
+  updateReminder: (id: string, time?: string, days?: number[]) => void;
+  setReminderMessage: (message: string) => void;
+  setTaskReminder: (taskId: string, time: string | null) => void;
   completeOnboarding: () => void;
   availableTaskCount: () => number;
   completedTaskCount: () => number;
@@ -84,8 +94,7 @@ export const useAppStore = create<AppState>()(
       badges: [],
       isPremium: true,
       pendingBadge: null,
-      reminderEnabled: false,
-      reminderTime: '09:00',
+      reminders: [],
       reminderMessage: '今日のタスクを確認しよう！ひとつだけでも大丈夫。',
       hasCompletedOnboarding: false,
       timerTaskId: null,
@@ -194,11 +203,38 @@ export const useAppStore = create<AppState>()(
 
       togglePremium: () => set((s) => ({ isPremium: !s.isPremium })),
 
-      setReminder: (enabled, time, message) => set((s) => ({
-        reminderEnabled: enabled,
-        reminderTime: time,
-        reminderMessage: message ?? s.reminderMessage,
-      })),
+      addReminder: (time, days = [1, 2, 3, 4, 5]) => {
+        const id = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+        const reminder: Reminder = { id, time, days };
+        set((s) => ({ reminders: [...s.reminders, reminder] }));
+        return id;
+      },
+
+      removeReminder: (id) => {
+        set((s) => ({ reminders: s.reminders.filter((r) => r.id !== id) }));
+      },
+
+      updateReminder: (id, time, days) => {
+        set((s) => ({
+          reminders: s.reminders.map((r) =>
+            r.id === id
+              ? { ...r, ...(time !== undefined ? { time } : {}), ...(days !== undefined ? { days } : {}) }
+              : r
+          ),
+        }));
+      },
+
+      setReminderMessage: (message) => set({ reminderMessage: message }),
+
+      setTaskReminder: (taskId, time) => {
+        set((s) => ({
+          tasks: s.tasks.map((t) =>
+            t.id === taskId
+              ? { ...t, taskReminderTime: time === null ? undefined : time }
+              : t
+          ),
+        }));
+      },
 
       completeOnboarding: () => set({ hasCompletedOnboarding: true }),
 
@@ -225,13 +261,30 @@ export const useAppStore = create<AppState>()(
         xp: state.xp,
         badges: state.badges,
         isPremium: state.isPremium,
-        reminderEnabled: state.reminderEnabled,
-        reminderTime: state.reminderTime,
+        reminders: state.reminders,
         reminderMessage: state.reminderMessage,
         hasCompletedOnboarding: state.hasCompletedOnboarding,
       }),
       onRehydrateStorage: () => (state) => {
         if (!state) return;
+        // 旧フォーマット（reminderEnabled / reminderTime）から新フォーマット（reminders）へ移行
+        if ((state as any).reminderEnabled !== undefined) {
+          if ((state as any).reminderEnabled && (state as any).reminderTime) {
+            state.reminders = [{
+              id: 'migrated-0',
+              time: (state as any).reminderTime,
+              days: [1, 2, 3, 4, 5],
+            }];
+          } else {
+            state.reminders = [];
+          }
+          delete (state as any).reminderEnabled;
+          delete (state as any).reminderTime;
+        }
+        // reminders が未定義（新規 or 旧データ）の場合は空配列で初期化
+        if (!Array.isArray(state.reminders)) {
+          state.reminders = [];
+        }
         // タスクやXPが存在するのにhasCompletedOnboardingがfalseの場合は
         // migration起因のデータ破損と判断して復元する
         if (!state.hasCompletedOnboarding && (state.tasks.length > 0 || state.xp > 0)) {

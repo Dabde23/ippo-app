@@ -1,8 +1,15 @@
-import React from 'react';
-import { View, Pressable, StyleSheet, Alert, Platform } from 'react-native';
+import React, { useState } from 'react';
+import { View, Pressable, StyleSheet, Alert, Platform, Modal } from 'react-native';
 import { Text } from './Text';
 import { Task, useAppStore, XP_PER_TASK } from '../store/useAppStore';
+import {
+  requestNotificationPermission,
+  scheduleTaskReminder,
+  cancelTaskReminder,
+} from '../services/NotificationService';
 import { colors, spacing, radius, fontSize, fontWeight } from '../theme';
+
+const TIME_OPTIONS = ['07:00','08:00','09:00','10:00','12:00','18:00','20:00','21:00','22:00'];
 
 interface Props {
   task: Task;
@@ -12,15 +19,52 @@ interface Props {
 export function TaskCard({ task, onEdit }: Props) {
   const completeTask = useAppStore((s) => s.completeTask);
   const deleteTask = useAppStore((s) => s.deleteTask);
+  const setTaskReminder = useAppStore((s) => s.setTaskReminder);
+  const [timePickerVisible, setTimePickerVisible] = useState(false);
+
+  // 🔔 を表示するのは: 未完了 かつ ルーティンのデイリーインスタンスでない通常タスク
+  const showReminderBtn = !task.completed && !task.routineSourceId;
+  const reminderSet = !!task.taskReminderTime;
+
+  async function handleReminderPress() {
+    if (reminderSet) {
+      // 設定済み → キャンセル
+      setTaskReminder(task.id, null);
+      await cancelTaskReminder(task.id);
+      return;
+    }
+    setTimePickerVisible(true);
+  }
+
+  async function handleTimeSelect(time: string) {
+    setTimePickerVisible(false);
+    const granted = await requestNotificationPermission();
+    if (!granted) return;
+    setTaskReminder(task.id, time);
+    await scheduleTaskReminder(task.id, task.title, time, false);
+  }
+
+  function handleComplete() {
+    if (task.completed) return;
+    const hadReminder = !!task.taskReminderTime;
+    completeTask(task.id);
+    if (hadReminder) cancelTaskReminder(task.id);
+  }
 
   function handleDelete() {
     if (Platform.OS === 'web') {
-      if (window.confirm(`「${task.title}」を削除しますか？`)) deleteTask(task.id);
+      if (window.confirm(`「${task.title}」を削除しますか？`)) {
+        if (task.taskReminderTime) cancelTaskReminder(task.id);
+        deleteTask(task.id);
+      }
       return;
     }
     Alert.alert('タスクを削除', `「${task.title}」を削除しますか？`, [
       { text: 'キャンセル', style: 'cancel' },
-      { text: '削除', style: 'destructive', onPress: () => deleteTask(task.id) },
+      { text: '削除', style: 'destructive', onPress: () => {
+        if (task.taskReminderTime) cancelTaskReminder(task.id);
+        deleteTask(task.id);
+      } },
     ]);
   }
 
@@ -30,7 +74,7 @@ export function TaskCard({ task, onEdit }: Props) {
 
       <Pressable
         style={styles.checkArea}
-        onPress={() => !task.completed && completeTask(task.id)}
+        onPress={handleComplete}
         hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
       >
         <View style={[styles.checkbox, task.completed && styles.checkboxDone]}>
@@ -46,6 +90,17 @@ export function TaskCard({ task, onEdit }: Props) {
       </View>
 
       <View style={styles.actions}>
+        {showReminderBtn && (
+          <Pressable
+            style={({ pressed }) => [styles.actionBtn, pressed && styles.actionBtnPressed]}
+            onPress={handleReminderPress}
+            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+          >
+            <Text style={reminderSet ? styles.reminderTextOn : styles.reminderTextOff}>
+              {reminderSet ? `🔔 ${task.taskReminderTime}` : '🔔'}
+            </Text>
+          </Pressable>
+        )}
         {!task.completed && (
           <Pressable
             style={({ pressed }) => [styles.actionBtn, pressed && styles.actionBtnPressed]}
@@ -63,6 +118,25 @@ export function TaskCard({ task, onEdit }: Props) {
           <Text style={styles.deleteText}>×</Text>
         </Pressable>
       </View>
+
+      {/* Task reminder time picker */}
+      <Modal visible={timePickerVisible} transparent animationType="fade">
+        <Pressable style={styles.timeOverlay} onPress={() => setTimePickerVisible(false)}>
+          <View style={styles.timeSheet}>
+            <Text style={styles.timeSheetLabel}>リマインダー時刻</Text>
+            <View style={styles.timeRule} />
+            {TIME_OPTIONS.map((t) => (
+              <Pressable
+                key={t}
+                style={({ pressed }) => [styles.timeOption, pressed && { opacity: 0.6 }]}
+                onPress={() => handleTimeSelect(t)}
+              >
+                <Text style={styles.timeOptionText}>{t}</Text>
+              </Pressable>
+            ))}
+          </View>
+        </Pressable>
+      </Modal>
     </View>
   );
 }
@@ -160,4 +234,44 @@ const styles = StyleSheet.create({
     color: colors.danger,
     lineHeight: 20,
   },
+  reminderTextOff: {
+    fontSize: fontSize.md,
+    color: colors.textDisabled,
+  },
+  reminderTextOn: {
+    fontSize: fontSize.xs,
+    color: colors.primary,
+    fontWeight: fontWeight.bold,
+    letterSpacing: 0.3,
+  },
+  timeOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(26,16,7,0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  timeSheet: {
+    backgroundColor: colors.surface,
+    borderRadius: radius.xl,
+    padding: spacing.lg,
+    width: 240,
+    gap: spacing.xs,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  timeSheetLabel: {
+    fontSize: fontSize.xs,
+    fontWeight: fontWeight.bold,
+    color: colors.primary,
+    letterSpacing: 2.5,
+    marginBottom: spacing.xs,
+  },
+  timeRule: { height: 1, backgroundColor: colors.ink },
+  timeOption: {
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.md,
+    borderRadius: radius.md,
+    alignItems: 'center',
+  },
+  timeOptionText: { fontSize: fontSize.md, color: colors.textSub },
 });
