@@ -34,7 +34,6 @@ export function ProfileScreen() {
   const [feedbackSent, setFeedbackSent] = useState(false);
   const [earlyAccessVisible, setEarlyAccessVisible] = useState(false);
   const [earlyEmail, setEarlyEmail] = useState('');
-  const [earlyBeta, setEarlyBeta] = useState(false);
   const [earlySending, setEarlySending] = useState(false);
   const [earlySent, setEarlySent] = useState(false);
 
@@ -76,13 +75,11 @@ export function ProfileScreen() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           email,
-          beta: earlyBeta ? 'はい' : 'いいえ',
           type: 'early_access_registration',
         }),
       });
       setEarlySent(true);
       setEarlyEmail('');
-      setEarlyBeta(false);
       setTimeout(() => {
         setEarlySent(false);
         setEarlyAccessVisible(false);
@@ -90,7 +87,6 @@ export function ProfileScreen() {
     } catch {
       setEarlyAccessVisible(false);
       setEarlyEmail('');
-      setEarlyBeta(false);
     } finally {
       setEarlySending(false);
     }
@@ -450,23 +446,10 @@ export function ProfileScreen() {
                   autoFocus
                   editable={!earlySending}
                 />
-                <View style={styles.reminderRow}>
-                  <View style={{ flex: 1 }}>
-                    <Text style={styles.reminderLabel}>先行テスターへの参加を希望しますか？</Text>
-                    <Text style={styles.reminderSub}>クローズドベータへのご招待をお送りします</Text>
-                  </View>
-                  <Pressable
-                    style={[styles.toggle, earlyBeta && styles.toggleOn]}
-                    onPress={() => setEarlyBeta((v) => !v)}
-                    disabled={earlySending}
-                  >
-                    <Text style={styles.toggleText}>{earlyBeta ? 'はい' : 'いいえ'}</Text>
-                  </Pressable>
-                </View>
                 <View style={styles.editActions}>
                   <Pressable
                     style={({ pressed }) => [styles.editCancelBtn, pressed && { opacity: 0.6 }]}
-                    onPress={() => { setEarlyAccessVisible(false); setEarlyEmail(''); setEarlyBeta(false); }}
+                    onPress={() => { setEarlyAccessVisible(false); setEarlyEmail(''); }}
                     disabled={earlySending}
                   >
                     <Text style={styles.editCancelText}>キャンセル</Text>
