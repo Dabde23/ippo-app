@@ -21,12 +21,11 @@ const TIME_OPTIONS = ['07:00','08:00','09:00','10:00','12:00','18:00','20:00','2
 const DAY_LABELS = ['月','火','水','木','金','土','日']; // index 0..6 -> day 1..7
 
 export function ProfileScreen() {
-  const { xp, badges, tasks, reminders, reminderMessage, addReminder, removeReminder, updateReminder, setReminderMessage, deleteTask } = useAppStore();
+  const { xp, badges, tasks, reminders, addReminder, removeReminder, updateReminder, deleteTask } = useAppStore();
   const [routinePanelVisible, setRoutinePanelVisible] = useState(false);
   const completedTotal = tasks.filter((t) => t.completed).length;
   const [timePickerVisible, setTimePickerVisible] = useState(false);
   const [editingReminderId, setEditingReminderId] = useState<string | null>(null);
-  const [messageDraft, setMessageDraft] = useState(reminderMessage);
   const [editingTask, setEditingTask] = useState<Task | null>(null);
   const [editTitle, setEditTitle] = useState('');
   const [feedbackVisible, setFeedbackVisible] = useState(false);
@@ -148,17 +147,6 @@ export function ProfileScreen() {
       setEditingReminderId(null);
       await reschedule();
     }
-  }
-
-  // 通知メッセージ変更（フォーカスが外れたとき保存）
-  async function handleMessageBlur() {
-    const trimmed = messageDraft.trim();
-    if (!trimmed || trimmed === reminderMessage) {
-      setMessageDraft(reminderMessage);
-      return;
-    }
-    setReminderMessage(trimmed);
-    await reschedule();
   }
 
   return (
@@ -338,22 +326,6 @@ export function ProfileScreen() {
             <Text style={styles.addReminderText}>＋ 時刻を追加</Text>
           </Pressable>
 
-          {reminders.length > 0 && (
-            <View style={styles.reminderField}>
-              <Text style={styles.reminderFieldLabel}>通知メッセージ（名前未設定の通知に適用）</Text>
-              <TextInput
-                style={[styles.reminderInput, styles.reminderMessageInput]}
-                value={messageDraft}
-                onChangeText={setMessageDraft}
-                onBlur={handleMessageBlur}
-                placeholder="今日のタスクを確認しよう！"
-                placeholderTextColor={colors.textDisabled}
-                maxLength={100}
-                multiline
-                textAlignVertical="top"
-              />
-            </View>
-          )}
         </View>
 
         {/* Feedback */}
@@ -811,7 +783,6 @@ const styles = StyleSheet.create({
     borderWidth: 1.5,
     borderColor: colors.border,
   },
-  reminderMessageInput: { minHeight: 64 },
   toggle: {
     backgroundColor: colors.surfaceAlt,
     borderRadius: radius.sm,
