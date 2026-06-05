@@ -172,6 +172,21 @@ export function ProfileScreen() {
       {/* ── CONTENT ── */}
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
 
+        {/* Early access */}
+        <View style={styles.noteCard}>
+          <Text style={styles.noteTitle}>アーリーアクセス</Text>
+          <View style={styles.rule} />
+          <Text style={styles.noteText}>
+            現在、全機能を無料でご利用いただけます。{'\n'}ネイティブアプリ公開時に有料プランへ移行予定です。
+          </Text>
+          <Pressable
+            style={({ pressed }) => [styles.earlyBtn, pressed && { opacity: 0.7 }]}
+            onPress={() => setEarlyAccessVisible(true)}
+          >
+            <Text style={styles.earlyBtnText}>事前登録する →</Text>
+          </Pressable>
+        </View>
+
         {/* Tasks */}
         <View style={styles.section}>
           <Text style={styles.sectionLabel}>タスク</Text>
@@ -310,21 +325,6 @@ export function ProfileScreen() {
             onPress={() => setFeedbackVisible(true)}
           >
             <Text style={styles.feedbackBtnText}>感想を送る</Text>
-          </Pressable>
-        </View>
-
-        {/* Early access */}
-        <View style={styles.noteCard}>
-          <Text style={styles.noteTitle}>アーリーアクセス</Text>
-          <View style={styles.rule} />
-          <Text style={styles.noteText}>
-            現在、全機能を無料でご利用いただけます。{'\n'}ネイティブアプリ公開時に有料プランへ移行予定です。
-          </Text>
-          <Pressable
-            style={({ pressed }) => [styles.earlyBtn, pressed && { opacity: 0.7 }]}
-            onPress={() => setEarlyAccessVisible(true)}
-          >
-            <Text style={styles.earlyBtnText}>事前登録する →</Text>
           </Pressable>
         </View>
 
