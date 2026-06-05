@@ -40,9 +40,9 @@ export function ProfileScreen() {
   const [earlySent, setEarlySent] = useState(false);
 
   const todayStr = today();
-  const availableTasks = tasks.filter((t) => !t.completed && t.skippedDate !== todayStr);
-  const skippedTasks = tasks.filter((t) => !t.completed && t.skippedDate === todayStr);
-  const completedTasks = tasks.filter((t) => t.completed);
+  const availableTasks = tasks.filter((t) => t.isRoutine !== true && !t.completed && t.skippedDate !== todayStr);
+  const skippedTasks = tasks.filter((t) => t.isRoutine !== true && !t.completed && t.skippedDate === todayStr);
+  const completedTasks = tasks.filter((t) => t.isRoutine !== true && t.completed);
 
   async function handleFeedbackSubmit() {
     if (!feedbackText.trim() || feedbackSending) return;
@@ -282,6 +282,18 @@ export function ProfileScreen() {
           {reminders.map((reminder) => (
             <View key={reminder.id} style={styles.reminderCard}>
               <View style={styles.reminderCardTop}>
+                <TextInput
+                  style={styles.reminderNameInput}
+                  value={reminder.name}
+                  onChangeText={(text) => updateReminder(reminder.id, undefined, undefined, text)}
+                  onBlur={reschedule}
+                  placeholder="通知名を入力..."
+                  placeholderTextColor={colors.textDisabled}
+                  maxLength={50}
+                />
+                {reminder.routineTaskId && (
+                  <Text style={styles.reminderRoutineTag}>🔁</Text>
+                )}
                 <Pressable
                   style={({ pressed }) => [styles.reminderTimeBtn, pressed && { opacity: 0.6 }]}
                   onPress={() => openTimePicker(reminder.id)}
@@ -328,7 +340,7 @@ export function ProfileScreen() {
 
           {reminders.length > 0 && (
             <View style={styles.reminderField}>
-              <Text style={styles.reminderFieldLabel}>通知メッセージ</Text>
+              <Text style={styles.reminderFieldLabel}>通知メッセージ（名前未設定の通知に適用）</Text>
               <TextInput
                 style={[styles.reminderInput, styles.reminderMessageInput]}
                 value={messageDraft}
@@ -705,6 +717,20 @@ const styles = StyleSheet.create({
     fontWeight: fontWeight.black,
     color: colors.textMain,
     letterSpacing: 0.5,
+  },
+  reminderNameInput: {
+    fontSize: fontSize.md,
+    color: colors.textMain,
+    flex: 1,
+    paddingVertical: spacing.xs,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
+    marginRight: spacing.sm,
+  },
+  reminderRoutineTag: {
+    fontSize: fontSize.xs,
+    color: colors.textMuted,
+    marginRight: spacing.sm,
   },
   reminderRemoveBtn: {
     paddingHorizontal: spacing.sm,

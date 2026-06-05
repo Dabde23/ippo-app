@@ -21,8 +21,10 @@ export interface Task {
 
 export interface Reminder {
   id: string;
+  name: string;    // 通知の表示名。空文字の場合は reminderMessage を使用
   time: string;    // HH:MM
   days: number[];  // 1=月 2=火 3=水 4=木 5=金 6=土 7=日
+  routineTaskId?: string; // ルーティンテンプレートと連動する場合のID
 }
 
 export interface Badge {
@@ -74,9 +76,9 @@ interface AppState {
   syncRoutineTasks: () => void;
   dismissBadge: () => void;
   togglePremium: () => void;
-  addReminder: (time: string, days?: number[]) => string;
+  addReminder: (time: string, days?: number[], name?: string, routineTaskId?: string) => string;
   removeReminder: (id: string) => void;
-  updateReminder: (id: string, time?: string, days?: number[]) => void;
+  updateReminder: (id: string, time?: string, days?: number[], name?: string) => void;
   setReminderMessage: (message: string) => void;
   setTaskReminder: (taskId: string, time: string | null) => void;
   completeOnboarding: () => void;
@@ -166,6 +168,8 @@ export const useAppStore = create<AppState>()(
           tasks: state.tasks.map((t) =>
             t.routineSourceId === id ? { ...t, routineSourceId: undefined } : t
           ).filter((t) => t.id !== id),
+          // ルーティンに連動するリマインダーも削除する
+          reminders: state.reminders.filter((r) => r.routineTaskId !== id),
         }));
       },
 
@@ -203,9 +207,9 @@ export const useAppStore = create<AppState>()(
 
       togglePremium: () => set((s) => ({ isPremium: !s.isPremium })),
 
-      addReminder: (time, days = [1, 2, 3, 4, 5]) => {
+      addReminder: (time, days = [1, 2, 3, 4, 5], name = '', routineTaskId = undefined) => {
         const id = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
-        const reminder: Reminder = { id, time, days };
+        const reminder: Reminder = { id, name, time, days, routineTaskId };
         set((s) => ({ reminders: [...s.reminders, reminder] }));
         return id;
       },
@@ -214,11 +218,16 @@ export const useAppStore = create<AppState>()(
         set((s) => ({ reminders: s.reminders.filter((r) => r.id !== id) }));
       },
 
-      updateReminder: (id, time, days) => {
+      updateReminder: (id, time, days, name) => {
         set((s) => ({
           reminders: s.reminders.map((r) =>
             r.id === id
-              ? { ...r, ...(time !== undefined ? { time } : {}), ...(days !== undefined ? { days } : {}) }
+              ? {
+                  ...r,
+                  ...(time !== undefined ? { time } : {}),
+                  ...(days !== undefined ? { days } : {}),
+                  ...(name !== undefined ? { name } : {}),
+                }
               : r
           ),
         }));
@@ -272,6 +281,7 @@ export const useAppStore = create<AppState>()(
           if ((state as any).reminderEnabled && (state as any).reminderTime) {
             state.reminders = [{
               id: 'migrated-0',
+              name: '',
               time: (state as any).reminderTime,
               days: [1, 2, 3, 4, 5],
             }];
@@ -285,6 +295,11 @@ export const useAppStore = create<AppState>()(
         if (!Array.isArray(state.reminders)) {
           state.reminders = [];
         }
+        // 既存の Reminder に name フィールドがない場合は '' を補完
+        // （routineTaskId は省略でOK：undefined のまま扱える）
+        state.reminders = state.reminders.map((r) =>
+          typeof (r as any).name === 'string' ? r : { ...r, name: '' }
+        );
         // タスクやXPが存在するのにhasCompletedOnboardingがfalseの場合は
         // migration起因のデータ破損と判断して復元する
         if (!state.hasCompletedOnboarding && (state.tasks.length > 0 || state.xp > 0)) {
