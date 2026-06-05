@@ -91,8 +91,9 @@ export async function scheduleReminders(reminders: Reminder[], message: string):
           target.setDate(target.getDate() + dayDiff);
 
           const delay = target.getTime() - now.getTime();
+          const body = reminder.name.trim() || message;
           const timer = setTimeout(() => {
-            if (webAvailable()) new Notification(NOTIF_TITLE, { body: message });
+            if (webAvailable()) new Notification(NOTIF_TITLE, { body });
             scheduleNext(); // 翌週の同曜日に再スケジュール
           }, delay);
           webTimers.set(key, timer);
@@ -112,7 +113,7 @@ export async function scheduleReminders(reminders: Reminder[], message: string):
     for (const day of reminder.days) {
       await Notifications.scheduleNotificationAsync({
         identifier: `reminder-${reminder.id}-day-${day}`,
-        content: { title: NOTIF_TITLE, body: message },
+        content: { title: NOTIF_TITLE, body: reminder.name.trim() || message },
         trigger: {
           type: Notifications.SchedulableTriggerInputTypes.WEEKLY,
           weekday: toExpoWeekday(day),

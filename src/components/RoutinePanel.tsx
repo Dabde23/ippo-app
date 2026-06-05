@@ -7,8 +7,7 @@ import { Text } from './Text';
 import { useAppStore, Task } from '../store/useAppStore';
 import {
   requestNotificationPermission,
-  scheduleTaskReminder,
-  cancelTaskReminder,
+  scheduleReminders,
 } from '../services/NotificationService';
 import { colors, spacing, radius, fontSize, fontWeight } from '../theme';
 
@@ -27,7 +26,10 @@ export function RoutinePanel({ onClose }: RoutinePanelProps) {
   const tasks = useAppStore((s) => s.tasks);
   const routines = tasks.filter((t) => t.isRoutine === true);
   const deleteRoutine = useAppStore((s) => s.deleteRoutine);
-  const setTaskReminder = useAppStore((s) => s.setTaskReminder);
+  const addReminder = useAppStore((s) => s.addReminder);
+  const removeReminder = useAppStore((s) => s.removeReminder);
+  const reminders = useAppStore((s) => s.reminders);
+  const reminderMessage = useAppStore((s) => s.reminderMessage);
   const [pickerRoutineId, setPickerRoutineId] = useState<string | null>(null);
 
   const translateX = useRef(new Animated.Value(IS_WEB ? 0 : panelWidth)).current;
@@ -49,9 +51,18 @@ export function RoutinePanel({ onClose }: RoutinePanelProps) {
     ]).start(() => onClose());
   }
 
-  function doDelete(task: Task) {
-    if (task.taskReminderTime) cancelTaskReminder(task.id);
+  // 最新の store の値で定刻通知を再スケジュール
+  async function reschedule() {
+    const current = useAppStore.getState().reminders;
+    const msg = useAppStore.getState().reminderMessage;
+    await scheduleReminders(current, msg);
+  }
+
+  async function doDelete(task: Task) {
+    // store 側で連動リマインダーも削除される
     deleteRoutine(task.id);
+    // 削除後の最新 reminders で再スケジュール
+    await reschedule();
   }
 
   function handleDelete(task: Task) {
@@ -66,9 +77,10 @@ export function RoutinePanel({ onClose }: RoutinePanelProps) {
   }
 
   async function handleReminderPress(task: Task) {
-    if (task.taskReminderTime) {
-      setTaskReminder(task.id, null);
-      await cancelTaskReminder(task.id);
+    const linkedReminder = reminders.find((r) => r.routineTaskId === task.id);
+    if (linkedReminder) {
+      removeReminder(linkedReminder.id);
+      await reschedule();
       return;
     }
     setPickerRoutineId(task.id);
@@ -82,8 +94,8 @@ export function RoutinePanel({ onClose }: RoutinePanelProps) {
     if (!routine) return;
     const granted = await requestNotificationPermission();
     if (!granted) return;
-    setTaskReminder(routineId, time);
-    await scheduleTaskReminder(routineId, routine.title, time, true);
+    addReminder(time, [1, 2, 3, 4, 5, 6, 7], routine.title, routine.id);
+    await reschedule();
   }
 
   const panelContent = (
@@ -112,7 +124,10 @@ export function RoutinePanel({ onClose }: RoutinePanelProps) {
             </Text>
           </View>
         ) : (
-          routines.map((task) => (
+          routines.map((task) => {
+            const linkedReminder = reminders.find((r) => r.routineTaskId === task.id);
+            const reminderSet = !!linkedReminder;
+            return (
             <View key={task.id} style={styles.row}>
               <View style={styles.accentBar} />
               <View style={styles.rowBody}>
@@ -124,8 +139,8 @@ export function RoutinePanel({ onClose }: RoutinePanelProps) {
                 onPress={() => handleReminderPress(task)}
                 hitSlop={{ top: 8, bottom: 8, left: 4, right: 4 }}
               >
-                <Text style={task.taskReminderTime ? styles.reminderTextOn : styles.reminderTextOff}>
-                  {task.taskReminderTime ? `🔔 ${task.taskReminderTime}` : '🔔'}
+                <Text style={reminderSet ? styles.reminderTextOn : styles.reminderTextOff}>
+                  {reminderSet ? `🔔 ${linkedReminder!.time}` : '🔔'}
                 </Text>
               </Pressable>
               <Pressable
@@ -136,7 +151,8 @@ export function RoutinePanel({ onClose }: RoutinePanelProps) {
                 <Text style={styles.deleteText}>削除</Text>
               </Pressable>
             </View>
-          ))
+            );
+          })
         )}
         <View style={{ height: spacing.xxl }} />
       </ScrollView>
