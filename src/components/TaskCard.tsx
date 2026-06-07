@@ -111,9 +111,12 @@ export function TaskCard({ task, onEdit }: Props) {
                 onPress={handleReminderPress}
                 hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
               >
-                <Text style={reminderSet ? styles.reminderTextOn : styles.reminderTextOff}>
-                  {reminderSet ? `🔔 ${task.taskReminderTime}` : '🔔'}
-                </Text>
+                <View style={styles.reminderRow}>
+                  <Text style={[styles.reminderIcon, reminderSet && styles.reminderIconOn]}>🔔</Text>
+                  {reminderSet && (
+                    <Text style={styles.reminderTime}>{task.taskReminderTime}</Text>
+                  )}
+                </View>
               </Pressable>
             ) : null}
           </View>
@@ -252,11 +255,19 @@ const styles = StyleSheet.create({
     color: colors.danger,
     lineHeight: 20,
   },
-  reminderTextOff: {
+  reminderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
+  },
+  reminderIcon: {
     fontSize: fontSize.md,
     color: colors.textDisabled,
   },
-  reminderTextOn: {
+  reminderIconOn: {
+    color: colors.primary,
+  },
+  reminderTime: {
     fontSize: fontSize.xs,
     color: colors.primary,
     fontWeight: fontWeight.bold,
