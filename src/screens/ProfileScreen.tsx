@@ -10,6 +10,7 @@ import { Text } from '../components/Text';
 import { XPBar } from '../components/XPBar';
 import { TaskCard } from '../components/TaskCard';
 import { RoutinePanel } from '../components/RoutinePanel';
+import { TaskListPanel } from '../components/TaskListPanel';
 import { useAppStore, Task, today } from '../store/useAppStore';
 import {
   requestNotificationPermission,
@@ -23,6 +24,7 @@ const DAY_LABELS = ['月','火','水','木','金','土','日']; // index 0..6 ->
 export function ProfileScreen() {
   const { xp, badges, tasks, reminders, addReminder, removeReminder, updateReminder, deleteTask } = useAppStore();
   const [routinePanelVisible, setRoutinePanelVisible] = useState(false);
+  const [taskListPanelVisible, setTaskListPanelVisible] = useState(false);
   const completedTotal = tasks.filter((t) => t.completed).length;
   const [timePickerVisible, setTimePickerVisible] = useState(false);
   const [editingReminderId, setEditingReminderId] = useState<string | null>(null);
@@ -256,6 +258,15 @@ export function ProfileScreen() {
           onPress={() => setRoutinePanelVisible(true)}
         >
           <Text style={styles.routineLinkText}>ルーティン管理</Text>
+          <Text style={styles.routineLinkArrow}>→</Text>
+        </Pressable>
+
+        {/* Task list link */}
+        <Pressable
+          style={({ pressed }) => [styles.routineLink, pressed && { opacity: 0.6 }]}
+          onPress={() => setTaskListPanelVisible(true)}
+        >
+          <Text style={styles.routineLinkText}>タスク一覧</Text>
           <Text style={styles.routineLinkArrow}>→</Text>
         </Pressable>
 
@@ -499,6 +510,9 @@ export function ProfileScreen() {
 
       {routinePanelVisible && (
         <RoutinePanel onClose={() => setRoutinePanelVisible(false)} />
+      )}
+      {taskListPanelVisible && (
+        <TaskListPanel onClose={() => setTaskListPanelVisible(false)} />
       )}
     </SafeAreaView>
   );

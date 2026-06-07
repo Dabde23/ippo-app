@@ -9,6 +9,7 @@ import { useNavigation } from '@react-navigation/native';
 import { Text } from '../components/Text';
 import { XPBar } from '../components/XPBar';
 import { TaskCard } from '../components/TaskCard';
+import { TaskListPanel } from '../components/TaskListPanel';
 import { useAppStore, Task, today, XP_PER_TASK } from '../store/useAppStore';
 import { colors, spacing, radius, fontSize, fontWeight, shadow } from '../theme';
 
@@ -28,9 +29,7 @@ export function HomeScreen() {
   const [addInputVisible, setAddInputVisible] = useState(false);
   const [inputTitle, setInputTitle] = useState('');
   const [inputIsRoutine, setInputIsRoutine] = useState(false);
-  const [listModalVisible, setListModalVisible] = useState(false);
-  const [editingTask, setEditingTask] = useState<Task | null>(null);
-  const [editTitle, setEditTitle] = useState('');
+  const [taskListPanelVisible, setTaskListPanelVisible] = useState(false);
 
   const inputRef = useRef<TextInput>(null);
 
@@ -90,13 +89,6 @@ export function HomeScreen() {
       setCurrentTaskId((prev) => prev ?? newId);
     }
     closeAddPopover();
-  }
-
-  function openEdit(task: Task) { setEditingTask(task); setEditTitle(task.title); }
-  function handleEditSave() {
-    if (!editingTask || !editTitle.trim()) return;
-    useAppStore.getState().editTask(editingTask.id, editTitle.trim());
-    setEditingTask(null); setEditTitle('');
   }
 
   const available = availableTaskCount();
@@ -185,7 +177,7 @@ export function HomeScreen() {
         {available > 0 && (
           <Pressable
             style={({ pressed }) => [styles.viewAllBtn, pressed && { opacity: 0.5 }]}
-            onPress={() => setListModalVisible(true)}
+            onPress={() => setTaskListPanelVisible(true)}
           >
             <Text style={styles.viewAllText}>全タスクを見る</Text>
           </Pressable>
@@ -252,70 +244,9 @@ export function HomeScreen() {
         </KeyboardAvoidingView>
       </Modal>
 
-      {/* ── MODAL: Task list ── */}
-      <Modal visible={listModalVisible} animationType="slide" transparent>
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalSheet}>
-            <View style={styles.sheetHandle} />
-            <View style={styles.sheetHeader}>
-              <Text style={styles.sheetTitle}>すべてのタスク</Text>
-              <Pressable onPress={() => setListModalVisible(false)}>
-                <Text style={styles.sheetClose}>×</Text>
-              </Pressable>
-            </View>
-            <View style={styles.headerRule} />
-            <ScrollView showsVerticalScrollIndicator={false} style={{ marginTop: spacing.md }}>
-              {availableTasks.length > 0 && (
-                <><Text style={styles.sheetSection}>残り {availableTasks.length} 件</Text>
-                  {availableTasks.map((t) => <TaskCard key={t.id} task={t} onEdit={() => openEdit(t)} />)}</>
-              )}
-              {skippedTasks.length > 0 && (
-                <><Text style={styles.sheetSection}>今日あとで {skippedTasks.length} 件</Text>
-                  {skippedTasks.map((t) => <TaskCard key={t.id} task={t} onEdit={() => openEdit(t)} />)}</>
-              )}
-              {completedTasks.length > 0 && (
-                <><Text style={styles.sheetSection}>完了 {completedTasks.length} 件</Text>
-                  {completedTasks.map((t) => <TaskCard key={t.id} task={t} onEdit={() => openEdit(t)} />)}</>
-              )}
-              {doableTasks.length === 0 && <Text style={styles.sheetEmpty}>タスクがありません</Text>}
-              <View style={{ height: spacing.xxl }} />
-            </ScrollView>
-          </View>
-        </View>
-      </Modal>
-
-      {/* ── MODAL: Edit ── */}
-      <Modal visible={!!editingTask} animationType="fade" transparent>
-        <View style={styles.editOverlay}>
-          <View style={styles.editSheet}>
-            <Text style={styles.editLabel}>タスクを編集</Text>
-            <View style={styles.headerRule} />
-            <TextInput
-              style={styles.editInput}
-              value={editTitle}
-              onChangeText={setEditTitle}
-              autoFocus maxLength={100} returnKeyType="done"
-              onSubmitEditing={handleEditSave}
-              placeholderTextColor={colors.textDisabled}
-            />
-            <View style={styles.editActions}>
-              <Pressable
-                style={({ pressed }) => [styles.editCancelBtn, pressed && { opacity: 0.6 }]}
-                onPress={() => { setEditingTask(null); setEditTitle(''); }}
-              >
-                <Text style={styles.editCancelText}>キャンセル</Text>
-              </Pressable>
-              <Pressable
-                style={({ pressed }) => [styles.editSaveBtn, !editTitle.trim() && styles.editSaveBtnDisabled, pressed && { opacity: 0.8 }]}
-                onPress={handleEditSave}
-                disabled={!editTitle.trim()}
-              >
-                <Text style={styles.editSaveText}>保存</Text>
-              </Pressable>
-            </View>
-          </View>
-        </View>
-      </Modal>
+      {taskListPanelVisible && (
+        <TaskListPanel onClose={() => setTaskListPanelVisible(false)} />
+      )}
     </SafeAreaView>
   );
 }
@@ -594,104 +525,5 @@ const styles = StyleSheet.create({
     fontWeight: fontWeight.black,
     fontSize: fontSize.md,
     letterSpacing: 1,
-  },
-  // ── Modal: list ──
-  modalOverlay: {
-    flex: 1, justifyContent: 'flex-end',
-    backgroundColor: 'rgba(26,16,7,0.45)',
-  },
-  modalSheet: {
-    backgroundColor: colors.background,
-    borderTopLeftRadius: radius.xxl,
-    borderTopRightRadius: radius.xxl,
-    padding: spacing.lg,
-    maxHeight: '84%',
-  },
-  sheetHandle: {
-    width: 36, height: 3,
-    backgroundColor: colors.border,
-    borderRadius: radius.full,
-    alignSelf: 'center',
-    marginBottom: spacing.md,
-  },
-  sheetHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: spacing.sm,
-  },
-  sheetTitle: {
-    fontSize: fontSize.lg,
-    fontWeight: fontWeight.black,
-    color: colors.ink,
-    letterSpacing: 1,
-  },
-  sheetClose: {
-    fontSize: fontSize.xl, color: colors.textSub, lineHeight: 26,
-  },
-  sheetSection: {
-    fontSize: fontSize.xs,
-    fontWeight: fontWeight.bold,
-    color: colors.primary,
-    letterSpacing: 2,
-    textTransform: 'uppercase',
-    marginTop: spacing.md,
-    marginBottom: spacing.xs,
-  },
-  sheetEmpty: {
-    textAlign: 'center', color: colors.textSub,
-    fontSize: fontSize.md, marginTop: spacing.xl,
-  },
-
-  // ── Modal: edit ──
-  editOverlay: {
-    flex: 1, justifyContent: 'center', alignItems: 'center',
-    backgroundColor: 'rgba(26,16,7,0.45)', padding: spacing.lg,
-  },
-  editSheet: {
-    backgroundColor: colors.surface,
-    borderRadius: radius.xl,
-    padding: spacing.xl,
-    width: '100%',
-    gap: spacing.md,
-    borderWidth: 1,
-    borderColor: colors.border,
-  },
-  editLabel: {
-    fontSize: fontSize.sm,
-    fontWeight: fontWeight.bold,
-    color: colors.primary,
-    letterSpacing: 2,
-    textTransform: 'uppercase',
-    marginBottom: spacing.xs,
-  },
-  editInput: {
-    backgroundColor: colors.background,
-    borderRadius: radius.md,
-    padding: spacing.md,
-    fontSize: fontSize.md,
-    color: colors.textMain,
-    borderWidth: 1.5,
-    borderColor: colors.border,
-    marginTop: spacing.sm,
-  },
-  editActions: {
-    flexDirection: 'row',
-    gap: spacing.sm,
-  },
-  editCancelBtn: {
-    flex: 1, alignItems: 'center', paddingVertical: 13,
-    borderRadius: radius.md, borderWidth: 1.5, borderColor: colors.border,
-  },
-  editCancelText: {
-    fontSize: fontSize.md, color: colors.textSub, fontWeight: fontWeight.semibold,
-  },
-  editSaveBtn: {
-    flex: 2, alignItems: 'center', paddingVertical: 13,
-    borderRadius: radius.md, backgroundColor: colors.primary,
-  },
-  editSaveBtnDisabled: { backgroundColor: colors.textDisabled },
-  editSaveText: {
-    fontSize: fontSize.md, color: colors.surface, fontWeight: fontWeight.bold,
   },
 });
