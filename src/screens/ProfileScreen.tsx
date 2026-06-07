@@ -8,10 +8,9 @@ const FORMSPREE_URL = 'https://formspree.io/f/xqejvywv';
 const EARLY_ACCESS_FORMSPREE_URL = 'https://formspree.io/f/xzdqzqnz';
 import { Text } from '../components/Text';
 import { XPBar } from '../components/XPBar';
-import { TaskCard } from '../components/TaskCard';
 import { RoutinePanel } from '../components/RoutinePanel';
 import { TaskListPanel } from '../components/TaskListPanel';
-import { useAppStore, Task, today } from '../store/useAppStore';
+import { useAppStore } from '../store/useAppStore';
 import {
   requestNotificationPermission,
   scheduleReminders,
@@ -22,14 +21,12 @@ const TIME_OPTIONS = ['07:00','08:00','09:00','10:00','12:00','18:00','20:00','2
 const DAY_LABELS = ['月','火','水','木','金','土','日']; // index 0..6 -> day 1..7
 
 export function ProfileScreen() {
-  const { xp, badges, tasks, reminders, addReminder, removeReminder, updateReminder, deleteTask } = useAppStore();
+  const { xp, badges, tasks, reminders, addReminder, removeReminder, updateReminder } = useAppStore();
   const [routinePanelVisible, setRoutinePanelVisible] = useState(false);
   const [taskListPanelVisible, setTaskListPanelVisible] = useState(false);
   const completedTotal = tasks.filter((t) => t.completed).length;
   const [timePickerVisible, setTimePickerVisible] = useState(false);
   const [editingReminderId, setEditingReminderId] = useState<string | null>(null);
-  const [editingTask, setEditingTask] = useState<Task | null>(null);
-  const [editTitle, setEditTitle] = useState('');
   const [feedbackVisible, setFeedbackVisible] = useState(false);
   const [feedbackText, setFeedbackText] = useState('');
   const [feedbackSending, setFeedbackSending] = useState(false);
@@ -39,10 +36,6 @@ export function ProfileScreen() {
   const [earlySending, setEarlySending] = useState(false);
   const [earlySent, setEarlySent] = useState(false);
 
-  const todayStr = today();
-  const availableTasks = tasks.filter((t) => t.isRoutine !== true && !t.completed && t.skippedDate !== todayStr);
-  const skippedTasks = tasks.filter((t) => t.isRoutine !== true && !t.completed && t.skippedDate === todayStr);
-  const completedTasks = tasks.filter((t) => t.isRoutine !== true && t.completed);
 
   async function handleFeedbackSubmit() {
     if (!feedbackText.trim() || feedbackSending) return;
@@ -92,13 +85,6 @@ export function ProfileScreen() {
     } finally {
       setEarlySending(false);
     }
-  }
-
-  function openEdit(task: Task) { setEditingTask(task); setEditTitle(task.title); }
-  function handleEditSave() {
-    if (!editingTask || !editTitle.trim()) return;
-    useAppStore.getState().editTask(editingTask.id, editTitle.trim());
-    setEditingTask(null); setEditTitle('');
   }
 
   // 最新の reminders を使って通知を再スケジュール
@@ -191,42 +177,6 @@ export function ProfileScreen() {
           >
             <Text style={styles.earlyBtnText}>事前登録する →</Text>
           </Pressable>
-        </View>
-
-        {/* Tasks */}
-        <View style={styles.section}>
-          <Text style={styles.sectionLabel}>タスク</Text>
-          <View style={styles.rule} />
-          {tasks.length === 0 ? (
-            <View style={styles.emptyCard}>
-              <Text style={styles.emptyCardText}>タスクがありません</Text>
-            </View>
-          ) : (
-            <>
-              {availableTasks.length > 0 && (
-                <><Text style={styles.groupLabel}>残り {availableTasks.length} 件</Text>
-                  {availableTasks.map((t) => <TaskCard key={t.id} task={t} onEdit={() => openEdit(t)} />)}</>
-              )}
-              {skippedTasks.length > 0 && (
-                <><Text style={styles.groupLabel}>あとで {skippedTasks.length} 件</Text>
-                  {skippedTasks.map((t) => <TaskCard key={t.id} task={t} onEdit={() => openEdit(t)} />)}</>
-              )}
-              {completedTasks.length > 0 && (
-                <>
-                  <View style={styles.groupHeader}>
-                    <Text style={styles.groupLabel}>完了 {completedTasks.length} 件</Text>
-                    <Pressable
-                      style={({ pressed }) => [styles.clearBtn, pressed && { opacity: 0.6 }]}
-                      onPress={() => completedTasks.forEach((t) => deleteTask(t.id))}
-                    >
-                      <Text style={styles.clearBtnText}>全削除</Text>
-                    </Pressable>
-                  </View>
-                  {completedTasks.map((t) => <TaskCard key={t.id} task={t} onEdit={() => openEdit(t)} />)}
-                </>
-              )}
-            </>
-          )}
         </View>
 
         {/* Badges */}
@@ -360,38 +310,6 @@ export function ProfileScreen() {
         <View style={{ height: spacing.xxl }} />
       </ScrollView>
 
-      {/* Edit modal */}
-      <Modal visible={!!editingTask} animationType="fade" transparent>
-        <View style={styles.editOverlay}>
-          <View style={styles.editSheet}>
-            <Text style={styles.editLabel}>タスクを編集</Text>
-            <View style={styles.rule} />
-            <TextInput
-              style={styles.editInput}
-              value={editTitle}
-              onChangeText={setEditTitle}
-              autoFocus maxLength={100} returnKeyType="done"
-              onSubmitEditing={handleEditSave}
-              placeholderTextColor={colors.textDisabled}
-            />
-            <View style={styles.editActions}>
-              <Pressable
-                style={({ pressed }) => [styles.editCancelBtn, pressed && { opacity: 0.6 }]}
-                onPress={() => { setEditingTask(null); setEditTitle(''); }}
-              >
-                <Text style={styles.editCancelText}>キャンセル</Text>
-              </Pressable>
-              <Pressable
-                style={({ pressed }) => [styles.editSaveBtn, !editTitle.trim() && styles.editSaveBtnDisabled, pressed && { opacity: 0.85 }]}
-                onPress={handleEditSave}
-                disabled={!editTitle.trim()}
-              >
-                <Text style={styles.editSaveText}>保存</Text>
-              </Pressable>
-            </View>
-          </View>
-        </View>
-      </Modal>
 
       {/* Feedback modal */}
       <Modal visible={feedbackVisible} animationType="fade" transparent>
