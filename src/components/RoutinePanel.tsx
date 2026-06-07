@@ -139,9 +139,12 @@ export function RoutinePanel({ onClose }: RoutinePanelProps) {
                 onPress={() => handleReminderPress(task)}
                 hitSlop={{ top: 8, bottom: 8, left: 4, right: 4 }}
               >
-                <Text style={reminderSet ? styles.reminderTextOn : styles.reminderTextOff}>
-                  {reminderSet ? `🔔 ${linkedReminder!.time}` : '🔔'}
-                </Text>
+                <View style={styles.reminderRow}>
+                  <Text style={[styles.reminderIcon, reminderSet && styles.reminderIconOn]}>🔔</Text>
+                  {reminderSet && (
+                    <Text style={styles.reminderTime}>{linkedReminder!.time}</Text>
+                  )}
+                </View>
               </Pressable>
               <Pressable
                 style={({ pressed }) => [styles.deleteBtn, pressed && { opacity: 0.5 }]}
@@ -310,11 +313,19 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.xs,
     marginLeft: spacing.xs,
   },
-  reminderTextOff: {
+  reminderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  reminderIcon: {
     fontSize: fontSize.md,
     color: colors.textDisabled,
   },
-  reminderTextOn: {
+  reminderIconOn: {
+    color: colors.primary,
+  },
+  reminderTime: {
     fontSize: fontSize.xs,
     color: colors.primary,
     fontWeight: fontWeight.bold,
