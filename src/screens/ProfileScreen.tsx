@@ -108,6 +108,7 @@ export function ProfileScreen() {
 
   // ＋ 時刻を追加
   async function handleAddReminder() {
+    if (reminders.length >= 10) return;
     // 初回追加時に通知許可をリクエスト
     if (reminders.length === 0) {
       const granted = await requestNotificationPermission();
@@ -316,10 +317,16 @@ export function ProfileScreen() {
           ))}
 
           <Pressable
-            style={({ pressed }) => [styles.addReminderBtn, pressed && { opacity: 0.6 }]}
+            style={({ pressed }) => [
+              styles.addReminderBtn,
+              pressed && reminders.length < 10 && { opacity: 0.6 },
+              reminders.length >= 10 && styles.addReminderBtnDisabled,
+            ]}
             onPress={handleAddReminder}
           >
-            <Text style={styles.addReminderText}>＋ 時刻を追加</Text>
+            <Text style={[styles.addReminderText, reminders.length >= 10 && styles.addReminderTextDisabled]}>
+              {reminders.length >= 10 ? '＋ 時刻を追加（上限10件）' : '＋ 時刻を追加'}
+            </Text>
           </Pressable>
 
         </View>
@@ -735,11 +742,17 @@ const styles = StyleSheet.create({
     alignSelf: 'flex-start',
     marginTop: spacing.sm,
   },
+  addReminderBtnDisabled: {
+    opacity: 0.4,
+  },
   addReminderText: {
     fontSize: fontSize.md,
     color: colors.primary,
     fontWeight: fontWeight.bold,
     letterSpacing: 0.5,
+  },
+  addReminderTextDisabled: {
+    color: colors.textMuted,
   },
   timeBtn: {
     backgroundColor: colors.surfaceAlt,

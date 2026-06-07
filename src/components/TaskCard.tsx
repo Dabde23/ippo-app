@@ -28,7 +28,6 @@ export function TaskCard({ task, onEdit }: Props) {
 
   async function handleReminderPress() {
     if (reminderSet) {
-      // 設定済み → キャンセル
       setTaskReminder(task.id, null);
       await cancelTaskReminder(task.id);
       return;
@@ -72,6 +71,7 @@ export function TaskCard({ task, onEdit }: Props) {
     <View style={[styles.card, task.completed && styles.completedCard]}>
       <View style={[styles.accentBar, task.completed && styles.accentBarDone]} />
 
+      {/* 左：チェックボックス */}
       <Pressable
         style={styles.checkArea}
         onPress={handleComplete}
@@ -82,44 +82,52 @@ export function TaskCard({ task, onEdit }: Props) {
         </View>
       </Pressable>
 
-      <View style={styles.body}>
-        <Text style={[styles.title, task.completed && styles.titleDone]} numberOfLines={2}>
-          {task.title}
-        </Text>
-        {task.completed && <Text style={styles.xpLabel}>+{XP_PER_TASK} XP</Text>}
-      </View>
+      {/* 中央：2行の情報・操作エリア */}
+      <View style={styles.inner}>
+        {/* 1行目：タイトル（左）＋ 編集ボタン（右） */}
+        <View style={styles.row1}>
+          <Text style={[styles.title, task.completed && styles.titleDone]} numberOfLines={2}>
+            {task.title}
+          </Text>
+          {!task.completed && (
+            <Pressable
+              style={({ pressed }) => [styles.actionBtn, pressed && styles.actionBtnPressed]}
+              onPress={onEdit}
+              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+            >
+              <Text style={styles.editText}>編集</Text>
+            </Pressable>
+          )}
+        </View>
 
-      <View style={styles.actions}>
-        {showReminderBtn && (
+        {/* 2行目：リマインダー情報（左）＋ 削除ボタン（右） */}
+        <View style={styles.row2}>
+          <View style={styles.row2Info}>
+            {task.completed ? (
+              <Text style={styles.xpLabel}>+{XP_PER_TASK} XP</Text>
+            ) : showReminderBtn ? (
+              <Pressable
+                style={({ pressed }) => [pressed && styles.actionBtnPressed]}
+                onPress={handleReminderPress}
+                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+              >
+                <Text style={reminderSet ? styles.reminderTextOn : styles.reminderTextOff}>
+                  {reminderSet ? `🔔 ${task.taskReminderTime}` : '🔔'}
+                </Text>
+              </Pressable>
+            ) : null}
+          </View>
           <Pressable
             style={({ pressed }) => [styles.actionBtn, pressed && styles.actionBtnPressed]}
-            onPress={handleReminderPress}
+            onPress={handleDelete}
             hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
           >
-            <Text style={reminderSet ? styles.reminderTextOn : styles.reminderTextOff}>
-              {reminderSet ? `🔔 ${task.taskReminderTime}` : '🔔'}
-            </Text>
+            <Text style={styles.deleteText}>×</Text>
           </Pressable>
-        )}
-        {!task.completed && (
-          <Pressable
-            style={({ pressed }) => [styles.actionBtn, pressed && styles.actionBtnPressed]}
-            onPress={onEdit}
-            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-          >
-            <Text style={styles.editText}>編集</Text>
-          </Pressable>
-        )}
-        <Pressable
-          style={({ pressed }) => [styles.actionBtn, pressed && styles.actionBtnPressed]}
-          onPress={handleDelete}
-          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-        >
-          <Text style={styles.deleteText}>×</Text>
-        </Pressable>
+        </View>
       </View>
 
-      {/* Task reminder time picker */}
+      {/* タイムピッカー */}
       <Modal visible={timePickerVisible} transparent animationType="fade">
         <Pressable style={styles.timeOverlay} onPress={() => setTimePickerVisible(false)}>
           <View style={styles.timeSheet}>
@@ -144,9 +152,9 @@ export function TaskCard({ task, onEdit }: Props) {
 const styles = StyleSheet.create({
   card: {
     flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'stretch',
     backgroundColor: colors.surface,
-    paddingVertical: spacing.md,
+    paddingVertical: spacing.sm,
     paddingRight: spacing.md,
     paddingLeft: 0,
     marginBottom: spacing.sm,
@@ -168,6 +176,8 @@ const styles = StyleSheet.create({
   },
   checkArea: {
     marginRight: spacing.sm,
+    alignSelf: 'flex-start',
+    paddingTop: spacing.xs,
   },
   checkbox: {
     width: 20,
@@ -188,11 +198,25 @@ const styles = StyleSheet.create({
     fontSize: fontSize.xs,
     fontWeight: fontWeight.bold,
   },
-  body: {
+  inner: {
     flex: 1,
-    gap: 2,
+    gap: spacing.xs,
+    paddingVertical: spacing.xs,
+  },
+  row1: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: spacing.xs,
+  },
+  row2: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  row2Info: {
+    flex: 1,
   },
   title: {
+    flex: 1,
     fontSize: fontSize.md,
     fontWeight: fontWeight.semibold,
     color: colors.textMain,
@@ -208,12 +232,6 @@ const styles = StyleSheet.create({
     fontWeight: fontWeight.bold,
     letterSpacing: 0.5,
     textTransform: 'uppercase',
-  },
-  actions: {
-    flexDirection: 'row',
-    gap: spacing.xs,
-    marginLeft: spacing.sm,
-    alignItems: 'center',
   },
   actionBtn: {
     paddingHorizontal: spacing.sm,
