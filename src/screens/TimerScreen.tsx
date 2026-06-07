@@ -49,10 +49,15 @@ export function TimerScreen() {
             setIsRunning(false);
             setMode((m) => {
               const next = m === 'work' ? 'break' : 'work';
-              setSeconds(next === 'work' ? workSec : breakSec);
-              const nextBody = next === 'break' ? 'ブレイクの時間です' : 'フォーカスの時間です';
-              scheduleTimerEndNotification(next === 'work' ? workSec : breakSec, nextBody);
-              autostartRef.current = setTimeout(() => setIsRunning(true), 1000);
+              const nextSec = next === 'work' ? workSec : breakSec;
+              setSeconds(nextSec);
+              // cancelTimerEndNotification がisRunning=false effectで走った後に
+              // 次モードの通知をスケジュールするため、autostartRef内で行う
+              autostartRef.current = setTimeout(() => {
+                const endBody = next === 'work' ? 'ブレイクの時間です' : 'フォーカスの時間です';
+                scheduleTimerEndNotification(nextSec, endBody);
+                setIsRunning(true);
+              }, 1000);
               return next;
             });
             return 0;
