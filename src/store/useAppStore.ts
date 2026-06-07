@@ -66,6 +66,7 @@ interface AppState {
   reminderMessage: string;
   hasCompletedOnboarding: boolean;
   timerTaskId: string | null;
+  timerWorkMinutes: number;
 
   addTask: (title: string, isRoutine?: boolean) => string;
   completeTask: (id: string) => void;
@@ -86,6 +87,7 @@ interface AppState {
   completedTaskCount: () => number;
   routineTasks: () => Task[];
   setTimerTask: (id: string | null) => void;
+  setTimerWorkMinutes: (minutes: number) => void;
 }
 
 export const useAppStore = create<AppState>()(
@@ -100,6 +102,7 @@ export const useAppStore = create<AppState>()(
       reminderMessage: '今日のタスクを確認しよう！ひとつだけでも大丈夫。',
       hasCompletedOnboarding: false,
       timerTaskId: null,
+      timerWorkMinutes: 25,
 
       addTask: (title, isRoutine = false) => {
         const t = today();
@@ -249,6 +252,8 @@ export const useAppStore = create<AppState>()(
 
       setTimerTask: (id) => set({ timerTaskId: id }),
 
+      setTimerWorkMinutes: (minutes) => set({ timerWorkMinutes: minutes }),
+
       availableTaskCount: () => {
         const t = today();
         return get().tasks.filter((task) => task.isRoutine !== true && !task.completed && task.skippedDate !== t).length;
@@ -273,6 +278,7 @@ export const useAppStore = create<AppState>()(
         reminders: state.reminders,
         reminderMessage: state.reminderMessage,
         hasCompletedOnboarding: state.hasCompletedOnboarding,
+        timerWorkMinutes: state.timerWorkMinutes,
       }),
       onRehydrateStorage: () => (state) => {
         if (!state) return;

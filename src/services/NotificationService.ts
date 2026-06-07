@@ -198,3 +198,42 @@ export async function cancelTaskReminder(taskId: string): Promise<void> {
   }
   await Notifications.cancelScheduledNotificationAsync(key).catch(() => {});
 }
+
+// ════════════════════════════════════════
+// タイマー終了通知
+// ════════════════════════════════════════
+
+const TIMER_END_KEY = 'timer-end';
+
+// タイマー終了通知をスケジュール（seconds秒後に発火）
+export async function scheduleTimerEndNotification(seconds: number, body: string): Promise<void> {
+  if (Platform.OS === 'web') {
+    clearWebTimer(TIMER_END_KEY);
+    if (!webAvailable()) return;
+    const timer = setTimeout(() => {
+      if (webAvailable()) new Notification(NOTIF_TITLE, { body });
+      webTimers.delete(TIMER_END_KEY);
+    }, seconds * 1000);
+    webTimers.set(TIMER_END_KEY, timer);
+    return;
+  }
+  await Notifications.cancelScheduledNotificationAsync(TIMER_END_KEY).catch(() => {});
+  await Notifications.scheduleNotificationAsync({
+    identifier: TIMER_END_KEY,
+    content: { title: NOTIF_TITLE, body },
+    trigger: {
+      type: Notifications.SchedulableTriggerInputTypes.TIME_INTERVAL,
+      seconds,
+      repeats: false,
+    },
+  }).catch(() => {});
+}
+
+// タイマー終了通知をキャンセル
+export async function cancelTimerEndNotification(): Promise<void> {
+  if (Platform.OS === 'web') {
+    clearWebTimer(TIMER_END_KEY);
+    return;
+  }
+  await Notifications.cancelScheduledNotificationAsync(TIMER_END_KEY).catch(() => {});
+}

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { View, StyleSheet, Pressable, ScrollView } from 'react-native';
+import { View, StyleSheet, Pressable, ScrollView, TextInput } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
@@ -8,9 +8,17 @@ import { Text } from '../components/Text';
 import { TimerDisplay } from '../components/TimerDisplay';
 import { colors, spacing, radius, fontSize, fontWeight, shadow } from '../theme';
 import { useAppStore } from '../store/useAppStore';
+import { scheduleTimerEndNotification, cancelTimerEndNotification } from '../services/NotificationService';
 
-const WORK_DURATION = 25 * 60;
-const SHORT_BREAK = 5 * 60;
+const PRESETS = [
+  { label: '15分', work: 10, break: 5 },
+  { label: '30分', work: 25, break: 5 },
+  { label: '1時間', work: 50, break: 10 },
+] as const;
+
+function getBreakMinutes(workMin: number): number {
+  return workMin === 50 ? 10 : 5;
+}
 
 const RING_SIZE = 240;
 const RING_STROKE = 16;
@@ -18,13 +26,18 @@ const RING_R = (RING_SIZE - RING_STROKE) / 2;
 const RING_CIRCUMFERENCE = 2 * Math.PI * RING_R;
 
 export function TimerScreen() {
-  const [seconds, setSeconds] = useState(WORK_DURATION);
+  const { timerTaskId, tasks, completeTask, skipTask, setTimerTask, timerWorkMinutes, setTimerWorkMinutes } = useAppStore();
+
+  const [seconds, setSeconds] = useState(timerWorkMinutes * 60);
   const [isRunning, setIsRunning] = useState(false);
   const [mode, setMode] = useState<'work' | 'break'>('work');
+  const [customInput, setCustomInput] = useState('');
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const autostartRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const { timerTaskId, tasks, completeTask, skipTask, setTimerTask } = useAppStore();
+  const workSec = timerWorkMinutes * 60;
+  const breakSec = getBreakMinutes(timerWorkMinutes) * 60;
+
   const navigation = useNavigation<any>();
   const timerTask = tasks.find((t) => t.id === timerTaskId) ?? null;
 
@@ -36,8 +49,10 @@ export function TimerScreen() {
             setIsRunning(false);
             setMode((m) => {
               const next = m === 'work' ? 'break' : 'work';
-              setSeconds(next === 'work' ? WORK_DURATION : SHORT_BREAK);
-              autostartRef.current = setTimeout(() => setIsRunning(true), 2000);
+              setSeconds(next === 'work' ? workSec : breakSec);
+              const nextBody = next === 'break' ? 'ブレイクの時間です' : 'フォーカスの時間です';
+              scheduleTimerEndNotification(next === 'work' ? workSec : breakSec, nextBody);
+              autostartRef.current = setTimeout(() => setIsRunning(true), 1000);
               return next;
             });
             return 0;
@@ -47,9 +62,10 @@ export function TimerScreen() {
       }, 1000);
     } else {
       if (intervalRef.current) clearInterval(intervalRef.current);
+      cancelTimerEndNotification();
     }
     return () => { if (intervalRef.current) clearInterval(intervalRef.current); };
-  }, [isRunning]);
+  }, [isRunning, workSec, breakSec]);
 
   useEffect(() => {
     return () => { if (autostartRef.current) clearTimeout(autostartRef.current); };
@@ -59,22 +75,40 @@ export function TimerScreen() {
     if (!timerTaskId) return;
     if (autostartRef.current) clearTimeout(autostartRef.current);
     setIsRunning(false);
-    setSeconds(WORK_DURATION);
+    setSeconds(timerWorkMinutes * 60);
     setMode('work');
-    autostartRef.current = setTimeout(() => setIsRunning(true), 1000);
+    autostartRef.current = setTimeout(() => {
+      setIsRunning(true);
+      scheduleTimerEndNotification(timerWorkMinutes * 60, 'ブレイクの時間です');
+    }, 1000);
     return () => { if (autostartRef.current) clearTimeout(autostartRef.current); };
   }, [timerTaskId]);
 
-  function handleStartPause() { setIsRunning((r) => !r); }
-  function switchMode(m: 'work' | 'break') {
+  function handleStartPause() {
+    setIsRunning((r) => {
+      if (!r) {
+        const body = mode === 'work' ? 'ブレイクの時間です' : 'フォーカスの時間です';
+        scheduleTimerEndNotification(seconds, body);
+      }
+      return !r;
+    });
+  }
+
+  function applyPreset(workMin: number) {
     if (autostartRef.current) clearTimeout(autostartRef.current);
-    setIsRunning(false); setMode(m);
-    setSeconds(m === 'work' ? WORK_DURATION : SHORT_BREAK);
+    cancelTimerEndNotification();
+    setTimerWorkMinutes(workMin);
+    setCustomInput('');
+    setMode('work');
+    setSeconds(workMin * 60);
+    setIsRunning(true);
+    scheduleTimerEndNotification(workMin * 60, 'ブレイクの時間です');
   }
 
   const handleComplete = useCallback(() => {
     if (!timerTask) return;
     if (autostartRef.current) clearTimeout(autostartRef.current);
+    cancelTimerEndNotification();
     completeTask(timerTask.id);
     setTimerTask(null);
     setIsRunning(false);
@@ -83,23 +117,26 @@ export function TimerScreen() {
 
   const handleAbort = useCallback(() => {
     if (autostartRef.current) clearTimeout(autostartRef.current);
+    cancelTimerEndNotification();
     setTimerTask(null);
     setIsRunning(false);
-    setSeconds(WORK_DURATION);
+    setSeconds(timerWorkMinutes * 60);
     setMode('work');
     navigation.navigate('Home');
-  }, [setTimerTask, navigation]);
+  }, [setTimerTask, navigation, timerWorkMinutes]);
 
   const handleSkip = useCallback(() => {
     if (!timerTask) return;
     if (autostartRef.current) clearTimeout(autostartRef.current);
+    cancelTimerEndNotification();
     skipTask(timerTask.id);
     setTimerTask(null);
     setIsRunning(false);
     navigation.navigate('Home');
   }, [timerTask, skipTask, setTimerTask, navigation]);
 
-  const progress = 1 - seconds / (mode === 'work' ? WORK_DURATION : SHORT_BREAK);
+  const totalSec = mode === 'work' ? workSec : breakSec;
+  const progress = 1 - seconds / totalSec;
   const ringColor = mode === 'work' ? colors.primary : colors.success;
   const modeLabel = mode === 'work' ? 'フォーカス' : 'ブレイク';
 
@@ -118,22 +155,44 @@ export function TimerScreen() {
       </View>
 
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-        {/* Mode selector */}
-        <View style={styles.modeRow}>
-          <Pressable
-            style={({ pressed }) => [styles.modeBtn, mode === 'work' && styles.modeBtnActive, pressed && { opacity: 0.7 }]}
-            onPress={() => switchMode('work')}
-          >
-            <Text style={[styles.modeBtnLabel, mode === 'work' && styles.modeBtnLabelActive]}>フォーカス</Text>
-            <Text style={[styles.modeBtnTime, mode === 'work' && styles.modeBtnLabelActive]}>25:00</Text>
-          </Pressable>
-          <Pressable
-            style={({ pressed }) => [styles.modeBtn, mode === 'break' && styles.modeBtnBreak, pressed && { opacity: 0.7 }]}
-            onPress={() => switchMode('break')}
-          >
-            <Text style={[styles.modeBtnLabel, mode === 'break' && styles.modeBtnLabelBreak]}>ブレイク</Text>
-            <Text style={[styles.modeBtnTime, mode === 'break' && styles.modeBtnLabelBreak]}>05:00</Text>
-          </Pressable>
+        {/* プリセット選択行 */}
+        <View style={styles.presetRow}>
+          {PRESETS.map((p) => {
+            const isActive = timerWorkMinutes === p.work && customInput === '';
+            return (
+              <Pressable
+                key={p.label}
+                style={({ pressed }) => [styles.presetChip, isActive && styles.presetChipActive, pressed && { opacity: 0.7 }]}
+                onPress={() => applyPreset(p.work)}
+              >
+                <Text style={[styles.presetChipText, isActive && styles.presetChipTextActive]}>{p.label}</Text>
+              </Pressable>
+            );
+          })}
+          {/* カスタム入力欄 */}
+          <View style={[styles.presetChip, styles.customChip, customInput !== '' && styles.presetChipActive]}>
+            <TextInput
+              style={[styles.customInput, customInput !== '' && styles.customInputActive]}
+              value={customInput}
+              onChangeText={(v) => {
+                const n = v.replace(/[^0-9]/g, '');
+                setCustomInput(n);
+              }}
+              onEndEditing={() => {
+                const n = parseInt(customInput, 10);
+                if (!isNaN(n) && n >= 1 && n <= 180) {
+                  applyPreset(n);
+                } else {
+                  setCustomInput('');
+                }
+              }}
+              keyboardType="number-pad"
+              placeholder="分"
+              placeholderTextColor={colors.textDisabled}
+              maxLength={3}
+              returnKeyType="done"
+            />
+          </View>
         </View>
 
         {/* Ring + start/pause */}
@@ -257,45 +316,47 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingBottom: spacing.xxl,
   },
-  modeRow: {
+  presetRow: {
     flexDirection: 'row',
     gap: spacing.sm,
     width: '100%',
   },
-  modeBtn: {
+  presetChip: {
     flex: 1,
     alignItems: 'center',
+    justifyContent: 'center',
     paddingVertical: spacing.md,
     borderRadius: radius.md,
     borderWidth: 1.5,
     borderColor: colors.border,
-    gap: 2,
+    minHeight: 52,
   },
-  modeBtnActive: {
+  presetChipActive: {
     borderColor: colors.primary,
     backgroundColor: colors.primaryLight,
   },
-  modeBtnBreak: {
-    borderColor: colors.success,
-    backgroundColor: colors.successLight,
-  },
-  modeBtnLabel: {
-    fontSize: fontSize.xs,
+  presetChipText: {
+    fontSize: fontSize.sm,
     fontWeight: fontWeight.bold,
     color: colors.textSub,
-    letterSpacing: 2,
+    letterSpacing: 0.5,
   },
-  modeBtnTime: {
-    fontSize: fontSize.lg,
-    fontWeight: fontWeight.black,
-    color: colors.textSub,
-    letterSpacing: -0.5,
-  },
-  modeBtnLabelActive: {
+  presetChipTextActive: {
     color: colors.primary,
   },
-  modeBtnLabelBreak: {
-    color: colors.success,
+  customChip: {
+    paddingVertical: 0,
+  },
+  customInput: {
+    fontSize: fontSize.sm,
+    fontWeight: fontWeight.bold,
+    color: colors.textSub,
+    textAlign: 'center',
+    width: '100%',
+    paddingVertical: spacing.md,
+  },
+  customInputActive: {
+    color: colors.primary,
   },
   ringRow: {
     flexDirection: 'row',
