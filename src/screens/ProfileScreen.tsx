@@ -4,6 +4,7 @@ import {
   Platform, Modal, TextInput,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { Ionicons } from '@expo/vector-icons';
 const FORMSPREE_URL = 'https://formspree.io/f/xqejvywv';
 const EARLY_ACCESS_FORMSPREE_URL = 'https://formspree.io/f/xzdqzqnz';
 import { Text } from '../components/Text';
@@ -185,7 +186,7 @@ export function ProfileScreen() {
           <View style={styles.rule} />
           {badges.length === 0 ? (
             <View style={styles.emptyCard}>
-              <Text style={styles.emptyIcon}>🎖</Text>
+              <Ionicons name="medal-outline" size={28} color={colors.textMuted} />
               <Text style={styles.emptyCardText}>タスクを完了して XP を貯めよう</Text>
               <Text style={styles.emptyCardHint}>100 XP でバッジ獲得</Text>
             </View>
@@ -238,14 +239,17 @@ export function ProfileScreen() {
                   maxLength={50}
                 />
                 {reminder.routineTaskId && (
-                  <Text style={styles.reminderRoutineTag}>🔁</Text>
+                  <Ionicons name="repeat-outline" size={16} color={colors.textMuted} style={{ marginRight: spacing.sm }} />
                 )}
                 <Pressable
                   style={({ pressed }) => [styles.reminderTimeBtn, pressed && { opacity: 0.6 }]}
                   onPress={() => openTimePicker(reminder.id)}
                   hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
                 >
-                  <Text style={styles.reminderTimeText}>🔔 {reminder.time}</Text>
+                  <View style={styles.reminderTimeBtnInner}>
+                    <Ionicons name="notifications" size={20} color={colors.textMain} />
+                    <Text style={styles.reminderTimeText}>{reminder.time}</Text>
+                  </View>
                 </Pressable>
                 <Pressable
                   style={({ pressed }) => [styles.reminderRemoveBtn, pressed && { opacity: 0.5 }]}
@@ -537,7 +541,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: spacing.xs,
   },
-  emptyIcon: { fontSize: 28 },
   emptyCardText: { fontSize: fontSize.md, color: colors.textSub, fontWeight: fontWeight.medium },
   emptyCardHint: { fontSize: fontSize.sm, color: colors.textMuted },
   badgeGrid: {
@@ -606,6 +609,11 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.xs,
     paddingHorizontal: spacing.xs,
   },
+  reminderTimeBtnInner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
   reminderTimeText: {
     fontSize: fontSize.lg,
     fontWeight: fontWeight.black,
@@ -619,11 +627,6 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.xs,
     borderBottomWidth: 1,
     borderBottomColor: colors.border,
-    marginRight: spacing.sm,
-  },
-  reminderRoutineTag: {
-    fontSize: fontSize.xs,
-    color: colors.textMuted,
     marginRight: spacing.sm,
   },
   reminderRemoveBtn: {

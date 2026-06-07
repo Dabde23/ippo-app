@@ -3,6 +3,7 @@ import {
   View, StyleSheet, Pressable, ScrollView,
   Alert, Platform, Animated, useWindowDimensions, Modal,
 } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { Text } from './Text';
 import { useAppStore, Task } from '../store/useAppStore';
 import {
@@ -117,7 +118,7 @@ export function RoutinePanel({ onClose }: RoutinePanelProps) {
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
         {routines.length === 0 ? (
           <View style={styles.emptyState}>
-            <Text style={styles.emptyIcon}>🔁</Text>
+            <Ionicons name="repeat-outline" size={40} color={colors.textMuted} />
             <Text style={styles.emptyTitle}>ルーティンがありません</Text>
             <Text style={styles.emptyHint}>
               タスク追加時に「毎日繰り返す」をオンにすると、{'\n'}毎日そのタスクが自動で表示されます。
@@ -140,7 +141,11 @@ export function RoutinePanel({ onClose }: RoutinePanelProps) {
                 hitSlop={{ top: 8, bottom: 8, left: 4, right: 4 }}
               >
                 <View style={styles.reminderRow}>
-                  <Text style={[styles.reminderIcon, reminderSet && styles.reminderIconOn]}>🔔</Text>
+                  <Ionicons
+                    name={reminderSet ? 'notifications' : 'notifications-outline'}
+                    size={20}
+                    color={reminderSet ? colors.primary : colors.textDisabled}
+                  />
                   {reminderSet && (
                     <Text style={styles.reminderTime}>{linkedReminder!.time}</Text>
                   )}
@@ -318,13 +323,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 4,
   },
-  reminderIcon: {
-    fontSize: fontSize.md,
-    color: colors.textDisabled,
-  },
-  reminderIconOn: {
-    color: colors.primary,
-  },
   reminderTime: {
     fontSize: fontSize.xs,
     color: colors.primary,
@@ -376,7 +374,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: spacing.md,
   },
-  emptyIcon: { fontSize: 40 },
   emptyTitle: {
     fontSize: fontSize.lg,
     fontWeight: fontWeight.black,

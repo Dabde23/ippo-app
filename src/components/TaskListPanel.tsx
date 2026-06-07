@@ -3,6 +3,7 @@ import {
   View, StyleSheet, Pressable, ScrollView, TextInput,
   Alert, Platform, Animated, useWindowDimensions, Modal,
 } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { Text } from './Text';
 import { TaskCard } from './TaskCard';
 import { useAppStore, Task, today } from '../store/useAppStore';
@@ -80,7 +81,7 @@ export function TaskListPanel({ onClose }: Props) {
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
         {doableTasks.length === 0 ? (
           <View style={styles.emptyState}>
-            <Text style={styles.emptyIcon}>📋</Text>
+            <Ionicons name="list-outline" size={40} color={colors.textMuted} />
             <Text style={styles.emptyTitle}>タスクがありません</Text>
             <Text style={styles.emptyHint}>ホーム画面から追加できます</Text>
           </View>
@@ -251,7 +252,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: spacing.md,
   },
-  emptyIcon: { fontSize: 40 },
   emptyTitle: {
     fontSize: fontSize.lg,
     fontWeight: fontWeight.black,

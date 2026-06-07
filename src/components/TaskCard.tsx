@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { View, Pressable, StyleSheet, Alert, Platform, Modal } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { Text } from './Text';
 import { Task, useAppStore, XP_PER_TASK } from '../store/useAppStore';
 import {
@@ -112,7 +113,11 @@ export function TaskCard({ task, onEdit }: Props) {
                 hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
               >
                 <View style={styles.reminderRow}>
-                  <Text style={[styles.reminderIcon, reminderSet && styles.reminderIconOn]}>🔔</Text>
+                  <Ionicons
+                    name={reminderSet ? 'notifications' : 'notifications-outline'}
+                    size={20}
+                    color={reminderSet ? colors.primary : colors.textDisabled}
+                  />
                   {reminderSet && (
                     <Text style={styles.reminderTime}>{task.taskReminderTime}</Text>
                   )}
@@ -259,13 +264,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.xs,
-  },
-  reminderIcon: {
-    fontSize: fontSize.md,
-    color: colors.textDisabled,
-  },
-  reminderIconOn: {
-    color: colors.primary,
   },
   reminderTime: {
     fontSize: fontSize.xs,
