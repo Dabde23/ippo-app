@@ -226,73 +226,82 @@ export function ProfileScreen() {
           <Text style={styles.sectionLabel}>リマインダー</Text>
           <View style={styles.rule} />
 
-          {reminders.map((reminder) => (
-            <View key={reminder.id} style={styles.reminderCard}>
-              <View style={styles.reminderCardTop}>
-                <TextInput
-                  style={styles.reminderNameInput}
-                  value={reminder.name}
-                  onChangeText={(text) => updateReminder(reminder.id, undefined, undefined, text)}
-                  onBlur={reschedule}
-                  placeholder="通知名を入力..."
-                  placeholderTextColor={colors.textDisabled}
-                  maxLength={50}
-                />
-                {reminder.routineTaskId && (
-                  <Ionicons name="repeat-outline" size={16} color={colors.textMuted} style={{ marginRight: spacing.sm }} />
-                )}
-                <Pressable
-                  style={({ pressed }) => [styles.reminderTimeBtn, pressed && { opacity: 0.6 }]}
-                  onPress={() => openTimePicker(reminder.id)}
-                  hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-                >
-                  <View style={styles.reminderTimeBtnInner}>
-                    <Ionicons name="notifications" size={20} color={colors.textMain} />
-                    <Text style={styles.reminderTimeText}>{reminder.time}</Text>
-                  </View>
-                </Pressable>
-                <Pressable
-                  style={({ pressed }) => [styles.reminderRemoveBtn, pressed && { opacity: 0.5 }]}
-                  onPress={() => handleRemoveReminder(reminder.id)}
-                  hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-                >
-                  <Text style={styles.reminderRemoveText}>×</Text>
-                </Pressable>
-              </View>
-              <View style={styles.dayChipRow}>
-                {DAY_LABELS.map((label, i) => {
-                  const day = i + 1;
-                  const on = reminder.days.includes(day);
-                  return (
-                    <Pressable
-                      key={day}
-                      style={[styles.dayChip, on && styles.dayChipOn]}
-                      onPress={() => handleToggleDay(reminder, day)}
-                      hitSlop={{ top: 6, bottom: 6, left: 2, right: 2 }}
-                    >
-                      <Text style={[styles.dayChipText, on && styles.dayChipTextOn]}>{label}</Text>
-                    </Pressable>
-                  );
-                })}
-              </View>
-              {reminder.days.length === 0 && (
-                <Text style={styles.noDayWarning}>曜日が未選択です。通知は届きません。</Text>
-              )}
+          {Platform.OS === 'web' ? (
+            <View style={styles.reminderLocked}>
+              <Ionicons name="lock-closed" size={20} color={colors.textMuted} />
+              <Text style={styles.reminderLockedText}>モバイルアプリ版のみ利用出来ます</Text>
             </View>
-          ))}
+          ) : (
+            <>
+              {reminders.map((reminder) => (
+                <View key={reminder.id} style={styles.reminderCard}>
+                  <View style={styles.reminderCardTop}>
+                    <TextInput
+                      style={styles.reminderNameInput}
+                      value={reminder.name}
+                      onChangeText={(text) => updateReminder(reminder.id, undefined, undefined, text)}
+                      onBlur={reschedule}
+                      placeholder="通知名を入力..."
+                      placeholderTextColor={colors.textDisabled}
+                      maxLength={50}
+                    />
+                    {reminder.routineTaskId && (
+                      <Ionicons name="repeat-outline" size={16} color={colors.textMuted} style={{ marginRight: spacing.sm }} />
+                    )}
+                    <Pressable
+                      style={({ pressed }) => [styles.reminderTimeBtn, pressed && { opacity: 0.6 }]}
+                      onPress={() => openTimePicker(reminder.id)}
+                      hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                    >
+                      <View style={styles.reminderTimeBtnInner}>
+                        <Ionicons name="notifications" size={20} color={colors.textMain} />
+                        <Text style={styles.reminderTimeText}>{reminder.time}</Text>
+                      </View>
+                    </Pressable>
+                    <Pressable
+                      style={({ pressed }) => [styles.reminderRemoveBtn, pressed && { opacity: 0.5 }]}
+                      onPress={() => handleRemoveReminder(reminder.id)}
+                      hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                    >
+                      <Text style={styles.reminderRemoveText}>×</Text>
+                    </Pressable>
+                  </View>
+                  <View style={styles.dayChipRow}>
+                    {DAY_LABELS.map((label, i) => {
+                      const day = i + 1;
+                      const on = reminder.days.includes(day);
+                      return (
+                        <Pressable
+                          key={day}
+                          style={[styles.dayChip, on && styles.dayChipOn]}
+                          onPress={() => handleToggleDay(reminder, day)}
+                          hitSlop={{ top: 6, bottom: 6, left: 2, right: 2 }}
+                        >
+                          <Text style={[styles.dayChipText, on && styles.dayChipTextOn]}>{label}</Text>
+                        </Pressable>
+                      );
+                    })}
+                  </View>
+                  {reminder.days.length === 0 && (
+                    <Text style={styles.noDayWarning}>曜日が未選択です。通知は届きません。</Text>
+                  )}
+                </View>
+              ))}
 
-          <Pressable
-            style={({ pressed }) => [
-              styles.addReminderBtn,
-              pressed && reminders.length < 10 && { opacity: 0.6 },
-              reminders.length >= 10 && styles.addReminderBtnDisabled,
-            ]}
-            onPress={handleAddReminder}
-          >
-            <Text style={[styles.addReminderText, reminders.length >= 10 && styles.addReminderTextDisabled]}>
-              {reminders.length >= 10 ? '＋ 時刻を追加（上限10件）' : '＋ 時刻を追加'}
-            </Text>
-          </Pressable>
+              <Pressable
+                style={({ pressed }) => [
+                  styles.addReminderBtn,
+                  pressed && reminders.length < 10 && { opacity: 0.6 },
+                  reminders.length >= 10 && styles.addReminderBtnDisabled,
+                ]}
+                onPress={handleAddReminder}
+              >
+                <Text style={[styles.addReminderText, reminders.length >= 10 && styles.addReminderTextDisabled]}>
+                  {reminders.length >= 10 ? '＋ 時刻を追加（上限10件）' : '＋ 時刻を追加'}
+                </Text>
+              </Pressable>
+            </>
+          )}
 
         </View>
 
@@ -670,6 +679,16 @@ const styles = StyleSheet.create({
     fontWeight: fontWeight.bold,
     color: colors.danger,
     marginTop: spacing.xs,
+  },
+  reminderLocked: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    paddingVertical: spacing.md,
+  },
+  reminderLockedText: {
+    fontSize: fontSize.sm,
+    color: colors.textMuted,
   },
   addReminderBtn: {
     paddingVertical: spacing.sm,
