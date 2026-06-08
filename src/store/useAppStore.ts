@@ -164,14 +164,9 @@ export const useAppStore = create<AppState>()(
         set((state) => ({ tasks: state.tasks.filter((t) => t.id !== id) }));
       },
 
-      // Delete a routine template. Already-spawned daily instances are kept
-      // so the user doesn't lose today's progress.
       deleteRoutine: (id) => {
         set((state) => ({
-          tasks: state.tasks.map((t) =>
-            t.routineSourceId === id ? { ...t, routineSourceId: undefined } : t
-          ).filter((t) => t.id !== id),
-          // ルーティンに連動するリマインダーも削除する
+          tasks: state.tasks.filter((t) => t.id !== id && t.routineSourceId !== id),
           reminders: state.reminders.filter((r) => r.routineTaskId !== id),
         }));
       },

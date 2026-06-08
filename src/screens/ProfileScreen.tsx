@@ -223,7 +223,7 @@ export function ProfileScreen() {
 
         {/* Reminder */}
         <View style={styles.section}>
-          <Text style={styles.sectionLabel}>毎日の通知</Text>
+          <Text style={styles.sectionLabel}>リマインダー</Text>
           <View style={styles.rule} />
 
           {reminders.map((reminder) => (

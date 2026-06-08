@@ -45,7 +45,7 @@ export function RoutinePanel({ onClose }: RoutinePanelProps) {
   const reminderMessage = useAppStore((s) => s.reminderMessage);
   const [pickerRoutineId, setPickerRoutineId] = useState<string | null>(null);
   const [pickerTime, setPickerTime] = useState<string>('07:00');
-  const [pickerDays, setPickerDays] = useState<number[]>([1, 2, 3, 4, 5]);
+  const [pickerDays, setPickerDays] = useState<number[]>([1, 2, 3, 4, 5, 6, 7]);
 
   const translateX = useRef(new Animated.Value(IS_WEB ? 0 : panelWidth)).current;
   const overlayOpacity = useRef(new Animated.Value(IS_WEB ? 1 : 0)).current;
@@ -101,7 +101,7 @@ export function RoutinePanel({ onClose }: RoutinePanelProps) {
     } else {
       // 新規モード: 07:00 / 平日
       setPickerTime('07:00');
-      setPickerDays([1, 2, 3, 4, 5]);
+      setPickerDays([1, 2, 3, 4, 5, 6, 7]);
     }
     setPickerRoutineId(task.id);
   }
