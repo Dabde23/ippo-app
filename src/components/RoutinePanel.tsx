@@ -15,6 +15,17 @@ import { colors, spacing, radius, fontSize, fontWeight } from '../theme';
 const PANEL_RATIO = 0.85;
 const IS_WEB = Platform.OS === 'web';
 const TIME_OPTIONS = ['07:00','08:00','09:00','10:00','12:00','18:00','20:00','21:00','22:00'];
+const DAY_LABELS = ['月','火','水','木','金','土','日']; // index 0〜6 → 曜日番号 1〜7
+
+// 曜日配列 → サマリー文字列
+function daysSummary(days: number[]): string {
+  const sorted = [...days].sort((a, b) => a - b);
+  const key = sorted.join(',');
+  if (key === '1,2,3,4,5,6,7') return '毎日';
+  if (key === '1,2,3,4,5') return '平日';
+  if (key === '6,7') return '週末';
+  return sorted.map((d) => DAY_LABELS[d - 1]).join('');
+}
 
 interface RoutinePanelProps {
   onClose: () => void;
@@ -29,9 +40,12 @@ export function RoutinePanel({ onClose }: RoutinePanelProps) {
   const deleteRoutine = useAppStore((s) => s.deleteRoutine);
   const addReminder = useAppStore((s) => s.addReminder);
   const removeReminder = useAppStore((s) => s.removeReminder);
+  const updateReminder = useAppStore((s) => s.updateReminder);
   const reminders = useAppStore((s) => s.reminders);
   const reminderMessage = useAppStore((s) => s.reminderMessage);
   const [pickerRoutineId, setPickerRoutineId] = useState<string | null>(null);
+  const [pickerTime, setPickerTime] = useState<string>('07:00');
+  const [pickerDays, setPickerDays] = useState<number[]>([1, 2, 3, 4, 5]);
 
   const translateX = useRef(new Animated.Value(IS_WEB ? 0 : panelWidth)).current;
   const overlayOpacity = useRef(new Animated.Value(IS_WEB ? 1 : 0)).current;
@@ -77,25 +91,53 @@ export function RoutinePanel({ onClose }: RoutinePanelProps) {
     ]);
   }
 
-  async function handleReminderPress(task: Task) {
+  // ベルタップ → 通知設定モーダルを開く（新規 or 編集）
+  function handleReminderPress(task: Task) {
     const linkedReminder = reminders.find((r) => r.routineTaskId === task.id);
     if (linkedReminder) {
-      removeReminder(linkedReminder.id);
-      await reschedule();
-      return;
+      // 編集モード: 現在値を初期値に
+      setPickerTime(linkedReminder.time);
+      setPickerDays(linkedReminder.days);
+    } else {
+      // 新規モード: 07:00 / 平日
+      setPickerTime('07:00');
+      setPickerDays([1, 2, 3, 4, 5]);
     }
     setPickerRoutineId(task.id);
   }
 
-  async function handleTimeSelect(time: string) {
+  // モーダル内の曜日チップのトグル
+  function toggleDay(day: number) {
+    setPickerDays((prev) =>
+      prev.includes(day) ? prev.filter((d) => d !== day) : [...prev, day]
+    );
+  }
+
+  // 「設定する」押下
+  async function handleConfirm() {
     const routineId = pickerRoutineId;
-    setPickerRoutineId(null);
-    if (!routineId) return;
+    if (!routineId || pickerDays.length === 0) return;
     const routine = routines.find((r) => r.id === routineId);
     if (!routine) return;
+    const linkedReminder = reminders.find((r) => r.routineTaskId === routineId);
     const granted = await requestNotificationPermission();
     if (!granted) return;
-    addReminder(time, [1, 2, 3, 4, 5, 6, 7], routine.title, routine.id);
+    if (linkedReminder) {
+      updateReminder(linkedReminder.id, pickerTime, pickerDays);
+    } else {
+      addReminder(pickerTime, pickerDays, routine.title, routine.id);
+    }
+    setPickerRoutineId(null);
+    await reschedule();
+  }
+
+  // 「通知を削除」押下
+  async function handleReminderRemove() {
+    const routineId = pickerRoutineId;
+    if (!routineId) return;
+    const linkedReminder = reminders.find((r) => r.routineTaskId === routineId);
+    if (linkedReminder) removeReminder(linkedReminder.id);
+    setPickerRoutineId(null);
     await reschedule();
   }
 
@@ -147,7 +189,10 @@ export function RoutinePanel({ onClose }: RoutinePanelProps) {
                     color={reminderSet ? colors.primary : colors.textDisabled}
                   />
                   {reminderSet && (
-                    <Text style={styles.reminderTime}>{linkedReminder!.time}</Text>
+                    <View style={styles.reminderInfo}>
+                      <Text style={styles.reminderTime}>{linkedReminder!.time}</Text>
+                      <Text style={styles.reminderDays}>{daysSummary(linkedReminder!.days)}</Text>
+                    </View>
                   )}
                 </View>
               </Pressable>
@@ -165,22 +210,84 @@ export function RoutinePanel({ onClose }: RoutinePanelProps) {
         <View style={{ height: spacing.xxl }} />
       </ScrollView>
 
-      {/* Routine reminder time picker */}
+      {/* Routine reminder settings (time + days) */}
       <Modal visible={pickerRoutineId !== null} transparent animationType="fade">
         <Pressable style={styles.timeOverlay} onPress={() => setPickerRoutineId(null)}>
-          <View style={styles.timeSheet}>
-            <Text style={styles.timeSheetLabel}>毎日のリマインダー</Text>
+          <Pressable style={styles.timeSheet} onPress={() => {}}>
+            <Text style={styles.timeSheetLabel}>通知設定</Text>
             <View style={styles.rule} />
-            {TIME_OPTIONS.map((t) => (
+
+            {/* 時刻リスト */}
+            <ScrollView style={styles.timeList} showsVerticalScrollIndicator={false}>
+              {TIME_OPTIONS.map((t) => {
+                const active = pickerTime === t;
+                return (
+                  <Pressable
+                    key={t}
+                    style={({ pressed }) => [
+                      styles.timeOption,
+                      active && styles.timeOptionActive,
+                      pressed && { opacity: 0.6 },
+                    ]}
+                    onPress={() => setPickerTime(t)}
+                  >
+                    <Text style={[styles.timeOptionText, active && styles.timeOptionTextActive]}>
+                      {t}
+                    </Text>
+                  </Pressable>
+                );
+              })}
+            </ScrollView>
+
+            <View style={styles.rule} />
+
+            {/* 曜日チップ */}
+            <View style={styles.dayChipRow}>
+              {DAY_LABELS.map((label, i) => {
+                const day = i + 1;
+                const on = pickerDays.includes(day);
+                return (
+                  <Pressable
+                    key={day}
+                    style={({ pressed }) => [
+                      styles.dayChip,
+                      on && styles.dayChipOn,
+                      pressed && { opacity: 0.6 },
+                    ]}
+                    onPress={() => toggleDay(day)}
+                  >
+                    <Text style={[styles.dayChipText, on && styles.dayChipTextOn]}>{label}</Text>
+                  </Pressable>
+                );
+              })}
+            </View>
+            {pickerDays.length === 0 && (
+              <Text style={styles.noDayWarning}>曜日を選択してください</Text>
+            )}
+
+            {/* 設定する */}
+            <Pressable
+              style={({ pressed }) => [
+                styles.confirmBtn,
+                pickerDays.length === 0 && styles.confirmBtnDisabled,
+                pressed && { opacity: 0.7 },
+              ]}
+              onPress={handleConfirm}
+              disabled={pickerDays.length === 0}
+            >
+              <Text style={styles.confirmBtnText}>設定する</Text>
+            </Pressable>
+
+            {/* 通知を削除（既存のみ） */}
+            {reminders.some((r) => r.routineTaskId === pickerRoutineId) && (
               <Pressable
-                key={t}
-                style={({ pressed }) => [styles.timeOption, pressed && { opacity: 0.6 }]}
-                onPress={() => handleTimeSelect(t)}
+                style={({ pressed }) => [styles.removeBtn, pressed && { opacity: 0.6 }]}
+                onPress={handleReminderRemove}
               >
-                <Text style={styles.timeOptionText}>{t}</Text>
+                <Text style={styles.removeBtnText}>通知を削除</Text>
               </Pressable>
-            ))}
-          </View>
+            )}
+          </Pressable>
         </Pressable>
       </Modal>
     </>
@@ -350,7 +457,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.surface,
     borderRadius: radius.xl,
     padding: spacing.lg,
-    width: 240,
+    width: 300,
     gap: spacing.xs,
     borderWidth: 1,
     borderColor: colors.border,
@@ -362,13 +469,80 @@ const styles = StyleSheet.create({
     letterSpacing: 2.5,
     marginBottom: spacing.xs,
   },
+  timeList: { maxHeight: 200 },
   timeOption: {
     paddingVertical: spacing.sm,
     paddingHorizontal: spacing.md,
     borderRadius: radius.md,
     alignItems: 'center',
   },
+  timeOptionActive: {
+    backgroundColor: colors.primaryLight,
+    borderRadius: radius.md,
+  },
   timeOptionText: { fontSize: fontSize.md, color: colors.textSub },
+  timeOptionTextActive: {
+    color: colors.primary,
+    fontWeight: fontWeight.bold,
+  },
+  reminderInfo: { alignItems: 'flex-start' },
+  reminderDays: {
+    fontSize: fontSize.xs,
+    color: colors.primary,
+    fontWeight: fontWeight.bold,
+    letterSpacing: 0.3,
+  },
+  dayChipRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: spacing.xs,
+    marginTop: spacing.xs,
+  },
+  dayChip: {
+    paddingHorizontal: spacing.sm,
+    paddingVertical: 6,
+    borderRadius: radius.full,
+    borderWidth: 1.5,
+    borderColor: colors.border,
+  },
+  dayChipOn: {
+    borderColor: colors.primary,
+    backgroundColor: colors.primaryLight,
+  },
+  dayChipText: {
+    fontSize: fontSize.xs,
+    color: colors.textSub,
+    fontWeight: fontWeight.bold,
+  },
+  dayChipTextOn: { color: colors.primary },
+  noDayWarning: {
+    fontSize: fontSize.xs,
+    color: colors.danger,
+  },
+  confirmBtn: {
+    backgroundColor: colors.primary,
+    borderRadius: radius.md,
+    paddingVertical: 12,
+    alignItems: 'center',
+    marginTop: spacing.sm,
+  },
+  confirmBtnDisabled: { opacity: 0.4 },
+  confirmBtnText: {
+    color: colors.surface,
+    fontWeight: fontWeight.bold,
+    fontSize: fontSize.sm,
+  },
+  removeBtn: {
+    borderRadius: radius.md,
+    paddingVertical: 10,
+    alignItems: 'center',
+    marginTop: spacing.xs,
+  },
+  removeBtnText: {
+    color: colors.danger,
+    fontWeight: fontWeight.bold,
+    fontSize: fontSize.sm,
+  },
   emptyState: {
     paddingVertical: spacing.xxl,
     alignItems: 'center',
