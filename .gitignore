@@ -42,3 +42,6 @@ yarn-error.*
 
 # design references (local only)
 design/references/
+
+# Claude Code project settings
+.claude/
