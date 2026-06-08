@@ -183,8 +183,8 @@ export function TimerScreen() {
                 const n = v.replace(/[^0-9]/g, '');
                 setCustomInput(n);
               }}
-              onEndEditing={() => {
-                const n = parseInt(customInput, 10);
+              onEndEditing={(e) => {
+                const n = parseInt(e.nativeEvent.text, 10);
                 if (!isNaN(n) && n >= 1 && n <= 180) {
                   applyPreset(n);
                 } else {
