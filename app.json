@@ -12,6 +12,7 @@
       "backgroundColor": "#E6F4FE"
     },
     "ios": {
+      "bundleIdentifier": "com.dabde.ippoapp",
       "supportsTablet": true,
       "splash": {
         "image": "./assets/splash-icon.png",
@@ -39,7 +40,20 @@
       "bundler": "metro"
     },
     "plugins": [
-      "expo-font"
+      "expo-font",
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/android-icon-monochrome.png",
+          "color": "#E6F4FE",
+          "iosDisplayInForeground": true,
+          "iosPermissions": [
+            "Alert",
+            "Badge",
+            "Sound"
+          ]
+        }
+      ]
     ],
     "extra": {
       "eas": {
