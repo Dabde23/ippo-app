@@ -5,7 +5,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Text } from './Text';
-import { useAppStore, TrackingLevel, today } from '../store/useAppStore';
+import { useAppStore, TrackingLevel } from '../store/useAppStore';
 import { colors, spacing, radius, fontSize, fontWeight, moodColors, shadow } from '../theme';
 
 type IoniconName = React.ComponentProps<typeof Ionicons>['name'];
@@ -22,19 +22,12 @@ const LEVEL_ICONS: Record<TrackingLevel, IoniconName> = {
 const LEVELS: TrackingLevel[] = [1, 2, 3, 4, 5];
 
 export function MoodInput() {
-  // セレクタは配列をそのまま取得（render内でfilter）— webの無限ループ回避
-  const moodEntries = useAppStore((s) => s.moodEntries);
   const addMoodEntry = useAppStore((s) => s.addMoodEntry);
 
   const [expanded, setExpanded] = useState(false);
   const [memoVisible, setMemoVisible] = useState(false);
   const [pendingLevel, setPendingLevel] = useState<TrackingLevel | null>(null);
   const [memo, setMemo] = useState('');
-
-  const todayStr = today();
-  const recordedToday = moodEntries.some(
-    (e) => e.timestamp.slice(0, 10) === todayStr,
-  );
 
   function toggleExpanded() {
     LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
@@ -77,23 +70,15 @@ export function MoodInput() {
           </View>
         )}
 
-        {/* トリガー（右端）— 未記録時はテキストピル、記録済みは円形アイコン */}
+        {/* トリガー */}
         <Pressable
-          style={({ pressed }) => [
-            styles.trigger,
-            recordedToday && styles.triggerRecorded,
-            pressed && { opacity: 0.6 },
-          ]}
+          style={({ pressed }) => [styles.trigger, pressed && { opacity: 0.6 }]}
           onPress={toggleExpanded}
           hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
           accessibilityRole="button"
           accessibilityLabel="今の気分を記録"
         >
-          {recordedToday ? (
-            <Ionicons name="happy" size={20} color={moodColors[4]} />
-          ) : (
-            <Text style={styles.triggerText}>今の気分は？</Text>
-          )}
+          <Text style={styles.triggerText}>今の気分は？</Text>
         </Pressable>
       </View>
 
@@ -170,14 +155,9 @@ const styles = StyleSheet.create({
     borderRadius: radius.full,
     backgroundColor: colors.surface,
     borderWidth: 1.5,
-    borderColor: colors.border,
+    borderColor: colors.ink,
     alignItems: 'center',
     justifyContent: 'center',
-  },
-  triggerRecorded: {
-    width: 36,
-    height: 36,
-    paddingHorizontal: 0,
   },
   triggerText: {
     fontSize: fontSize.xs,

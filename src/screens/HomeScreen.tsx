@@ -187,6 +187,11 @@ export function HomeScreen() {
         <View style={{ height: spacing.xxl }} />
       </ScrollView>
 
+      {/* 気分記録ボタン（bottomBar直上・右寄せ） */}
+      <View style={styles.moodRow}>
+        <MoodInput />
+      </View>
+
       {/* ── BOTTOM BAR ── */}
       <View style={styles.bottomBar}>
         <Pressable
@@ -195,11 +200,6 @@ export function HomeScreen() {
         >
           <Text style={styles.fabText}>＋ タスクを追加</Text>
         </Pressable>
-      </View>
-
-      {/* 気分記録ボタン（右下フロート・bottomBar の上） */}
-      <View style={styles.moodFloat} pointerEvents="box-none">
-        <MoodInput />
       </View>
 
       {/* ── POPOVER: Add task ── */}
@@ -462,11 +462,11 @@ const styles = StyleSheet.create({
     borderTopColor: colors.ink,
     backgroundColor: colors.background,
   },
-  moodFloat: {
-    position: 'absolute',
-    right: spacing.md,
-    bottom: 96, // 「＋ タスクを追加」ボタンの右上あたりに浮かせる（重なり回避）
-    zIndex: 20,
+  moodRow: {
+    alignItems: 'flex-end',
+    paddingRight: spacing.md,
+    paddingBottom: spacing.xs,
+    backgroundColor: colors.background,
   },
   fab: {
     backgroundColor: colors.ink,
