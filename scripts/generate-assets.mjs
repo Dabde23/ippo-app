@@ -178,3 +178,46 @@ async function main() {
 }
 
 main().catch(console.error);
+
+// ── Xバナー単体生成 ──────────────────────────────────────────
+const DESIGN = join(__dirname, '../design');
+
+const xBannerSvg = `<svg viewBox="0 0 1500 500" width="1500" height="500" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#F7F3EE"/>
+      <stop offset="100%" stop-color="#EDE5DB"/>
+    </linearGradient>
+    <linearGradient id="foot" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#C4623A"/>
+      <stop offset="100%" stop-color="#A04D2C"/>
+    </linearGradient>
+  </defs>
+  <rect width="1500" height="500" fill="url(#bg)"/>
+  <g transform="translate(290, 100)">
+    <!-- 右足（メイン） -->
+    <g transform="rotate(10, 60, 100)">
+      <path d="M48,62 C40,66 36,88 37,108 C38,131 47,161 58,173 C67,183 78,186 86,182 C96,176 99,161 97,140 C95,118 86,88 75,80 C68,75 55,75 48,62 Z" fill="url(#foot)" opacity="0.88"/>
+      <ellipse cx="40"  cy="48" rx="22" ry="28" fill="url(#foot)" opacity="0.86"/>
+      <ellipse cx="58"  cy="36" rx="19" ry="24" fill="url(#foot)" opacity="0.83"/>
+      <ellipse cx="78"  cy="32" rx="17" ry="21" fill="url(#foot)" opacity="0.80"/>
+      <ellipse cx="96"  cy="38" rx="15" ry="19" fill="url(#foot)" opacity="0.76"/>
+      <ellipse cx="112" cy="54" rx="12" ry="16" fill="url(#foot)" opacity="0.70"/>
+    </g>
+    <!-- 左足（薄め） -->
+    <g transform="rotate(-10, 28, 132)" opacity="0.20">
+      <path d="M16,104 C8,108 4,130 5,150 C6,174 15,204 26,216 C35,226 46,229 54,225 C64,219 67,204 65,183 C63,161 54,131 43,123 C36,118 23,118 16,104 Z" fill="url(#foot)"/>
+      <ellipse cx="8"  cy="90" rx="17" ry="21" fill="url(#foot)"/>
+      <ellipse cx="26" cy="78" rx="14" ry="18" fill="url(#foot)"/>
+      <ellipse cx="44" cy="74" rx="12" ry="16" fill="url(#foot)"/>
+    </g>
+    <!-- いっぽ -->
+    <text x="160" y="200" font-family="Yusei Magic" font-size="160" fill="#2C1F14" letter-spacing="8">いっぽ</text>
+    <!-- 縦区切り線 -->
+    <line x1="660" y1="30" x2="660" y2="240" stroke="#DDD5CC" stroke-width="3"/>
+    <!-- タスク管理 -->
+    <text x="696" y="120" font-family="Yusei Magic" font-size="52" fill="#C4623A" letter-spacing="6">タスク管理</text>
+    <!-- 一歩ずつ、前へ。 -->
+    <text x="696" y="196" font-family="Yusei Magic" font-size="42" fill="#9B8478" letter-spacing="4">一歩ずつ、前へ。</text>
+  </g>
+</svg>`;
