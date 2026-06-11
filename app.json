@@ -53,7 +53,8 @@
             "Sound"
           ]
         }
-      ]
+      ],
+      "expo-splash-screen"
     ],
     "extra": {
       "eas": {
