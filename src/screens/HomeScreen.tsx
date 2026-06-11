@@ -465,7 +465,7 @@ const styles = StyleSheet.create({
   moodRow: {
     alignItems: 'flex-end',
     paddingRight: spacing.md,
-    paddingBottom: spacing.md,
+    paddingBottom: spacing.lg,
     backgroundColor: colors.background,
     zIndex: 10,
     overflow: 'visible',

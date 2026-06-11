@@ -161,7 +161,7 @@ const styles = StyleSheet.create({
   },
   levels: {
     position: 'absolute',
-    top: TRIGGER_H + spacing.xs,
+    bottom: TRIGGER_H + spacing.xs,
     right: 0,
     flexDirection: 'row',
     alignItems: 'center',
