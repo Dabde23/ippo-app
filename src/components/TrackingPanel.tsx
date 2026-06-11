@@ -130,7 +130,7 @@ export function TrackingPanel() {
 
   return (
     <View style={styles.section}>
-      <Text style={styles.sectionLabel}>きろく</Text>
+      <Text style={styles.sectionLabel}>気分トラッカー</Text>
       <View style={styles.rule} />
 
       {/* カレンダー */}
@@ -139,6 +139,47 @@ export function TrackingPanel() {
           markingType="custom"
           markedDates={markedDates}
           onDayPress={(day: { dateString: string }) => setSelectedDate(day.dateString)}
+          renderHeader={(date: any) => {
+            const month = date.getMonth() + 1;
+            const year = date.getFullYear();
+            return (
+              <Text style={styles.calendarHeader}>{year}年 {month}月</Text>
+            );
+          }}
+          dayComponent={({ date, state, marking }: any) => {
+            const dateStr: string = date?.dateString ?? '';
+            const isSunday = new Date(dateStr + 'T00:00:00').getDay() === 0;
+            const isDisabled = state === 'disabled';
+            const isToday = dateStr === localDate(new Date());
+
+            const customStyle = marking?.customStyles;
+            const hasMark = !!customStyle?.container?.backgroundColor;
+
+            let textColor = colors.textMain;
+            if (isDisabled) textColor = colors.textDisabled;
+            else if (isToday) textColor = colors.primary;
+            else if (isSunday) textColor = '#E07070';
+
+            return (
+              <Pressable
+                onPress={() => date && setSelectedDate(dateStr)}
+                style={{ alignItems: 'center', justifyContent: 'center', width: 32, height: 32 }}
+              >
+                <View style={[
+                  { width: 28, height: 28, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
+                  hasMark && { backgroundColor: customStyle.container.backgroundColor },
+                ]}>
+                  <Text style={[
+                    { fontSize: 14, fontWeight: '400' },
+                    hasMark && { color: '#FFFFFF', fontWeight: '700' },
+                    !hasMark && { color: textColor },
+                  ]}>
+                    {date?.day}
+                  </Text>
+                </View>
+              </Pressable>
+            );
+          }}
           theme={{
             calendarBackground: colors.surface,
             monthTextColor: colors.ink,
@@ -151,7 +192,7 @@ export function TrackingPanel() {
             textMonthFontSize: 16,
           }}
         />
-        <Text style={styles.calendarHint}>色は気分の平均（赤=低 → 青=高）。日付をタップで詳細。</Text>
+        <Text style={styles.calendarHint}>色は気分の平均（赤=低 → 緑=高）。日付をタップで詳細。</Text>
       </View>
 
       {/* グラフ */}
@@ -306,6 +347,11 @@ const styles = StyleSheet.create({
     color: colors.textMuted,
     paddingHorizontal: spacing.sm,
     paddingBottom: spacing.xs,
+  },
+  calendarHeader: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: colors.ink,
   },
   graphCard: {
     backgroundColor: colors.surface,

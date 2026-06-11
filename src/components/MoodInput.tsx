@@ -64,22 +64,7 @@ export function MoodInput() {
   return (
     <View style={styles.wrap}>
       <View style={styles.row}>
-        {/* トリガーアイコン */}
-        <Pressable
-          style={({ pressed }) => [styles.trigger, pressed && { opacity: 0.6 }]}
-          onPress={toggleExpanded}
-          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-          accessibilityRole="button"
-          accessibilityLabel="今の気分を記録"
-        >
-          <Ionicons
-            name={recordedToday ? 'happy' : 'happy-outline'}
-            size={30}
-            color={recordedToday ? moodColors[4] : colors.textSub}
-          />
-        </Pressable>
-
-        {/* インライン展開する5段階 */}
+        {/* インライン展開する5段階（左方向に展開） */}
         {expanded && (
           <View style={styles.levels}>
             {LEVELS.map((level) => (
@@ -96,6 +81,21 @@ export function MoodInput() {
             ))}
           </View>
         )}
+
+        {/* トリガーアイコン（右端） */}
+        <Pressable
+          style={({ pressed }) => [styles.trigger, pressed && { opacity: 0.6 }]}
+          onPress={toggleExpanded}
+          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+          accessibilityRole="button"
+          accessibilityLabel="今の気分を記録"
+        >
+          <Ionicons
+            name={recordedToday ? 'happy' : 'happy-outline'}
+            size={30}
+            color={recordedToday ? moodColors[4] : colors.textSub}
+          />
+        </Pressable>
       </View>
 
       {/* 展開中は外側タップで閉じる透明オーバーレイ */}

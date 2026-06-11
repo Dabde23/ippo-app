@@ -168,21 +168,6 @@ export function ProfileScreen() {
       {/* ── CONTENT ── */}
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
 
-        {/* Early access */}
-        <View style={styles.noteCard}>
-          <Text style={styles.noteTitle}>アーリーアクセス</Text>
-          <View style={styles.rule} />
-          <Text style={styles.noteText}>
-            現在、全機能を無料でご利用いただけます。{'\n'}ネイティブアプリ公開時に有料プランへ移行予定です。
-          </Text>
-          <Pressable
-            style={({ pressed }) => [styles.earlyBtn, pressed && { opacity: 0.7 }]}
-            onPress={() => setEarlyAccessVisible(true)}
-          >
-            <Text style={styles.earlyBtnText}>事前登録する →</Text>
-          </Pressable>
-        </View>
-
         {/* Badges */}
         <View style={styles.section}>
           <Text style={styles.sectionLabel}>バッジ</Text>
@@ -340,6 +325,17 @@ export function ProfileScreen() {
           >
             <Text style={styles.feedbackBtnText}>感想を送る</Text>
           </Pressable>
+          {/* 事前登録ボタン（アーリーアクセスセクションから移動） */}
+          <Pressable
+            style={({ pressed }) => [styles.earlyBtn, pressed && { opacity: 0.7 }]}
+            onPress={() => setEarlyAccessVisible(true)}
+          >
+            <Text style={styles.earlyBtnText}>ネイティブアプリの事前登録 →</Text>
+          </Pressable>
+          {/* ストアリリース告知 */}
+          <Text style={styles.releaseNotice}>
+            ストアリリース開始に伴い一部機能は有料機能になります
+          </Text>
         </View>
 
         <View style={{ height: spacing.xxl }} />
@@ -812,23 +808,10 @@ const styles = StyleSheet.create({
     color: colors.primary,
     letterSpacing: 1,
   },
-  noteCard: {
-    borderWidth: 1.5,
-    borderColor: colors.primary,
-    borderRadius: radius.md,
-    padding: spacing.md,
-    gap: spacing.sm,
-  },
-  noteTitle: {
+  releaseNotice: {
     fontSize: fontSize.xs,
-    fontWeight: fontWeight.bold,
-    color: colors.primary,
-    letterSpacing: 2.5,
-  },
-  noteText: {
-    fontSize: fontSize.sm,
-    color: colors.textSub,
-    lineHeight: 20,
+    color: colors.textMuted,
+    lineHeight: 18,
     marginTop: spacing.xs,
   },
   earlyBtn: {
