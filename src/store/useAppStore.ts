@@ -76,7 +76,9 @@ const BADGES: Omit<Badge, 'earnedAt'>[] = [
 ];
 
 export function today(): string {
-  return new Date().toISOString().split('T')[0];
+  // ローカルタイムゾーン基準の日付を返す（localDateOf と整合）。
+  // UTC 基準だと日付境界が JST 9:00 になり、日次リセットがずれるため。
+  return localDateOf(new Date().toISOString());
 }
 
 function earnedBadgeCount(xp: number): number {
