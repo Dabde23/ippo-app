@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import {
   View, StyleSheet, ScrollView, Pressable,
-  Platform, Modal, TextInput,
+  Platform, Modal, TextInput, Switch,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -11,6 +11,7 @@ import { Text } from '../components/Text';
 import { XPBar } from '../components/XPBar';
 import { RoutinePanel } from '../components/RoutinePanel';
 import { TaskListPanel } from '../components/TaskListPanel';
+import { TrackingPanel } from '../components/TrackingPanel';
 import { useAppStore } from '../store/useAppStore';
 import {
   requestNotificationPermission,
@@ -23,6 +24,8 @@ const DAY_LABELS = ['月','火','水','木','金','土','日']; // index 0..6 ->
 
 export function ProfileScreen() {
   const { xp, badges, tasks, reminders, addReminder, removeReminder, updateReminder } = useAppStore();
+  const focusPromptEnabled = useAppStore((s) => s.focusPromptEnabled);
+  const toggleFocusPrompt = useAppStore((s) => s.toggleFocusPrompt);
   const [routinePanelVisible, setRoutinePanelVisible] = useState(false);
   const [taskListPanelVisible, setTaskListPanelVisible] = useState(false);
   const completedTotal = tasks.filter((t) => t.completed).length;
@@ -220,6 +223,25 @@ export function ProfileScreen() {
           <Text style={styles.routineLinkText}>タスク一覧</Text>
           <Text style={styles.routineLinkArrow}>→</Text>
         </Pressable>
+
+        {/* きろく（状態トラッキング） */}
+        <TrackingPanel />
+
+        {/* 集中度プロンプト設定 */}
+        <View style={styles.section}>
+          <Text style={styles.sectionLabel}>トラッキング設定</Text>
+          <View style={styles.rule} />
+          <View style={styles.toggleRow}>
+            <Text style={styles.toggleRowLabel}>タスク完了後に集中度を記録</Text>
+            <Switch
+              value={focusPromptEnabled}
+              onValueChange={toggleFocusPrompt}
+              trackColor={{ false: colors.border, true: colors.success }}
+              thumbColor="#FFFFFF"
+              ios_backgroundColor={colors.border}
+            />
+          </View>
+        </View>
 
         {/* Reminder */}
         <View style={styles.section}>
@@ -743,6 +765,20 @@ const styles = StyleSheet.create({
   },
   toggleOn: { backgroundColor: colors.primary, borderColor: colors.primary },
   toggleText: { fontSize: fontSize.xs, fontWeight: fontWeight.black, color: colors.ink, letterSpacing: 1 },
+  toggleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: spacing.sm,
+    marginTop: spacing.xs,
+  },
+  toggleRowLabel: {
+    fontSize: fontSize.md,
+    fontWeight: fontWeight.bold,
+    color: colors.textMain,
+    flex: 1,
+    marginRight: spacing.md,
+  },
   feedbackDesc: {
     fontSize: fontSize.sm,
     color: colors.textSub,

@@ -34,6 +34,33 @@ export interface Badge {
   earnedAt: string;
 }
 
+export type TrackingLevel = 1 | 2 | 3 | 4 | 5;
+
+export interface MoodEntry {
+  id: string;
+  timestamp: string; // ISO8601
+  level: TrackingLevel;
+  memo?: string;
+}
+
+export interface FocusEntry {
+  id: string;
+  timestamp: string; // ISO8601
+  level: TrackingLevel;
+  taskId: string;
+  taskTitle: string;
+  memo?: string;
+}
+
+// timestamp(ISO8601) -> ローカル日付 YYYY-MM-DD
+function localDateOf(timestamp: string): string {
+  const d = new Date(timestamp);
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
+}
+
 export const PREMIUM_PRICE_JPY = 500;
 export const CANCEL_NOTICE_DAYS = 5;
 export const XP_PER_TASK = 10;
@@ -67,6 +94,9 @@ interface AppState {
   hasCompletedOnboarding: boolean;
   timerTaskId: string | null;
   timerWorkMinutes: number;
+  moodEntries: MoodEntry[];
+  focusEntries: FocusEntry[];
+  focusPromptEnabled: boolean;
 
   addTask: (title: string, isRoutine?: boolean) => string;
   completeTask: (id: string) => void;
@@ -88,6 +118,12 @@ interface AppState {
   routineTasks: () => Task[];
   setTimerTask: (id: string | null) => void;
   setTimerWorkMinutes: (minutes: number) => void;
+  addMoodEntry: (level: TrackingLevel, memo?: string) => void;
+  addFocusEntry: (level: TrackingLevel, taskId: string, taskTitle: string, memo?: string) => void;
+  toggleFocusPrompt: () => void;
+  getMoodEntriesForDate: (date: string) => MoodEntry[];
+  getMoodAverageForDate: (date: string) => number | null;
+  getFocusEntriesForDate: (date: string) => FocusEntry[];
 }
 
 export const useAppStore = create<AppState>()(
@@ -103,6 +139,9 @@ export const useAppStore = create<AppState>()(
       hasCompletedOnboarding: false,
       timerTaskId: null,
       timerWorkMinutes: 25,
+      moodEntries: [],
+      focusEntries: [],
+      focusPromptEnabled: true,
 
       addTask: (title, isRoutine = false) => {
         const t = today();
@@ -261,6 +300,45 @@ export const useAppStore = create<AppState>()(
       routineTasks: () => {
         return get().tasks.filter((task) => task.isRoutine === true);
       },
+
+      addMoodEntry: (level, memo) => {
+        const entry: MoodEntry = {
+          id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+          timestamp: new Date().toISOString(),
+          level,
+          ...(memo && memo.trim() ? { memo: memo.trim() } : {}),
+        };
+        set((s) => ({ moodEntries: [...s.moodEntries, entry] }));
+      },
+
+      addFocusEntry: (level, taskId, taskTitle, memo) => {
+        const entry: FocusEntry = {
+          id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+          timestamp: new Date().toISOString(),
+          level,
+          taskId,
+          taskTitle,
+          ...(memo && memo.trim() ? { memo: memo.trim() } : {}),
+        };
+        set((s) => ({ focusEntries: [...s.focusEntries, entry] }));
+      },
+
+      toggleFocusPrompt: () => set((s) => ({ focusPromptEnabled: !s.focusPromptEnabled })),
+
+      getMoodEntriesForDate: (date) => {
+        return get().moodEntries.filter((e) => localDateOf(e.timestamp) === date);
+      },
+
+      getMoodAverageForDate: (date) => {
+        const entries = get().moodEntries.filter((e) => localDateOf(e.timestamp) === date);
+        if (entries.length === 0) return null;
+        const sum = entries.reduce((acc, e) => acc + e.level, 0);
+        return Math.round(sum / entries.length);
+      },
+
+      getFocusEntriesForDate: (date) => {
+        return get().focusEntries.filter((e) => localDateOf(e.timestamp) === date);
+      },
     }),
     {
       name: 'adhd-app-storage',
@@ -274,6 +352,9 @@ export const useAppStore = create<AppState>()(
         reminderMessage: state.reminderMessage,
         hasCompletedOnboarding: state.hasCompletedOnboarding,
         timerWorkMinutes: state.timerWorkMinutes,
+        moodEntries: state.moodEntries,
+        focusEntries: state.focusEntries,
+        focusPromptEnabled: state.focusPromptEnabled,
       }),
       onRehydrateStorage: () => (state) => {
         if (!state) return;
@@ -306,6 +387,10 @@ export const useAppStore = create<AppState>()(
         if (!state.hasCompletedOnboarding && (state.tasks.length > 0 || state.xp > 0)) {
           state.hasCompletedOnboarding = true;
         }
+        // 状態トラッキング: 旧データに無いフィールドをデフォルト補完
+        if (!Array.isArray(state.moodEntries)) state.moodEntries = [];
+        if (!Array.isArray(state.focusEntries)) state.focusEntries = [];
+        if (typeof state.focusPromptEnabled !== 'boolean') state.focusPromptEnabled = true;
       },
     }
   )

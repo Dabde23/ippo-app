@@ -6,6 +6,7 @@ import { useNavigation } from '@react-navigation/native';
 import Svg, { Circle } from 'react-native-svg';
 import { Text } from '../components/Text';
 import { TimerDisplay } from '../components/TimerDisplay';
+import { FocusModal } from '../components/FocusModal';
 import { colors, spacing, radius, fontSize, fontWeight, shadow } from '../theme';
 import { useAppStore } from '../store/useAppStore';
 import { scheduleTimerEndNotification, cancelTimerEndNotification } from '../services/NotificationService';
@@ -32,6 +33,8 @@ export function TimerScreen() {
   const [isRunning, setIsRunning] = useState(false);
   const [mode, setMode] = useState<'work' | 'break'>('work');
   const [customInput, setCustomInput] = useState('');
+  // 集中度モーダル: 完了タスクのスナップショットを保持して表示
+  const [focusTarget, setFocusTarget] = useState<{ id: string; title: string } | null>(null);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const autostartRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -114,11 +117,25 @@ export function TimerScreen() {
     if (!timerTask) return;
     if (autostartRef.current) clearTimeout(autostartRef.current);
     cancelTimerEndNotification();
-    completeTask(timerTask.id);
-    setTimerTask(null);
+    const completed = { id: timerTask.id, title: timerTask.title };
+    completeTask(completed.id);
     setIsRunning(false);
-    navigation.navigate('Home');
+    // focusPromptEnabled が true のときだけ集中度モーダルを表示。
+    // それ以外は従来どおり即 Home へ戻る。
+    if (useAppStore.getState().focusPromptEnabled) {
+      setFocusTarget(completed);
+    } else {
+      setTimerTask(null);
+      navigation.navigate('Home');
+    }
   }, [timerTask, completeTask, setTimerTask, navigation]);
+
+  // 集中度モーダルを閉じた後（保存・スキップ共通）に Home へ戻る
+  const handleFocusModalClose = useCallback(() => {
+    setFocusTarget(null);
+    setTimerTask(null);
+    navigation.navigate('Home');
+  }, [setTimerTask, navigation]);
 
   const handleAbort = useCallback(() => {
     if (autostartRef.current) clearTimeout(autostartRef.current);
@@ -275,6 +292,14 @@ export function TimerScreen() {
           </View>
         )}
       </ScrollView>
+
+      {/* タスク完了後の集中度プロンプト */}
+      <FocusModal
+        visible={focusTarget != null}
+        taskId={focusTarget?.id ?? ''}
+        taskTitle={focusTarget?.title ?? ''}
+        onClose={handleFocusModalClose}
+      />
     </SafeAreaView>
   );
 }

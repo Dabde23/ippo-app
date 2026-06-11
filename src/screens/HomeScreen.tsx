@@ -10,6 +10,7 @@ import { Text } from '../components/Text';
 import { XPBar } from '../components/XPBar';
 import { TaskCard } from '../components/TaskCard';
 import { TaskListPanel } from '../components/TaskListPanel';
+import { MoodInput } from '../components/MoodInput';
 import { useAppStore, Task, today, XP_PER_TASK } from '../store/useAppStore';
 import { colors, spacing, radius, fontSize, fontWeight, shadow } from '../theme';
 
@@ -188,6 +189,10 @@ export function HomeScreen() {
 
       {/* ── BOTTOM BAR ── */}
       <View style={styles.bottomBar}>
+        {/* 気分記録（＋ボタンの上に常設） */}
+        <View style={styles.moodRow}>
+          <MoodInput />
+        </View>
         <Pressable
           style={({ pressed }) => [styles.fab, pressed && { backgroundColor: colors.primaryDark }]}
           onPress={openAddPopover}
@@ -455,6 +460,11 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
     borderTopColor: colors.ink,
     backgroundColor: colors.background,
+    gap: spacing.sm,
+  },
+  moodRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
   },
   fab: {
     backgroundColor: colors.ink,

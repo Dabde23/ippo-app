@@ -21,6 +21,15 @@ export const colors = {
   badge: '#6B4A8C',
 };
 
+// 気分・集中度の5段階カラー（1=低 → 5=高）
+export const moodColors = {
+  1: '#EF4444', // 赤
+  2: '#F97316', // 橙
+  3: '#EAB308', // 黄
+  4: '#22C55E', // 緑
+  5: '#3B82F6', // 青
+} as const;
+
 export const spacing = {
   xs: 4,
   sm: 8,

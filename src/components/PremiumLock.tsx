@@ -7,9 +7,19 @@ import { colors, spacing, radius, fontSize, fontWeight } from '../theme';
 interface Props {
   featureName: string;
   onUpgrade?: () => void;
+  // ラップ対象のコンテンツ。locked=false（=ベータ中）なら素通しで表示する。
+  children?: React.ReactNode;
+  locked?: boolean;
 }
 
-export function PremiumLock({ featureName, onUpgrade }: Props) {
+export function PremiumLock({ featureName, onUpgrade, children, locked }: Props) {
+  // BETA: 全機能開放 —— ベータ期間中はロックを常に無効化し、子要素をそのまま表示する。
+  // EA（アーリーアクセス）移行時に下の早期returnを削除し、locked プロップで制御を戻す。
+  const isLocked = false; // BETA: 元々は `locked ?? true`
+  if (!isLocked) {
+    return <>{children}</>;
+  }
+
   return (
     <View style={styles.overlay}>
       <Text style={styles.icon}>🔒</Text>
