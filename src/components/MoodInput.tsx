@@ -1,17 +1,12 @@
 import React, { useState } from 'react';
 import {
   View, StyleSheet, Pressable, Modal, TextInput,
-  LayoutAnimation, Platform, UIManager, KeyboardAvoidingView,
+  LayoutAnimation, KeyboardAvoidingView, Platform,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Text } from './Text';
 import { useAppStore, TrackingLevel, today } from '../store/useAppStore';
 import { colors, spacing, radius, fontSize, fontWeight, moodColors, shadow } from '../theme';
-
-// Android で LayoutAnimation を有効化
-if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
-  UIManager.setLayoutAnimationEnabledExperimental(true);
-}
 
 type IoniconName = React.ComponentProps<typeof Ionicons>['name'];
 
