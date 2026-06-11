@@ -465,7 +465,7 @@ const styles = StyleSheet.create({
   moodFloat: {
     position: 'absolute',
     right: spacing.md,
-    bottom: 88, // bottomBarの上（fab高さ46 + paddingBottom24 + paddingTop8 + border1 + gap9 ≈ 88）
+    bottom: 96, // 「＋ タスクを追加」ボタンの右上あたりに浮かせる（重なり回避）
     zIndex: 20,
   },
   fab: {

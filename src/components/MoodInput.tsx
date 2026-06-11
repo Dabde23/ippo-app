@@ -82,19 +82,23 @@ export function MoodInput() {
           </View>
         )}
 
-        {/* トリガーアイコン（右端） */}
+        {/* トリガー（右端）— 未記録時はテキストピル、記録済みは円形アイコン */}
         <Pressable
-          style={({ pressed }) => [styles.trigger, pressed && { opacity: 0.6 }]}
+          style={({ pressed }) => [
+            styles.trigger,
+            recordedToday && styles.triggerRecorded,
+            pressed && { opacity: 0.6 },
+          ]}
           onPress={toggleExpanded}
           hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
           accessibilityRole="button"
           accessibilityLabel="今の気分を記録"
         >
-          <Ionicons
-            name={recordedToday ? 'happy' : 'happy-outline'}
-            size={30}
-            color={recordedToday ? moodColors[4] : colors.textSub}
-          />
+          {recordedToday ? (
+            <Ionicons name="happy" size={20} color={moodColors[4]} />
+          ) : (
+            <Text style={styles.triggerText}>今の気分は？</Text>
+          )}
         </Pressable>
       </View>
 
@@ -166,14 +170,25 @@ const styles = StyleSheet.create({
     zIndex: 2,
   },
   trigger: {
-    width: 44,
-    height: 44,
+    height: 34,
+    paddingHorizontal: spacing.md,
+    borderRadius: radius.full,
+    backgroundColor: colors.surface,
+    borderWidth: 1.5,
+    borderColor: colors.border,
     alignItems: 'center',
     justifyContent: 'center',
-    borderRadius: radius.full,
-    backgroundColor: colors.surfaceAlt,
-    borderWidth: 1,
-    borderColor: colors.border,
+  },
+  triggerRecorded: {
+    width: 36,
+    height: 36,
+    paddingHorizontal: 0,
+  },
+  triggerText: {
+    fontSize: fontSize.xs,
+    color: colors.textSub,
+    fontWeight: fontWeight.semibold,
+    letterSpacing: 0.2,
   },
   levels: {
     flexDirection: 'row',
