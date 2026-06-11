@@ -51,44 +51,42 @@ export function MoodInput() {
 
   return (
     <View style={styles.wrap}>
-      <View style={styles.row}>
-        {/* インライン展開する5段階（左方向に展開） */}
-        {expanded && (
-          <View style={styles.levels}>
-            {LEVELS.map((level) => (
-              <Pressable
-                key={level}
-                style={({ pressed }) => [styles.levelBtn, pressed && { opacity: 0.5 }]}
-                onPress={() => handleSelectLevel(level)}
-                hitSlop={{ top: 6, bottom: 6, left: 2, right: 2 }}
-                accessibilityRole="button"
-                accessibilityLabel={`気分 ${level}`}
-              >
-                <Ionicons name={LEVEL_ICONS[level]} size={30} color={moodColors[level]} />
-              </Pressable>
-            ))}
-          </View>
-        )}
-
-        {/* トリガー */}
-        <Pressable
-          style={({ pressed }) => [styles.trigger, pressed && { opacity: 0.6 }]}
-          onPress={toggleExpanded}
-          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-          accessibilityRole="button"
-          accessibilityLabel="今の気分を記録"
-        >
-          <Text style={styles.triggerText}>今の気分は？</Text>
-        </Pressable>
-      </View>
-
-      {/* 展開中は外側タップで閉じる透明オーバーレイ */}
+      {/* 展開中は外側タップで閉じる（trigger・levels より先に描画して下に置く） */}
       {expanded && (
         <Pressable
           style={styles.dismissLayer}
           onPress={toggleExpanded}
           accessibilityLabel="閉じる"
         />
+      )}
+
+      {/* トリガー */}
+      <Pressable
+        style={({ pressed }) => [styles.trigger, pressed && { opacity: 0.6 }]}
+        onPress={toggleExpanded}
+        hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+        accessibilityRole="button"
+        accessibilityLabel="今の気分を記録"
+      >
+        <Text style={styles.triggerText}>今の気分は？</Text>
+      </Pressable>
+
+      {/* 5段階アイコン（トリガー真下に下方向展開） */}
+      {expanded && (
+        <View style={styles.levels}>
+          {LEVELS.map((level) => (
+            <Pressable
+              key={level}
+              style={({ pressed }) => [styles.levelBtn, pressed && { opacity: 0.5 }]}
+              onPress={() => handleSelectLevel(level)}
+              hitSlop={{ top: 6, bottom: 6, left: 2, right: 2 }}
+              accessibilityRole="button"
+              accessibilityLabel={`気分 ${level}`}
+            >
+              <Ionicons name={LEVEL_ICONS[level]} size={30} color={moodColors[level]} />
+            </Pressable>
+          ))}
+        </View>
       )}
 
       {/* メモ入力モーダル */}
@@ -139,18 +137,14 @@ export function MoodInput() {
   );
 }
 
+const TRIGGER_H = 34;
+
 const styles = StyleSheet.create({
   wrap: {
-    // bottomBar 内に置く想定
-  },
-  row: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.sm,
-    zIndex: 2,
+    overflow: 'visible',
   },
   trigger: {
-    height: 34,
+    height: TRIGGER_H,
     paddingHorizontal: spacing.md,
     borderRadius: radius.full,
     backgroundColor: colors.surface,
@@ -166,6 +160,9 @@ const styles = StyleSheet.create({
     letterSpacing: 0.2,
   },
   levels: {
+    position: 'absolute',
+    top: TRIGGER_H + spacing.xs,
+    right: 0,
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.sm,
@@ -183,7 +180,6 @@ const styles = StyleSheet.create({
     left: -1000,
     right: -1000,
     bottom: -1000,
-    zIndex: 1,
   },
   overlay: {
     flex: 1,

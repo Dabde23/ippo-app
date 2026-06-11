@@ -465,8 +465,10 @@ const styles = StyleSheet.create({
   moodRow: {
     alignItems: 'flex-end',
     paddingRight: spacing.md,
-    paddingBottom: spacing.xs,
+    paddingBottom: spacing.md,
     backgroundColor: colors.background,
+    zIndex: 10,
+    overflow: 'visible',
   },
   fab: {
     backgroundColor: colors.ink,
