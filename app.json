@@ -8,7 +8,7 @@
     "userInterfaceStyle": "light",
     "splash": {
       "image": "./assets/splash-icon.png",
-      "resizeMode": "contain",
+      "resizeMode": "cover",
       "backgroundColor": "#F7F3EE"
     },
     "ios": {
@@ -16,7 +16,7 @@
       "supportsTablet": true,
       "splash": {
         "image": "./assets/splash-icon.png",
-        "resizeMode": "contain",
+        "resizeMode": "cover",
         "backgroundColor": "#F7F3EE"
       }
     },
@@ -31,7 +31,7 @@
       "predictiveBackGestureEnabled": false,
       "splash": {
         "image": "./assets/splash-icon.png",
-        "resizeMode": "contain",
+        "resizeMode": "cover",
         "backgroundColor": "#F7F3EE"
       }
     },
