@@ -1,0 +1,166 @@
+import sharp from 'sharp';
+import { writeFileSync } from 'fs';
+import { join, dirname } from 'path';
+import { fileURLToPath } from 'url';
+
+const __dirname = dirname(fileURLToPath(import.meta.url));
+const ASSETS = join(__dirname, '../assets');
+
+// ── SVG テンプレート ──────────────────────────────────────────
+
+const iconSvg = (size = 1024) => `<svg viewBox="0 0 512 512" width="${size}" height="${size}" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#F7F3EE"/>
+      <stop offset="100%" stop-color="#EDE5DB"/>
+    </linearGradient>
+    <linearGradient id="foot" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#C4623A"/>
+      <stop offset="100%" stop-color="#A04D2C"/>
+    </linearGradient>
+  </defs>
+  <rect width="512" height="512" rx="112" fill="url(#bg)"/>
+  <!-- 左足（薄め） -->
+  <g transform="translate(256,256) rotate(-14) translate(-256,-256)" opacity="0.24">
+    <path d="M186,290 C172,295 164,313 165,334 C166,358 175,386 189,401 C200,414 214,419 224,413 C237,405 242,385 239,359 C236,330 224,298 208,287 C200,281 190,282 186,290 Z" fill="url(#foot)"/>
+    <ellipse cx="174" cy="274" rx="16" ry="20" fill="url(#foot)"/>
+    <ellipse cx="192" cy="263" rx="14" ry="17" fill="url(#foot)"/>
+    <ellipse cx="211" cy="259" rx="13" ry="16" fill="url(#foot)"/>
+    <ellipse cx="228" cy="263" rx="11" ry="14" fill="url(#foot)"/>
+    <ellipse cx="243" cy="272" rx="9"  ry="12" fill="url(#foot)"/>
+  </g>
+  <!-- 右足（メイン） -->
+  <g transform="translate(256,256) rotate(14) translate(-256,-256)">
+    <path d="M268,146 C254,151 246,170 247,192 C248,218 258,250 274,267 C286,280 300,285 312,279 C326,270 331,249 328,221 C325,191 312,156 295,144 C286,138 275,138 268,146 Z" fill="url(#foot)" opacity="0.90"/>
+    <ellipse cx="255" cy="129" rx="19" ry="23" fill="url(#foot)" opacity="0.88"/>
+    <ellipse cx="274" cy="117" rx="16" ry="20" fill="url(#foot)" opacity="0.85"/>
+    <ellipse cx="294" cy="112" rx="15" ry="18" fill="url(#foot)" opacity="0.82"/>
+    <ellipse cx="312" cy="117" rx="13" ry="16" fill="url(#foot)" opacity="0.78"/>
+    <ellipse cx="328" cy="128" rx="11" ry="14" fill="url(#foot)" opacity="0.73"/>
+  </g>
+  <!-- 軌跡の点 -->
+  <circle cx="368" cy="80" r="7" fill="#C4623A" opacity="0.24"/>
+  <circle cx="396" cy="56" r="5" fill="#C4623A" opacity="0.14"/>
+  <circle cx="420" cy="36" r="4" fill="#C4623A" opacity="0.08"/>
+</svg>`;
+
+// Android foreground: 透明背景 + 足跡（セーフゾーン内に収める 66%）
+const androidForegroundSvg = (size = 1024) => `<svg viewBox="0 0 512 512" width="${size}" height="${size}" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="foot" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#C4623A"/>
+      <stop offset="100%" stop-color="#A04D2C"/>
+    </linearGradient>
+  </defs>
+  <!-- 左足（薄め） -->
+  <g transform="translate(256,256) rotate(-14) translate(-256,-256)" opacity="0.30">
+    <path d="M186,290 C172,295 164,313 165,334 C166,358 175,386 189,401 C200,414 214,419 224,413 C237,405 242,385 239,359 C236,330 224,298 208,287 C200,281 190,282 186,290 Z" fill="url(#foot)"/>
+    <ellipse cx="174" cy="274" rx="16" ry="20" fill="url(#foot)"/>
+    <ellipse cx="192" cy="263" rx="14" ry="17" fill="url(#foot)"/>
+    <ellipse cx="211" cy="259" rx="13" ry="16" fill="url(#foot)"/>
+    <ellipse cx="228" cy="263" rx="11" ry="14" fill="url(#foot)"/>
+    <ellipse cx="243" cy="272" rx="9"  ry="12" fill="url(#foot)"/>
+  </g>
+  <!-- 右足（メイン） -->
+  <g transform="translate(256,256) rotate(14) translate(-256,-256)">
+    <path d="M268,146 C254,151 246,170 247,192 C248,218 258,250 274,267 C286,280 300,285 312,279 C326,270 331,249 328,221 C325,191 312,156 295,144 C286,138 275,138 268,146 Z" fill="url(#foot)" opacity="0.90"/>
+    <ellipse cx="255" cy="129" rx="19" ry="23" fill="url(#foot)" opacity="0.88"/>
+    <ellipse cx="274" cy="117" rx="16" ry="20" fill="url(#foot)" opacity="0.85"/>
+    <ellipse cx="294" cy="112" rx="15" ry="18" fill="url(#foot)" opacity="0.82"/>
+    <ellipse cx="312" cy="117" rx="13" ry="16" fill="url(#foot)" opacity="0.78"/>
+    <ellipse cx="328" cy="128" rx="11" ry="14" fill="url(#foot)" opacity="0.73"/>
+  </g>
+  <circle cx="368" cy="80" r="7" fill="#C4623A" opacity="0.24"/>
+  <circle cx="396" cy="56" r="5" fill="#C4623A" opacity="0.14"/>
+  <circle cx="420" cy="36" r="4" fill="#C4623A" opacity="0.08"/>
+</svg>`;
+
+// Android background: クリーム色のみ
+const androidBackgroundSvg = (size = 1024) => `<svg viewBox="0 0 ${size} ${size}" width="${size}" height="${size}" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#F7F3EE"/>
+      <stop offset="100%" stop-color="#EDE5DB"/>
+    </linearGradient>
+  </defs>
+  <rect width="${size}" height="${size}" fill="url(#bg)"/>
+</svg>`;
+
+// Android monochrome: 白足跡（テーマカラー対応）
+const androidMonochromeSvg = (size = 1024) => `<svg viewBox="0 0 512 512" width="${size}" height="${size}" xmlns="http://www.w3.org/2000/svg">
+  <g transform="translate(256,256) rotate(-14) translate(-256,-256)" opacity="0.35">
+    <path d="M186,290 C172,295 164,313 165,334 C166,358 175,386 189,401 C200,414 214,419 224,413 C237,405 242,385 239,359 C236,330 224,298 208,287 C200,281 190,282 186,290 Z" fill="white"/>
+    <ellipse cx="174" cy="274" rx="16" ry="20" fill="white"/>
+    <ellipse cx="192" cy="263" rx="14" ry="17" fill="white"/>
+    <ellipse cx="211" cy="259" rx="13" ry="16" fill="white"/>
+    <ellipse cx="228" cy="263" rx="11" ry="14" fill="white"/>
+    <ellipse cx="243" cy="272" rx="9"  ry="12" fill="white"/>
+  </g>
+  <g transform="translate(256,256) rotate(14) translate(-256,-256)">
+    <path d="M268,146 C254,151 246,170 247,192 C248,218 258,250 274,267 C286,280 300,285 312,279 C326,270 331,249 328,221 C325,191 312,156 295,144 C286,138 275,138 268,146 Z" fill="white" opacity="0.95"/>
+    <ellipse cx="255" cy="129" rx="19" ry="23" fill="white" opacity="0.92"/>
+    <ellipse cx="274" cy="117" rx="16" ry="20" fill="white" opacity="0.88"/>
+    <ellipse cx="294" cy="112" rx="15" ry="18" fill="white" opacity="0.84"/>
+    <ellipse cx="312" cy="117" rx="13" ry="16" fill="white" opacity="0.80"/>
+    <ellipse cx="328" cy="128" rx="11" ry="14" fill="white" opacity="0.74"/>
+  </g>
+  <circle cx="368" cy="80" r="7" fill="white" opacity="0.35"/>
+  <circle cx="396" cy="56" r="5" fill="white" opacity="0.20"/>
+  <circle cx="420" cy="36" r="4" fill="white" opacity="0.12"/>
+</svg>`;
+
+// スプラッシュ用: 足跡のみ透明背景（Expo が backgroundColor の上に重ねる）
+const splashIconSvg = (size = 512) => `<svg viewBox="0 0 512 512" width="${size}" height="${size}" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="foot" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#C4623A"/>
+      <stop offset="100%" stop-color="#A04D2C"/>
+    </linearGradient>
+  </defs>
+  <!-- 左足（薄め） -->
+  <g transform="translate(256,256) rotate(-14) translate(-256,-256)" opacity="0.24">
+    <path d="M186,290 C172,295 164,313 165,334 C166,358 175,386 189,401 C200,414 214,419 224,413 C237,405 242,385 239,359 C236,330 224,298 208,287 C200,281 190,282 186,290 Z" fill="url(#foot)"/>
+    <ellipse cx="174" cy="274" rx="16" ry="20" fill="url(#foot)"/>
+    <ellipse cx="192" cy="263" rx="14" ry="17" fill="url(#foot)"/>
+    <ellipse cx="211" cy="259" rx="13" ry="16" fill="url(#foot)"/>
+    <ellipse cx="228" cy="263" rx="11" ry="14" fill="url(#foot)"/>
+    <ellipse cx="243" cy="272" rx="9"  ry="12" fill="url(#foot)"/>
+  </g>
+  <!-- 右足（メイン） -->
+  <g transform="translate(256,256) rotate(14) translate(-256,-256)">
+    <path d="M268,146 C254,151 246,170 247,192 C248,218 258,250 274,267 C286,280 300,285 312,279 C326,270 331,249 328,221 C325,191 312,156 295,144 C286,138 275,138 268,146 Z" fill="url(#foot)" opacity="0.90"/>
+    <ellipse cx="255" cy="129" rx="19" ry="23" fill="url(#foot)" opacity="0.88"/>
+    <ellipse cx="274" cy="117" rx="16" ry="20" fill="url(#foot)" opacity="0.85"/>
+    <ellipse cx="294" cy="112" rx="15" ry="18" fill="url(#foot)" opacity="0.82"/>
+    <ellipse cx="312" cy="117" rx="13" ry="16" fill="url(#foot)" opacity="0.78"/>
+    <ellipse cx="328" cy="128" rx="11" ry="14" fill="url(#foot)" opacity="0.73"/>
+  </g>
+  <circle cx="368" cy="80" r="7" fill="#C4623A" opacity="0.24"/>
+  <circle cx="396" cy="56" r="5" fill="#C4623A" opacity="0.14"/>
+  <circle cx="420" cy="36" r="4" fill="#C4623A" opacity="0.08"/>
+</svg>`;
+
+// ── 変換 ────────────────────────────────────────────────────
+
+async function svgToPng(svgString, outputPath, width, height) {
+  await sharp(Buffer.from(svgString))
+    .resize(width, height)
+    .png()
+    .toFile(outputPath);
+  console.log(`✓ ${outputPath.replace(ASSETS + '/', '')}`);
+}
+
+async function main() {
+  console.log('アセット生成中...\n');
+
+  await svgToPng(iconSvg(1024),              join(ASSETS, 'icon.png'),                       1024, 1024);
+  await svgToPng(splashIconSvg(512),         join(ASSETS, 'splash-icon.png'),                 512,  512);
+  await svgToPng(androidForegroundSvg(1024), join(ASSETS, 'android-icon-foreground.png'),    1024, 1024);
+  await svgToPng(androidBackgroundSvg(1024), join(ASSETS, 'android-icon-background.png'),    1024, 1024);
+  await svgToPng(androidMonochromeSvg(1024), join(ASSETS, 'android-icon-monochrome.png'),    1024, 1024);
+  await svgToPng(iconSvg(196),               join(ASSETS, 'favicon.png'),                     196,  196);
+
+  console.log('\n完了！');
+}
+
+main().catch(console.error);
