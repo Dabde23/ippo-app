@@ -168,6 +168,7 @@ export function TrackingPanel() {
                 <View style={[
                   { width: 28, height: 28, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
                   hasMark && { backgroundColor: customStyle.container.backgroundColor },
+                  isToday && { borderWidth: 1.5, borderColor: colors.primary },
                 ]}>
                   <Text style={[
                     { fontSize: 14, fontWeight: '400' },
