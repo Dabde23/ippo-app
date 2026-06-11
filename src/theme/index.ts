@@ -67,6 +67,18 @@ export const fontWeight = {
   black: '900' as const,
 };
 
+// 背景色に対して読みやすい文字色（白 or 濃色）を返す
+// sRGB 相対輝度（簡易）を使って明度を判定
+// 閾値 0.6: moodColors の全レベル（1=#F87171〜5=#4ADE80）が濃色側に倒れる
+export function contrastTextColor(hexBg: string): string {
+  const hex = hexBg.replace('#', '');
+  const r = parseInt(hex.slice(0, 2), 16);
+  const g = parseInt(hex.slice(2, 4), 16);
+  const b = parseInt(hex.slice(4, 6), 16);
+  const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+  return luminance > 0.6 ? colors.ink : '#FFFFFF'; // 明るい背景には濃色
+}
+
 export const shadow = {
   card: {
     boxShadow: '2px 3px 12px rgba(26,16,7,0.08)',

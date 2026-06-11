@@ -6,7 +6,7 @@ import { Calendar } from 'react-native-calendars';
 import { LineChart } from 'react-native-gifted-charts';
 import { Text } from './Text';
 import { useAppStore, MoodEntry, FocusEntry } from '../store/useAppStore';
-import { colors, spacing, radius, fontSize, fontWeight, moodColors } from '../theme';
+import { colors, spacing, radius, fontSize, fontWeight, moodColors, contrastTextColor } from '../theme';
 
 const MOOD_LINE = '#3B82F6';
 const FOCUS_LINE = '#22C55E';
@@ -87,7 +87,7 @@ export function TrackingPanel() {
     markedDates[d] = {
       customStyles: {
         container: { backgroundColor: color, borderRadius: 16 },
-        text: { color: '#FFFFFF', fontWeight: '700' },
+        text: { color: contrastTextColor(color), fontWeight: '700' },
       },
     };
   }
@@ -172,7 +172,7 @@ export function TrackingPanel() {
                 ]}>
                   <Text style={[
                     { fontSize: 14, fontWeight: '400' },
-                    hasMark && { color: '#FFFFFF', fontWeight: '700' },
+                    hasMark && { color: contrastTextColor(customStyle.container.backgroundColor), fontWeight: '700' },
                     !hasMark && { color: textColor },
                   ]}>
                     {date?.day}
