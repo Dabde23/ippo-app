@@ -6,9 +6,8 @@ import { fileURLToPath } from 'url';
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const ASSETS = join(__dirname, '../assets');
 
-// フォントをbase64で埋め込む
-const yuseiMagicB64 = readFileSync(join(ASSETS, 'YuseiMagic.ttf')).toString('base64');
-const fontFace = `@font-face { font-family: 'YuseiMagic'; src: url('data:font/truetype;base64,${yuseiMagicB64}'); }`;
+// librsvg はシステムフォント（fontconfig）を参照するため font-family 名を直接使う
+const fontFace = ``;
 
 // ── SVG テンプレート ──────────────────────────────────────────
 
@@ -149,10 +148,10 @@ const splashIconSvg = () => `<svg viewBox="0 0 390 844" width="1170" height="253
   <circle cx="342" cy="214" r="5" fill="#C4623A" opacity="0.10"/>
   <circle cx="364" cy="194" r="4" fill="#C4623A" opacity="0.06"/>
   <!-- テキスト -->
-  <text x="195" y="530" text-anchor="middle" font-family="YuseiMagic" font-size="72" fill="#2C1F14" letter-spacing="10">いっぽ</text>
+  <text x="195" y="530" text-anchor="middle" font-family="Yusei Magic" font-size="72" fill="#2C1F14" letter-spacing="10">いっぽ</text>
   <line x1="120" y1="552" x2="270" y2="552" stroke="#DDD5CC" stroke-width="1"/>
-  <text x="195" y="578" text-anchor="middle" font-family="YuseiMagic" font-size="17" fill="#C4623A" letter-spacing="4">一歩ずつ、前へ。</text>
-  <text x="195" y="604" text-anchor="middle" font-family="YuseiMagic" font-size="13" fill="#9B8478" letter-spacing="3">ADHD対応タスク管理</text>
+  <text x="195" y="578" text-anchor="middle" font-family="Yusei Magic" font-size="17" fill="#C4623A" letter-spacing="4">一歩ずつ、前へ。</text>
+  <text x="195" y="604" text-anchor="middle" font-family="Yusei Magic" font-size="13" fill="#9B8478" letter-spacing="3">ADHD対応タスク管理</text>
 </svg>`;
 
 // ── 変換 ────────────────────────────────────────────────────
