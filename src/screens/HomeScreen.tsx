@@ -223,7 +223,6 @@ export function HomeScreen() {
               placeholderTextColor={colors.textDisabled}
               value={inputTitle}
               onChangeText={setInputTitle}
-              autoFocus
               returnKeyType="done"
               onSubmitEditing={handleAddSubmit}
               maxLength={100}
