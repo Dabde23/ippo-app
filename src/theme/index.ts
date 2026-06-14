@@ -69,7 +69,7 @@ export const fontWeight = {
 
 // 背景色に対して読みやすい文字色（白 or 濃色）を返す
 // sRGB 相対輝度（簡易）を使って明度を判定
-// 閾値 0.6: moodColors の全レベル（1=#F87171〜5=#4ADE80）が濃色側に倒れる
+// 閾値 0.6: moodColors の全レベル（1=#F87171〜5=#34D399）が濃色側に倒れる
 export function contrastTextColor(hexBg: string): string {
   const hex = hexBg.replace('#', '');
   const r = parseInt(hex.slice(0, 2), 16);
