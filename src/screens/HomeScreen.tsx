@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   View, StyleSheet, Pressable, TextInput,
-  Modal, ScrollView, Platform, Switch,
+  Modal, ScrollView, Switch,
   AppState, KeyboardAvoidingView,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -208,11 +208,11 @@ export function HomeScreen() {
         transparent
         animationType="fade"
         onRequestClose={closeAddPopover}
-        onShow={() => inputRef.current?.focus()}
+        onShow={() => setTimeout(() => inputRef.current?.focus(), 100)}
       >
         <KeyboardAvoidingView
           style={{ flex: 1 }}
-          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          behavior="padding"
         >
           <Pressable style={styles.popoverOverlay} onPress={closeAddPopover}>
             <Pressable style={styles.popover} onPress={() => {}}>
