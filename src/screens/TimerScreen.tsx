@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { View, StyleSheet, Pressable, ScrollView, TextInput } from 'react-native';
+import { View, StyleSheet, Pressable, ScrollView, TextInput, AppState } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
@@ -37,6 +37,7 @@ export function TimerScreen() {
   const [focusTarget, setFocusTarget] = useState<{ id: string; title: string } | null>(null);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const autostartRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const phaseEndTimeRef = useRef<number | null>(null); // タイムスタンプ（ms）: 現在フェーズの終了予定時刻
 
   const workSec = timerWorkMinutes * 60;
   const breakSec = getBreakMinutes(timerWorkMinutes) * 60;
@@ -45,47 +46,69 @@ export function TimerScreen() {
   const timerTask = tasks.find((t) => t.id === timerTaskId) ?? null;
 
   useEffect(() => {
-    if (isRunning) {
-      intervalRef.current = setInterval(() => {
-        setSeconds((s) => {
-          if (s <= 1) {
-            setIsRunning(false);
-            setMode((m) => {
-              const next = m === 'work' ? 'break' : 'work';
-              const nextSec = next === 'work' ? workSec : breakSec;
-              setSeconds(nextSec);
-              // cancelTimerEndNotification がisRunning=false effectで走った後に
-              // 次モードの通知をスケジュールするため、autostartRef内で行う
-              autostartRef.current = setTimeout(() => {
-                const endBody = next === 'work' ? 'ブレイクの時間です' : 'フォーカスの時間です';
-                scheduleTimerEndNotification(nextSec, endBody);
-                setIsRunning(true);
-              }, 1000);
-              return next;
-            });
-            return 0;
-          }
-          return s - 1;
-        });
-      }, 1000);
-    } else {
+    if (!isRunning) {
       if (intervalRef.current) clearInterval(intervalRef.current);
       cancelTimerEndNotification();
+      return;
     }
+    intervalRef.current = setInterval(() => {
+      if (phaseEndTimeRef.current === null) return;
+      const remaining = phaseEndTimeRef.current - Date.now();
+      if (remaining <= 0) {
+        // フェーズ切替
+        const next = mode === 'work' ? 'break' : 'work';
+        const nextSec = next === 'work' ? workSec : breakSec;
+        phaseEndTimeRef.current = Date.now() + nextSec * 1000;
+        setMode(next);
+        setSeconds(nextSec);
+        const endBody = next === 'work' ? 'ブレイクの時間です' : 'フォーカスの時間です';
+        scheduleTimerEndNotification(nextSec, endBody);
+      } else {
+        setSeconds(Math.ceil(remaining / 1000));
+      }
+    }, 250);
     return () => { if (intervalRef.current) clearInterval(intervalRef.current); };
-  }, [isRunning, workSec, breakSec]);
+  }, [isRunning, mode, workSec, breakSec]);
 
   useEffect(() => {
     return () => { if (autostartRef.current) clearTimeout(autostartRef.current); };
   }, []);
 
   useEffect(() => {
+    const sub = AppState.addEventListener('change', (nextAppState) => {
+      if (nextAppState !== 'active' || !isRunning || phaseEndTimeRef.current === null) return;
+      const now = Date.now();
+      let endTime = phaseEndTimeRef.current;
+      let currentMode = mode;
+      // バックグラウンド中に経過したフェーズを高速フォワード
+      while (endTime <= now) {
+        currentMode = currentMode === 'work' ? 'break' : 'work';
+        const nextSec = currentMode === 'work' ? workSec : breakSec;
+        endTime += nextSec * 1000;
+      }
+      phaseEndTimeRef.current = endTime;
+      const remaining = Math.ceil((endTime - now) / 1000);
+      setSeconds(remaining);
+      if (currentMode !== mode) {
+        setMode(currentMode);
+        cancelTimerEndNotification();
+        const body = currentMode === 'work' ? 'ブレイクの時間です' : 'フォーカスの時間です';
+        scheduleTimerEndNotification(remaining, body);
+      }
+    });
+    return () => sub.remove();
+  }, [isRunning, mode, workSec, breakSec]);
+
+  useEffect(() => {
     if (!timerTaskId) return;
     if (autostartRef.current) clearTimeout(autostartRef.current);
+    cancelTimerEndNotification();
     setIsRunning(false);
     setSeconds(timerWorkMinutes * 60);
     setMode('work');
+    phaseEndTimeRef.current = null;
     autostartRef.current = setTimeout(() => {
+      phaseEndTimeRef.current = Date.now() + timerWorkMinutes * 60 * 1000;
       setIsRunning(true);
       scheduleTimerEndNotification(timerWorkMinutes * 60, 'ブレイクの時間です');
     }, 1000);
@@ -93,13 +116,13 @@ export function TimerScreen() {
   }, [timerTaskId]);
 
   function handleStartPause() {
-    setIsRunning((r) => {
-      if (!r) {
-        const body = mode === 'work' ? 'ブレイクの時間です' : 'フォーカスの時間です';
-        scheduleTimerEndNotification(seconds, body);
-      }
-      return !r;
-    });
+    const newRunning = !isRunning;
+    if (newRunning) {
+      phaseEndTimeRef.current = Date.now() + seconds * 1000;
+      const body = mode === 'work' ? 'ブレイクの時間です' : 'フォーカスの時間です';
+      scheduleTimerEndNotification(seconds, body);
+    }
+    setIsRunning(newRunning);
   }
 
   function applyPreset(workMin: number) {
@@ -108,9 +131,11 @@ export function TimerScreen() {
     setTimerWorkMinutes(workMin);
     setCustomInput('');
     setMode('work');
-    setSeconds(workMin * 60);
+    const sec = workMin * 60;
+    setSeconds(sec);
+    phaseEndTimeRef.current = Date.now() + sec * 1000;
     setIsRunning(true);
-    scheduleTimerEndNotification(workMin * 60, 'ブレイクの時間です');
+    scheduleTimerEndNotification(sec, 'ブレイクの時間です');
   }
 
   const handleComplete = useCallback(() => {
