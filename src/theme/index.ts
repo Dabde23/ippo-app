@@ -27,7 +27,7 @@ export const moodColors = {
   2: '#FDBA74', // 淡い橙
   3: '#FDE047', // 淡い黄
   4: '#A3E635', // 黄緑（yellow-green）
-  5: '#4ADE80', // 淡い緑
+  5: '#34D399', // エメラルドグリーン（青緑寄り、4との色相差確保）
 } as const;
 
 export const spacing = {

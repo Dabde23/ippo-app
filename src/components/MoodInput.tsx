@@ -77,13 +77,17 @@ export function MoodInput() {
           {LEVELS.map((level) => (
             <Pressable
               key={level}
-              style={({ pressed }) => [styles.levelBtn, pressed && { opacity: 0.5 }]}
+              style={({ pressed }) => [
+                styles.levelBtn,
+                { borderColor: moodColors[level] },
+                pressed && { opacity: 0.5 },
+              ]}
               onPress={() => handleSelectLevel(level)}
               hitSlop={{ top: 6, bottom: 6, left: 2, right: 2 }}
               accessibilityRole="button"
               accessibilityLabel={`気分 ${level}`}
             >
-              <Ionicons name={LEVEL_ICONS[level]} size={30} color={moodColors[level]} />
+              <Ionicons name={LEVEL_ICONS[level]} size={28} color={moodColors[level]} />
             </Pressable>
           ))}
         </View>
@@ -169,10 +173,13 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.xs,
   },
   levelBtn: {
-    width: 40,
+    width: 44,
     height: 44,
+    borderRadius: 22,
     alignItems: 'center',
     justifyContent: 'center',
+    backgroundColor: colors.surface,
+    borderWidth: 2,
   },
   dismissLayer: {
     position: 'absolute',
