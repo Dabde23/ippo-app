@@ -20,6 +20,7 @@ interface Props {
 export function TaskCard({ task, onEdit }: Props) {
   const completeTask = useAppStore((s) => s.completeTask);
   const deleteTask = useAppStore((s) => s.deleteTask);
+  const deleteRoutine = useAppStore((s) => s.deleteRoutine);
   const setTaskReminder = useAppStore((s) => s.setTaskReminder);
   const [timePickerVisible, setTimePickerVisible] = useState(false);
 
@@ -41,7 +42,7 @@ export function TaskCard({ task, onEdit }: Props) {
     const granted = await requestNotificationPermission();
     if (!granted) return;
     setTaskReminder(task.id, time);
-    await scheduleTaskReminder(task.id, task.title, time, false);
+    await scheduleTaskReminder(task.id, task.title, time, !!task.routineSourceId);
   }
 
   function handleComplete() {
@@ -52,6 +53,26 @@ export function TaskCard({ task, onEdit }: Props) {
   }
 
   function handleDelete() {
+    if (task.routineSourceId) {
+      // ルーティンインスタンス → テンプレートごと削除
+      const sourceId = task.routineSourceId;
+      if (Platform.OS === 'web') {
+        if (window.confirm(`「${task.title}」はルーティンです。今後も含めて完全に削除しますか？`)) {
+          deleteRoutine(sourceId);
+        }
+        return;
+      }
+      Alert.alert(
+        'ルーティンを削除',
+        `「${task.title}」はルーティンです。\n今後も含めて完全に削除しますか？`,
+        [
+          { text: 'キャンセル', style: 'cancel' },
+          { text: '削除', style: 'destructive', onPress: () => deleteRoutine(sourceId) },
+        ]
+      );
+      return;
+    }
+    // 単発タスク → 従来通り
     if (Platform.OS === 'web') {
       if (window.confirm(`「${task.title}」を削除しますか？`)) {
         if (task.taskReminderTime) cancelTaskReminder(task.id);

@@ -177,17 +177,32 @@ export async function scheduleTaskReminder(
     return;
   }
 
-  // ネイティブ: DAILY trigger
+  // ネイティブ: ルーティンは DAILY、単発タスクは DATE（次の該当時刻に1回）
   await Notifications.cancelScheduledNotificationAsync(key).catch(() => {});
-  await Notifications.scheduleNotificationAsync({
-    identifier: key,
-    content: { title: NOTIF_TITLE, body: title },
-    trigger: {
-      type: Notifications.SchedulableTriggerInputTypes.DAILY,
-      hour,
-      minute,
-    },
-  }).catch(() => {});
+  if (isRoutine) {
+    await Notifications.scheduleNotificationAsync({
+      identifier: key,
+      content: { title: NOTIF_TITLE, body: title },
+      trigger: {
+        type: Notifications.SchedulableTriggerInputTypes.DAILY,
+        hour,
+        minute,
+      },
+    }).catch(() => {});
+  } else {
+    const now = new Date();
+    const target = new Date(now);
+    target.setHours(hour, minute, 0, 0);
+    if (target <= now) target.setDate(target.getDate() + 1);
+    await Notifications.scheduleNotificationAsync({
+      identifier: key,
+      content: { title: NOTIF_TITLE, body: title },
+      trigger: {
+        type: Notifications.SchedulableTriggerInputTypes.DATE,
+        date: target,
+      },
+    }).catch(() => {});
+  }
 }
 
 export async function cancelTaskReminder(taskId: string): Promise<void> {
