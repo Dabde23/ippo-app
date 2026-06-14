@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import {
   View, StyleSheet, ScrollView, Pressable,
-  Platform, Modal, TextInput, Switch,
+  Platform, Modal, TextInput, Switch, Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -45,11 +45,12 @@ export function ProfileScreen() {
     if (!feedbackText.trim() || feedbackSending) return;
     setFeedbackSending(true);
     try {
-      await fetch(FORMSPREE_URL, {
+      const res = await fetch(FORMSPREE_URL, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ message: feedbackText.trim() }),
       });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
       setFeedbackSent(true);
       setFeedbackText('');
       setTimeout(() => {
@@ -57,8 +58,8 @@ export function ProfileScreen() {
         setFeedbackVisible(false);
       }, 1500);
     } catch {
-      setFeedbackVisible(false);
-      setFeedbackText('');
+      Alert.alert('送信失敗', '送信できませんでした。もう一度お試しください。');
+      // モーダルは開けたまま・入力を保持
     } finally {
       setFeedbackSending(false);
     }
@@ -69,7 +70,7 @@ export function ProfileScreen() {
     if (!email.includes('@') || earlySending) return;
     setEarlySending(true);
     try {
-      await fetch(EARLY_ACCESS_FORMSPREE_URL, {
+      const res = await fetch(EARLY_ACCESS_FORMSPREE_URL, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -77,6 +78,7 @@ export function ProfileScreen() {
           type: 'early_access_registration',
         }),
       });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
       setEarlySent(true);
       setEarlyEmail('');
       setTimeout(() => {
@@ -84,8 +86,8 @@ export function ProfileScreen() {
         setEarlyAccessVisible(false);
       }, 1500);
     } catch {
-      setEarlyAccessVisible(false);
-      setEarlyEmail('');
+      Alert.alert('送信失敗', 'メールアドレスを確認して、もう一度お試しください。');
+      // モーダルは開けたまま・入力を保持
     } finally {
       setEarlySending(false);
     }
