@@ -14,9 +14,10 @@ const IS_WEB = Platform.OS === 'web';
 
 interface Props {
   onClose: () => void;
+  onStartTask: (taskId: string) => void;
 }
 
-export function TaskListPanel({ onClose }: Props) {
+export function TaskListPanel({ onClose, onStartTask }: Props) {
   const { width } = useWindowDimensions();
   const panelWidth = Math.round(width * PANEL_RATIO);
 
@@ -91,15 +92,15 @@ export function TaskListPanel({ onClose }: Props) {
               <>
                 <Text style={styles.sectionLabel}>残り {availableTasks.length} 件</Text>
                 {availableTasks.map((t) => (
-                  <TaskCard key={t.id} task={t} onEdit={() => openEdit(t)} />
+                  <TaskCard key={t.id} task={t} onEdit={() => openEdit(t)} onStart={() => onStartTask(t.id)} />
                 ))}
               </>
             )}
             {skippedTasks.length > 0 && (
               <>
-                <Text style={styles.sectionLabel}>今日あとで {skippedTasks.length} 件</Text>
+                <Text style={styles.sectionLabel}>後回しタスク {skippedTasks.length} 件</Text>
                 {skippedTasks.map((t) => (
-                  <TaskCard key={t.id} task={t} onEdit={() => openEdit(t)} />
+                  <TaskCard key={t.id} task={t} onEdit={() => openEdit(t)} onStart={() => onStartTask(t.id)} />
                 ))}
               </>
             )}

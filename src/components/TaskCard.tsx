@@ -15,9 +15,10 @@ const TIME_OPTIONS = ['07:00','08:00','09:00','10:00','12:00','18:00','20:00','2
 interface Props {
   task: Task;
   onEdit: () => void;
+  onStart?: () => void;
 }
 
-export function TaskCard({ task, onEdit }: Props) {
+export function TaskCard({ task, onEdit, onStart }: Props) {
   const completeTask = useAppStore((s) => s.completeTask);
   const deleteTask = useAppStore((s) => s.deleteTask);
   const deleteRoutine = useAppStore((s) => s.deleteRoutine);
@@ -146,6 +147,15 @@ export function TaskCard({ task, onEdit }: Props) {
               </Pressable>
             ) : null}
           </View>
+          {!task.completed && onStart && (
+            <Pressable
+              style={({ pressed }) => [styles.actionBtn, pressed && styles.actionBtnPressed]}
+              onPress={onStart}
+              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+            >
+              <Text style={styles.startText}>開始</Text>
+            </Pressable>
+          )}
           <Pressable
             style={({ pressed }) => [styles.actionBtn, pressed && styles.actionBtnPressed]}
             onPress={handleDelete}
@@ -272,6 +282,13 @@ const styles = StyleSheet.create({
   editText: {
     fontSize: fontSize.xs,
     color: colors.primary,
+    fontWeight: fontWeight.bold,
+    letterSpacing: 0.3,
+    textTransform: 'uppercase',
+  },
+  startText: {
+    fontSize: fontSize.xs,
+    color: colors.success,
     fontWeight: fontWeight.bold,
     letterSpacing: 0.3,
     textTransform: 'uppercase',

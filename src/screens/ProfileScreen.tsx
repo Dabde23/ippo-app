@@ -463,7 +463,10 @@ export function ProfileScreen() {
         <RoutinePanel onClose={() => setRoutinePanelVisible(false)} />
       )}
       {taskListPanelVisible && (
-        <TaskListPanel onClose={() => setTaskListPanelVisible(false)} />
+        <TaskListPanel
+          onClose={() => setTaskListPanelVisible(false)}
+          onStartTask={() => setTaskListPanelVisible(false)}
+        />
       )}
     </SafeAreaView>
   );

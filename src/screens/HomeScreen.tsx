@@ -39,7 +39,8 @@ export function HomeScreen() {
   const availableTasks = doableTasks.filter((t) => !t.completed && t.skippedDate !== todayStr);
   const skippedTasks = doableTasks.filter((t) => !t.completed && t.skippedDate === todayStr);
   const completedTasks = doableTasks.filter((t) => t.completed);
-  const currentTask = availableTasks.find((t) => t.id === currentTaskId) ?? null;
+  const proposalPool = availableTasks.length > 0 ? availableTasks : skippedTasks;
+  const currentTask = proposalPool.find((t) => t.id === currentTaskId) ?? null;
 
   // Spawn today's routine instances on mount and whenever the app surfaces.
   // Returning from the background across a date boundary must re-sync so
@@ -57,17 +58,31 @@ export function HomeScreen() {
   }, []);
 
   useEffect(() => {
-    if (availableTasks.length === 0) { setCurrentTaskId(null); return; }
-    if (currentTaskId && availableTasks.find((t) => t.id === currentTaskId)) return;
-    const picked = pickRandom(availableTasks);
+    if (proposalPool.length === 0) { setCurrentTaskId(null); return; }
+    if (currentTaskId && proposalPool.find((t) => t.id === currentTaskId)) return;
+    const picked = pickRandom(proposalPool);
     setCurrentTaskId(picked ? (picked as Task).id : null);
-  }, [availableTasks.length]);
+  }, [proposalPool.length, availableTasks.length]);
+  // availableTasks.length の変化（available→0）でも再選択が走るよう deps に追加
 
   const handleSkip = useCallback(() => {
     if (!currentTask) return;
-    skipTask(currentTask.id);
-    setCurrentTaskId((pickRandom(availableTasks, currentTask.id) as Task | null)?.id ?? null);
-  }, [currentTask, availableTasks]);
+    if (availableTasks.length > 0) {
+      // availableフェーズ: skipTask を呼んで次の available から選ぶ
+      skipTask(currentTask.id);
+      const next = pickRandom(availableTasks.filter((t) => t.id !== currentTask.id));
+      setCurrentTaskId((next as Task | null)?.id ?? null);
+    } else {
+      // skippedフェーズ: skipTask は呼ばず次の skipped から選ぶだけ
+      const next = pickRandom(skippedTasks.filter((t) => t.id !== currentTask.id));
+      setCurrentTaskId((next as Task | null)?.id ?? null);
+    }
+  }, [currentTask, availableTasks, skippedTasks, skipTask]);
+
+  function handleStartFromList(taskId: string) {
+    setCurrentTaskId(taskId);
+    setTaskListPanelVisible(false);
+  }
 
   function openAddPopover() {
     setAddInputVisible(true);
@@ -165,14 +180,14 @@ export function HomeScreen() {
             <Text style={styles.emptyTitle}>タスクを追加しよう</Text>
             <Text style={styles.emptyHint}>思いついたことを何でも書いてみて</Text>
           </View>
-        ) : (
+        ) : proposalPool.length === 0 && doableTasks.length > 0 ? (
           <View style={styles.emptyState}>
             <Text style={styles.emptyNum}>✓</Text>
             <View style={styles.headerRule} />
             <Text style={styles.emptyTitle}>今日はここまで！</Text>
             <Text style={styles.emptyHint}>残りは明日また表示されます</Text>
           </View>
-        )}
+        ) : null}
 
         {/* View all */}
         {available > 0 && (
@@ -250,7 +265,10 @@ export function HomeScreen() {
       </Modal>
 
       {taskListPanelVisible && (
-        <TaskListPanel onClose={() => setTaskListPanelVisible(false)} />
+        <TaskListPanel
+          onClose={() => setTaskListPanelVisible(false)}
+          onStartTask={handleStartFromList}
+        />
       )}
     </SafeAreaView>
   );
