@@ -221,10 +221,21 @@ export function TimerScreen() {
               </Pressable>
             );
           })}
-          {/* カスタム入力欄 */}
-          <View style={[styles.presetChip, styles.customChip, customInput !== '' && styles.presetChipActive]}>
+        </View>
+
+        {/* 選択中プリセットの内訳 */}
+        {customInput === '' && (
+          <Text style={styles.presetDetail}>
+            作業 {timerWorkMinutes}分 + 休憩 {getBreakMinutes(timerWorkMinutes)}分
+          </Text>
+        )}
+
+        {/* カスタム設定エリア */}
+        <View style={styles.customArea}>
+          <Text style={styles.customAreaLabel}>カスタム（作業時間）</Text>
+          <View style={styles.customInputRow}>
             <TextInput
-              style={[styles.customInput, customInput !== '' && styles.customInputActive]}
+              style={[styles.customInputField, customInput !== '' && styles.customInputFieldActive]}
               value={customInput}
               onChangeText={(v) => {
                 const n = v.replace(/[^0-9]/g, '');
@@ -239,11 +250,16 @@ export function TimerScreen() {
                 }
               }}
               keyboardType="number-pad"
-              placeholder="分"
+              placeholder="分を入力"
               placeholderTextColor={colors.textDisabled}
               maxLength={3}
               returnKeyType="done"
             />
+            {customInput !== '' && (
+              <Text style={styles.customBreakHint}>
+                ↳ 休憩 {getBreakMinutes(parseInt(customInput, 10))}分（自動）
+              </Text>
+            )}
           </View>
         </View>
 
@@ -404,19 +420,50 @@ const styles = StyleSheet.create({
   presetChipTextActive: {
     color: colors.primary,
   },
-  customChip: {
-    paddingVertical: 0,
+  presetDetail: {
+    fontSize: fontSize.xs,
+    color: colors.textSub,
+    letterSpacing: 0.5,
+    alignSelf: 'flex-start',
+    marginTop: -spacing.sm,
   },
-  customInput: {
+  customArea: {
+    width: '100%',
+    gap: spacing.sm,
+    paddingTop: spacing.xs,
+    borderTopWidth: 1,
+    borderTopColor: colors.border,
+  },
+  customAreaLabel: {
+    fontSize: fontSize.xs,
+    fontWeight: fontWeight.bold,
+    color: colors.textMuted,
+    letterSpacing: 1.5,
+    textTransform: 'uppercase',
+  },
+  customInputRow: {
+    gap: spacing.xs,
+  },
+  customInputField: {
     fontSize: fontSize.sm,
     fontWeight: fontWeight.bold,
     color: colors.textSub,
-    textAlign: 'center',
-    width: '100%',
-    paddingVertical: spacing.md,
+    backgroundColor: colors.surfaceAlt,
+    borderRadius: radius.md,
+    borderWidth: 1.5,
+    borderColor: colors.border,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
   },
-  customInputActive: {
+  customInputFieldActive: {
+    borderColor: colors.primary,
     color: colors.primary,
+  },
+  customBreakHint: {
+    fontSize: fontSize.xs,
+    color: colors.textSub,
+    letterSpacing: 0.3,
+    paddingLeft: spacing.xs,
   },
   ringRow: {
     flexDirection: 'row',
