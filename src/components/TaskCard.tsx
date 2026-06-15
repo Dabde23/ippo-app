@@ -19,14 +19,11 @@ interface Props {
 }
 
 export function TaskCard({ task, onEdit, onStart }: Props) {
-  const completeTask = useAppStore((s) => s.completeTask);
   const deleteTask = useAppStore((s) => s.deleteTask);
   const deleteRoutine = useAppStore((s) => s.deleteRoutine);
   const setTaskReminder = useAppStore((s) => s.setTaskReminder);
   const [timePickerVisible, setTimePickerVisible] = useState(false);
 
-  // 🔔 を表示するのは: 未完了 かつ ルーティンのデイリーインスタンスでない通常タスク
-  const showReminderBtn = !task.completed && !task.routineSourceId;
   const reminderSet = !!task.taskReminderTime;
 
   async function handleReminderPress() {
@@ -44,13 +41,6 @@ export function TaskCard({ task, onEdit, onStart }: Props) {
     if (!granted) return;
     setTaskReminder(task.id, time);
     await scheduleTaskReminder(task.id, task.title, time, !!task.routineSourceId);
-  }
-
-  function handleComplete() {
-    if (task.completed) return;
-    const hadReminder = !!task.taskReminderTime;
-    completeTask(task.id);
-    if (hadReminder) cancelTaskReminder(task.id);
   }
 
   function handleDelete() {
@@ -92,26 +82,37 @@ export function TaskCard({ task, onEdit, onStart }: Props) {
 
   return (
     <View style={[styles.card, task.completed && styles.completedCard]}>
-      <View style={[styles.accentBar, task.completed && styles.accentBarDone]} />
+      <View style={[styles.accentBar, task.completed ? styles.accentBarDone : (task.routineSourceId ? styles.accentBarRoutine : null)]} />
 
-      {/* 左：チェックボックス */}
-      <Pressable
-        style={styles.checkArea}
-        onPress={handleComplete}
-        hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-      >
-        <View style={[styles.checkbox, task.completed && styles.checkboxDone]}>
-          {task.completed && <Text style={styles.checkmark}>✓</Text>}
-        </View>
-      </Pressable>
+      {/* 左：通知ボタン（完了済みは非表示・幅は確保） */}
+      <View style={styles.notifArea}>
+        {!task.completed && (
+          <Pressable onPress={handleReminderPress} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+            <Ionicons
+              name={reminderSet ? 'notifications' : 'notifications-outline'}
+              size={22}
+              color={reminderSet ? colors.primary : colors.textDisabled}
+            />
+          </Pressable>
+        )}
+      </View>
 
       {/* 中央：2行の情報・操作エリア */}
       <View style={styles.inner}>
-        {/* 1行目：タイトル（左）＋ 編集ボタン（右） */}
+        {/* 1行目：タイトル（左）＋ 開始ボタン ＋ 編集ボタン（右） */}
         <View style={styles.row1}>
           <Text style={[styles.title, task.completed && styles.titleDone]} numberOfLines={2}>
             {task.title}
           </Text>
+          {!task.completed && onStart && (
+            <Pressable
+              style={({ pressed }) => [styles.actionBtn, pressed && styles.actionBtnPressed]}
+              onPress={onStart}
+              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+            >
+              <Text style={styles.startText}>開始</Text>
+            </Pressable>
+          )}
           {!task.completed && (
             <Pressable
               style={({ pressed }) => [styles.actionBtn, pressed && styles.actionBtnPressed]}
@@ -123,39 +124,15 @@ export function TaskCard({ task, onEdit, onStart }: Props) {
           )}
         </View>
 
-        {/* 2行目：リマインダー情報（左）＋ 削除ボタン（右） */}
+        {/* 2行目：リマインダー時刻（左・テキストのみ）＋ 削除ボタン（右） */}
         <View style={styles.row2}>
           <View style={styles.row2Info}>
             {task.completed ? (
               <Text style={styles.xpLabel}>+{XP_PER_TASK} XP</Text>
-            ) : showReminderBtn ? (
-              <Pressable
-                style={({ pressed }) => [pressed && styles.actionBtnPressed]}
-                onPress={handleReminderPress}
-                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-              >
-                <View style={styles.reminderRow}>
-                  <Ionicons
-                    name={reminderSet ? 'notifications' : 'notifications-outline'}
-                    size={20}
-                    color={reminderSet ? colors.primary : colors.textDisabled}
-                  />
-                  {reminderSet && (
-                    <Text style={styles.reminderTime}>{task.taskReminderTime}</Text>
-                  )}
-                </View>
-              </Pressable>
+            ) : reminderSet ? (
+              <Text style={styles.reminderTime}>{task.taskReminderTime}</Text>
             ) : null}
           </View>
-          {!task.completed && onStart && (
-            <Pressable
-              style={({ pressed }) => [styles.actionBtn, pressed && styles.actionBtnPressed]}
-              onPress={onStart}
-              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-            >
-              <Text style={styles.startText}>開始</Text>
-            </Pressable>
-          )}
           <Pressable
             style={({ pressed }) => [styles.actionBtn, pressed && styles.actionBtnPressed]}
             onPress={handleDelete}
@@ -213,29 +190,15 @@ const styles = StyleSheet.create({
   accentBarDone: {
     backgroundColor: colors.success,
   },
-  checkArea: {
-    marginRight: spacing.sm,
-    alignSelf: 'flex-start',
-    paddingTop: spacing.xs,
-  },
-  checkbox: {
-    width: 20,
-    height: 20,
-    borderRadius: radius.sm,
-    borderWidth: 1.5,
-    borderColor: colors.border,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: colors.surface,
-  },
-  checkboxDone: {
+  accentBarRoutine: {
     backgroundColor: colors.success,
-    borderColor: colors.success,
   },
-  checkmark: {
-    color: colors.surface,
-    fontSize: fontSize.xs,
-    fontWeight: fontWeight.bold,
+  notifArea: {
+    width: 40,
+    alignItems: 'center',
+    justifyContent: 'flex-start',
+    paddingTop: spacing.xs,
+    marginRight: spacing.sm,
   },
   inner: {
     flex: 1,
@@ -297,11 +260,6 @@ const styles = StyleSheet.create({
     fontSize: fontSize.lg,
     color: colors.danger,
     lineHeight: 20,
-  },
-  reminderRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.xs,
   },
   reminderTime: {
     fontSize: fontSize.xs,

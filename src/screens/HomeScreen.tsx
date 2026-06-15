@@ -2,8 +2,9 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   View, StyleSheet, Pressable, TextInput,
   Modal, ScrollView, Switch,
-  AppState, KeyboardAvoidingView,
+  AppState, KeyboardAvoidingView, Platform,
 } from 'react-native';
+import * as Notifications from 'expo-notifications';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { Text } from '../components/Text';
@@ -55,6 +56,20 @@ export function HomeScreen() {
     });
 
     return () => subscription.remove();
+  }, []);
+
+  // 通知タップ → 該当タスクをフォーカスカードにセット
+  useEffect(() => {
+    if (Platform.OS === 'web') return;
+    const sub = Notifications.addNotificationResponseReceivedListener((response) => {
+      const identifier = response.notification.request.identifier;
+      const match = identifier.match(/^task-reminder-(.+)$/);
+      if (!match) return;
+      const taskId = match[1];
+      const task = useAppStore.getState().tasks.find((t) => t.id === taskId && !t.completed);
+      if (task) setCurrentTaskId(taskId);
+    });
+    return () => sub.remove();
   }, []);
 
   useEffect(() => {
@@ -148,7 +163,7 @@ export function HomeScreen() {
 
             {/* Focus card */}
             <View style={styles.focusCard}>
-              <View style={styles.focusCardBar} />
+              <View style={[styles.focusCardBar, { backgroundColor: currentTask.routineSourceId ? colors.success : colors.primary }]} />
               <View style={styles.focusCardBody}>
                 <Text style={styles.focusTitle}>{currentTask.title}</Text>
                 <View style={styles.focusFooter}>
@@ -368,7 +383,6 @@ const styles = StyleSheet.create({
   },
   focusCardBar: {
     height: 4,
-    backgroundColor: colors.primary,
   },
   focusCardBody: {
     padding: spacing.xl,
