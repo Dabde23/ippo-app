@@ -21,8 +21,8 @@ function getBreakMinutes(workMin: number): number {
   return workMin === 50 ? 10 : 5;
 }
 
-const RING_SIZE = 240;
-const RING_STROKE = 16;
+const RING_SIZE = 200;
+const RING_STROKE = 14;
 const RING_R = (RING_SIZE - RING_STROKE) / 2;
 const RING_CIRCUMFERENCE = 2 * Math.PI * RING_R;
 
@@ -33,6 +33,7 @@ export function TimerScreen() {
   const [isRunning, setIsRunning] = useState(false);
   const [mode, setMode] = useState<'work' | 'break'>('work');
   const [customInput, setCustomInput] = useState('');
+  const [showCustomInput, setShowCustomInput] = useState(false);
   // 集中度モーダル: 完了タスクのスナップショットを保持して表示
   const [focusTarget, setFocusTarget] = useState<{ id: string; title: string } | null>(null);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -130,6 +131,7 @@ export function TimerScreen() {
     cancelTimerEndNotification();
     setTimerWorkMinutes(workMin);
     setCustomInput('');
+    setShowCustomInput(false);
     setMode('work');
     const sec = workMin * 60;
     setSeconds(sec);
@@ -210,7 +212,7 @@ export function TimerScreen() {
         {/* プリセット選択行 */}
         <View style={styles.presetRow}>
           {PRESETS.map((p) => {
-            const isActive = timerWorkMinutes === p.work && customInput === '';
+            const isActive = timerWorkMinutes === p.work && !showCustomInput;
             return (
               <Pressable
                 key={p.label}
@@ -221,19 +223,17 @@ export function TimerScreen() {
               </Pressable>
             );
           })}
+          <Pressable
+            style={({ pressed }) => [styles.presetChip, showCustomInput && styles.presetChipActive, pressed && { opacity: 0.7 }]}
+            onPress={() => setShowCustomInput((v) => !v)}
+          >
+            <Text style={[styles.presetChipText, showCustomInput && styles.presetChipTextActive]}>カスタム</Text>
+          </Pressable>
         </View>
 
-        {/* 選択中プリセットの内訳 */}
-        {customInput === '' && (
-          <Text style={styles.presetDetail}>
-            作業 {timerWorkMinutes}分 + 休憩 {getBreakMinutes(timerWorkMinutes)}分
-          </Text>
-        )}
-
-        {/* カスタム設定エリア */}
-        <View style={styles.customArea}>
-          <Text style={styles.customAreaLabel}>カスタム（作業時間）</Text>
-          <View style={styles.customInputRow}>
+        {/* 選択中プリセットの内訳 / カスタム入力欄 */}
+        {showCustomInput ? (
+          <View style={styles.customArea}>
             <TextInput
               style={[styles.customInputField, customInput !== '' && styles.customInputFieldActive]}
               value={customInput}
@@ -250,10 +250,11 @@ export function TimerScreen() {
                 }
               }}
               keyboardType="number-pad"
-              placeholder="分を入力"
+              placeholder="作業時間（分）を入力"
               placeholderTextColor={colors.textDisabled}
               maxLength={3}
               returnKeyType="done"
+              autoFocus
             />
             {customInput !== '' && (
               <Text style={styles.customBreakHint}>
@@ -261,7 +262,11 @@ export function TimerScreen() {
               </Text>
             )}
           </View>
-        </View>
+        ) : (
+          <Text style={styles.presetDetail}>
+            作業 {timerWorkMinutes}分 + 休憩 {getBreakMinutes(timerWorkMinutes)}分
+          </Text>
+        )}
 
         {/* Ring + start/pause */}
         <View style={styles.ringRow}>
@@ -429,19 +434,6 @@ const styles = StyleSheet.create({
   },
   customArea: {
     width: '100%',
-    gap: spacing.sm,
-    paddingTop: spacing.xs,
-    borderTopWidth: 1,
-    borderTopColor: colors.border,
-  },
-  customAreaLabel: {
-    fontSize: fontSize.xs,
-    fontWeight: fontWeight.bold,
-    color: colors.textMuted,
-    letterSpacing: 1.5,
-    textTransform: 'uppercase',
-  },
-  customInputRow: {
     gap: spacing.xs,
   },
   customInputField: {
@@ -479,9 +471,9 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   ringInner: {
-    width: 208,
-    height: 208,
-    borderRadius: 104,
+    width: 172,
+    height: 172,
+    borderRadius: 86,
     backgroundColor: colors.background,
     alignItems: 'center',
     justifyContent: 'center',
