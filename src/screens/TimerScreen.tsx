@@ -111,7 +111,7 @@ export function TimerScreen() {
       phaseEndTimeRef.current = Date.now() + timerWorkMinutes * 60 * 1000;
       setIsRunning(true);
       scheduleTimerEndNotification(timerWorkMinutes * 60, 'ブレイクの時間です');
-    }, 1000);
+    }, 2000);
     return () => { if (autostartRef.current) clearTimeout(autostartRef.current); };
   }, [timerTaskId]);
 
@@ -133,9 +133,13 @@ export function TimerScreen() {
     setMode('work');
     const sec = workMin * 60;
     setSeconds(sec);
-    phaseEndTimeRef.current = Date.now() + sec * 1000;
-    setIsRunning(true);
-    scheduleTimerEndNotification(sec, 'ブレイクの時間です');
+    setIsRunning(false);
+    phaseEndTimeRef.current = null;
+    autostartRef.current = setTimeout(() => {
+      phaseEndTimeRef.current = Date.now() + sec * 1000;
+      setIsRunning(true);
+      scheduleTimerEndNotification(sec, 'ブレイクの時間です');
+    }, 2000);
   }
 
   const handleComplete = useCallback(() => {
