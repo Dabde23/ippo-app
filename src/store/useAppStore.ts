@@ -106,6 +106,7 @@ interface AppState {
   editTask: (id: string, title: string) => void;
   deleteTask: (id: string) => void;
   deleteRoutine: (id: string) => void;
+  clearCompletedTasks: () => void;
   syncRoutineTasks: () => void;
   dismissBadge: () => void;
   togglePremium: () => void;
@@ -210,6 +211,10 @@ export const useAppStore = create<AppState>()(
           tasks: state.tasks.filter((t) => t.id !== id && t.routineSourceId !== id),
           reminders: state.reminders.filter((r) => r.routineTaskId !== id),
         }));
+      },
+
+      clearCompletedTasks: () => {
+        set((state) => ({ tasks: state.tasks.filter((t) => !t.completed) }));
       },
 
       // Spawn a daily instance for each routine template that hasn't been

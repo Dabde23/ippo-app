@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Pressable, StyleSheet, Alert, Platform, Modal } from 'react-native';
+import { View, Pressable, StyleSheet, Alert, Platform, Modal, Linking } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Text } from './Text';
 import { Task, useAppStore, XP_PER_TASK } from '../store/useAppStore';
@@ -46,7 +46,19 @@ export function TaskCard({ task, onEdit, onStart }: Props) {
   async function handleTimeSelect(time: string) {
     setTimePickerVisible(false);
     const granted = await requestNotificationPermission();
-    if (!granted) return;
+    if (!granted) {
+      if (Platform.OS !== 'web') {
+        Alert.alert(
+          '通知の許可が必要です',
+          '設定アプリから「いっぽ」の通知を許可してください。',
+          [
+            { text: 'キャンセル', style: 'cancel' },
+            { text: '設定を開く', onPress: () => Linking.openSettings() },
+          ]
+        );
+      }
+      return;
+    }
     setTaskReminder(task.id, time);
     await scheduleTaskReminder(task.id, task.title, time, !!task.routineSourceId);
   }

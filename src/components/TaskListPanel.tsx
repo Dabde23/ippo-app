@@ -22,6 +22,7 @@ export function TaskListPanel({ onClose, onStartTask }: Props) {
   const panelWidth = Math.round(width * PANEL_RATIO);
 
   const tasks = useAppStore((s) => s.tasks);
+  const clearCompletedTasks = useAppStore((s) => s.clearCompletedTasks);
   const todayStr = today();
   const doableTasks = tasks.filter((t) => t.isRoutine !== true);
   const availableTasks = doableTasks.filter((t) => !t.completed && t.skippedDate !== todayStr);
@@ -106,7 +107,24 @@ export function TaskListPanel({ onClose, onStartTask }: Props) {
             )}
             {completedTasks.length > 0 && (
               <>
-                <Text style={styles.sectionLabel}>完了 {completedTasks.length} 件</Text>
+                <View style={styles.sectionLabelRow}>
+                  <Text style={styles.sectionLabel}>完了 {completedTasks.length} 件</Text>
+                  <Pressable
+                    style={({ pressed }) => [styles.clearBtn, pressed && { opacity: 0.6 }]}
+                    onPress={() => {
+                      if (Platform.OS === 'web') {
+                        if (window.confirm('完了済みタスクをすべて削除しますか？')) clearCompletedTasks();
+                        return;
+                      }
+                      Alert.alert('完了済みを削除', 'すべての完了済みタスクを削除しますか？', [
+                        { text: 'キャンセル', style: 'cancel' },
+                        { text: '削除', style: 'destructive', onPress: clearCompletedTasks },
+                      ]);
+                    }}
+                  >
+                    <Text style={styles.clearBtnText}>すべて削除</Text>
+                  </Pressable>
+                </View>
                 {completedTasks.map((t) => (
                   <TaskCard key={t.id} task={t} onEdit={() => openEdit(t)} />
                 ))}
@@ -239,6 +257,13 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.md,
     paddingTop: spacing.lg,
   },
+  sectionLabelRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginTop: spacing.md,
+    marginBottom: spacing.xs,
+  },
   sectionLabel: {
     fontSize: fontSize.xs,
     fontWeight: fontWeight.bold,
@@ -247,6 +272,16 @@ const styles = StyleSheet.create({
     textTransform: 'uppercase',
     marginTop: spacing.md,
     marginBottom: spacing.xs,
+  },
+  clearBtn: {
+    paddingHorizontal: spacing.sm,
+    paddingVertical: spacing.xs,
+  },
+  clearBtnText: {
+    fontSize: fontSize.xs,
+    color: colors.danger,
+    fontWeight: fontWeight.bold,
+    letterSpacing: 0.5,
   },
   emptyState: {
     paddingVertical: spacing.xxl,
