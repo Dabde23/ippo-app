@@ -190,7 +190,7 @@ export function HomeScreen() {
         ) : null}
 
         {/* View all */}
-        {available > 0 && (
+        {(available > 0 || skippedTasks.length > 0) && (
           <Pressable
             style={({ pressed }) => [styles.viewAllBtn, pressed && { opacity: 0.5 }]}
             onPress={() => setTaskListPanelVisible(true)}
