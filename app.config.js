@@ -24,6 +24,7 @@ export default {
     },
     android: {
       package: IS_DEV ? 'com.dabde.ippoapp.dev' : 'com.dabde.ippoapp',
+      permissions: ['SCHEDULE_EXACT_ALARM'],
       adaptiveIcon: {
         backgroundColor: '#F7F3EE',
         foregroundImage: './assets/android-icon-foreground.png',
