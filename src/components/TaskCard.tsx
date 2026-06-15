@@ -19,12 +19,20 @@ interface Props {
 }
 
 export function TaskCard({ task, onEdit, onStart }: Props) {
+  const completeTask = useAppStore((s) => s.completeTask);
   const deleteTask = useAppStore((s) => s.deleteTask);
   const deleteRoutine = useAppStore((s) => s.deleteRoutine);
   const setTaskReminder = useAppStore((s) => s.setTaskReminder);
   const [timePickerVisible, setTimePickerVisible] = useState(false);
 
   const reminderSet = !!task.taskReminderTime;
+
+  function handleComplete() {
+    if (task.completed) return;
+    const hadReminder = !!task.taskReminderTime;
+    completeTask(task.id);
+    if (hadReminder) cancelTaskReminder(task.id);
+  }
 
   async function handleReminderPress() {
     if (reminderSet) {
@@ -84,13 +92,21 @@ export function TaskCard({ task, onEdit, onStart }: Props) {
     <View style={[styles.card, task.completed && styles.completedCard]}>
       <View style={[styles.accentBar, task.completed ? styles.accentBarDone : (task.routineSourceId ? styles.accentBarRoutine : null)]} />
 
-      {/* 左：通知ボタン（完了済みは非表示・幅は確保） */}
+      {/* 左：チェックボックス（上）+ 通知ボタン（下・未完了時のみ） */}
       <View style={styles.notifArea}>
+        <Pressable
+          onPress={handleComplete}
+          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+        >
+          <View style={[styles.checkbox, task.completed && styles.checkboxDone]}>
+            {task.completed && <Text style={styles.checkmark}>✓</Text>}
+          </View>
+        </Pressable>
         {!task.completed && (
           <Pressable onPress={handleReminderPress} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
             <Ionicons
               name={reminderSet ? 'notifications' : 'notifications-outline'}
-              size={22}
+              size={20}
               color={reminderSet ? colors.primary : colors.textDisabled}
             />
           </Pressable>
@@ -197,8 +213,29 @@ const styles = StyleSheet.create({
     width: 40,
     alignItems: 'center',
     justifyContent: 'flex-start',
+    flexDirection: 'column',
+    gap: spacing.sm,
     paddingTop: spacing.xs,
     marginRight: spacing.sm,
+  },
+  checkbox: {
+    width: 20,
+    height: 20,
+    borderRadius: radius.sm,
+    borderWidth: 1.5,
+    borderColor: colors.border,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.surface,
+  },
+  checkboxDone: {
+    backgroundColor: colors.success,
+    borderColor: colors.success,
+  },
+  checkmark: {
+    color: colors.surface,
+    fontSize: fontSize.xs,
+    fontWeight: fontWeight.bold,
   },
   inner: {
     flex: 1,
