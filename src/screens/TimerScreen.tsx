@@ -9,7 +9,7 @@ import { TimerDisplay } from '../components/TimerDisplay';
 import { FocusModal } from '../components/FocusModal';
 import { colors, spacing, radius, fontSize, fontWeight, shadow } from '../theme';
 import { useAppStore } from '../store/useAppStore';
-import { scheduleTimerEndNotification, cancelTimerEndNotification } from '../services/NotificationService';
+import { scheduleTimerEndNotification, cancelTimerEndNotification, cancelTaskReminder } from '../services/NotificationService';
 
 const PRESETS = [
   { label: '15分', work: 10, break: 5 },
@@ -142,6 +142,7 @@ export function TimerScreen() {
     if (!timerTask) return;
     if (autostartRef.current) clearTimeout(autostartRef.current);
     cancelTimerEndNotification();
+    if (timerTask.taskReminderTime) cancelTaskReminder(timerTask.id);
     const completed = { id: timerTask.id, title: timerTask.title };
     completeTask(completed.id);
     setIsRunning(false);
