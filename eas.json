@@ -15,6 +15,7 @@
       }
     },
     "preview": {
+      "autoIncrement": true,
       "android": {
         "distribution": "internal",
         "buildType": "app-bundle"
