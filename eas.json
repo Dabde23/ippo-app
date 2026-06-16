@@ -28,6 +28,11 @@
     }
   },
   "submit": {
+    "preview": {
+      "ios": {
+        "appleTeamId": "642PG4M63T"
+      }
+    },
     "production": {}
   }
 }
