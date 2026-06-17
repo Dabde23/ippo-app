@@ -1,5 +1,5 @@
 import * as Notifications from 'expo-notifications';
-import { Platform } from 'react-native';
+import { Platform, Linking } from 'react-native';
 import type { Reminder } from '../store/useAppStore';
 
 if (Platform.OS !== 'web') {
@@ -15,6 +15,61 @@ if (Platform.OS !== 'web') {
 }
 
 const NOTIF_TITLE = 'ippo からのお知らせ';
+
+// ── 通知カテゴリ（アクションボタン）──
+// 識別子に `:` `-` は使えない制約があるためアンダースコア表記。
+export const REMINDER_CATEGORY = 'ippo_reminder';
+export const ACTION_START = 'start'; // 今すぐ開始
+export const ACTION_LATER = 'later'; // 次に回す
+const NOTIF_CHANNEL_ID = 'reminders';
+
+// アプリ起動時に一度だけ呼び、リマインダー通知のアクションボタンを登録する。
+// プラットフォーム差: Android はボタン常時表示。iOS は権限付与後＆展開時に出る場合あり。
+// web はカテゴリ非対応のため何もしない。
+let categoryRegistered = false;
+export async function registerNotificationCategories(): Promise<void> {
+  if (Platform.OS === 'web') return;
+  if (categoryRegistered) return;
+  categoryRegistered = true;
+  // Android: 通知チャンネルを明示生成（ヘッドアップ表示の品質向上。遅延とは無関係）
+  if (Platform.OS === 'android') {
+    await Notifications.setNotificationChannelAsync(NOTIF_CHANNEL_ID, {
+      name: 'リマインダー',
+      importance: Notifications.AndroidImportance.HIGH,
+    }).catch(() => {});
+  }
+  await Notifications.setNotificationCategoryAsync(REMINDER_CATEGORY, [
+    {
+      identifier: ACTION_START,
+      buttonTitle: '今すぐ開始',
+      options: { opensAppToForeground: true },
+    },
+    {
+      identifier: ACTION_LATER,
+      buttonTitle: '次に回す',
+      options: { opensAppToForeground: false },
+    },
+  ]).catch(() => {});
+}
+
+// ── H-6: 正確アラーム（SCHEDULE_EXACT_ALARM）誘導 ──
+// expo-notifications v56 は canScheduleExactAlarms を公開していないため、
+// 可否の自動判定はせず、ユーザー起動型で端末の「アラームとリマインダー」設定を開く。
+// Android 13+ では既定で未許可のため、未許可だと不正確アラームにフォールバックし数分遅延する。
+export async function openExactAlarmSettings(): Promise<void> {
+  if (Platform.OS !== 'android') {
+    // iOS/web は正確アラームの概念が無い（OSが正確に発火）。アプリ設定を開くだけ。
+    await Linking.openSettings().catch(() => {});
+    return;
+  }
+  try {
+    // アプリ別「アラームとリマインダー」設定を直接開く
+    await Linking.sendIntent('android.settings.REQUEST_SCHEDULE_EXACT_ALARM');
+  } catch {
+    // 端末が当該インテント未対応の場合はアプリ設定へフォールバック
+    await Linking.openSettings().catch(() => {});
+  }
+}
 
 // ── 通知 ID 体系 ──
 // 定刻通知:     reminder-{reminderId}-day-{day}
@@ -110,10 +165,19 @@ export async function scheduleReminders(reminders: Reminder[], message: string):
 
   for (const reminder of reminders) {
     const [hour, minute] = reminder.time.split(':').map(Number);
+    // ルーティン連動リマインダーは routineTaskId を taskId として埋め、通知から提示置換できるようにする。
+    // タスク非紐づけの独立リマインダーは taskId を持たず、本体タップでアプリを開くだけになる。
+    const content: Notifications.NotificationContentInput = {
+      title: NOTIF_TITLE,
+      body: reminder.name.trim() || message,
+      categoryIdentifier: REMINDER_CATEGORY,
+      ...(reminder.routineTaskId ? { data: { taskId: reminder.routineTaskId } } : {}),
+      ...(Platform.OS === 'android' ? { channelId: NOTIF_CHANNEL_ID } : {}),
+    };
     for (const day of reminder.days) {
       await Notifications.scheduleNotificationAsync({
         identifier: `reminder-${reminder.id}-day-${day}`,
-        content: { title: NOTIF_TITLE, body: reminder.name.trim() || message },
+        content,
         trigger: {
           type: Notifications.SchedulableTriggerInputTypes.WEEKLY,
           weekday: toExpoWeekday(day),
@@ -178,11 +242,19 @@ export async function scheduleTaskReminder(
   }
 
   // ネイティブ: ルーティンは DAILY、単発タスクは DATE（次の該当時刻に1回）
+  // content には taskId と アクションボタン用カテゴリを必ず付与（応答ハンドリングがデータ駆動で動く）。
+  const content: Notifications.NotificationContentInput = {
+    title: NOTIF_TITLE,
+    body: title,
+    categoryIdentifier: REMINDER_CATEGORY,
+    data: { taskId },
+    ...(Platform.OS === 'android' ? { channelId: NOTIF_CHANNEL_ID } : {}),
+  };
   await Notifications.cancelScheduledNotificationAsync(key).catch(() => {});
   if (isRoutine) {
     await Notifications.scheduleNotificationAsync({
       identifier: key,
-      content: { title: NOTIF_TITLE, body: title },
+      content,
       trigger: {
         type: Notifications.SchedulableTriggerInputTypes.DAILY,
         hour,
@@ -196,7 +268,7 @@ export async function scheduleTaskReminder(
     if (target <= now) target.setDate(target.getDate() + 1);
     await Notifications.scheduleNotificationAsync({
       identifier: key,
-      content: { title: NOTIF_TITLE, body: title },
+      content,
       trigger: {
         type: Notifications.SchedulableTriggerInputTypes.DATE,
         date: target,

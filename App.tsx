@@ -6,10 +6,17 @@ import { Platform } from 'react-native';
 import { Analytics } from '@vercel/analytics/react';
 import { AppNavigator } from './src/navigation/AppNavigator';
 import { useAppStore } from './src/store/useAppStore';
-import { scheduleReminders, scheduleTaskReminder } from './src/services/NotificationService';
+import { scheduleReminders, scheduleTaskReminder, registerNotificationCategories } from './src/services/NotificationService';
 
 export default function App() {
   const [loaded] = useFonts({ BIZUDPGothic_400Regular, BIZUDPGothic_700Bold });
+
+  // 起動時にリマインダー通知のアクションボタン（今すぐ開始 / 次に回す）カテゴリを登録。
+  // ネイティブのみ。web はカテゴリ非対応のため no-op。
+  useEffect(() => {
+    if (Platform.OS === 'web') return;
+    registerNotificationCategories();
+  }, []);
 
   useEffect(() => {
     if (Platform.OS !== 'web') return;

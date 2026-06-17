@@ -88,6 +88,8 @@ interface AppState {
   moodEntries: MoodEntry[];
   focusEntries: FocusEntry[];
   focusPromptEnabled: boolean;
+  // リマインダー「次に回す」の FIFO 提示キュー（taskId を来た順に保持）。永続化しない。
+  reminderQueue: string[];
 
   addTask: (title: string, isRoutine?: boolean) => string;
   completeTask: (id: string) => void;
@@ -116,6 +118,16 @@ interface AppState {
   getMoodEntriesForDate: (date: string) => MoodEntry[];
   getMoodAverageForDate: (date: string) => number | null;
   getFocusEntriesForDate: (date: string) => FocusEntry[];
+  // ── リマインダー通知アクション系 ──
+  // 指定 taskId が「JST の今日すでに完了済み」か。単発タスク=そのまま completed か、
+  // ルーティンテンプレ=当日インスタンスが completed かを見る（完了済み抑制の判定）。
+  isReminderTaskDoneToday: (taskId: string) => boolean;
+  // 「次に回す」: FIFO キュー末尾へ taskId を追加（重複は末尾に寄せ直さず無視）。
+  enqueueReminder: (taskId: string) => void;
+  // キューから「いま有効な（当日プールに居て未完了の）」先頭 taskId を取り出す。
+  // 無効な taskId は捨てながら走査し、無ければ null。
+  dequeueValidReminder: () => string | null;
+  clearReminderQueue: () => void;
 }
 
 export const useAppStore = create<AppState>()(
@@ -134,6 +146,7 @@ export const useAppStore = create<AppState>()(
       moodEntries: [],
       focusEntries: [],
       focusPromptEnabled: true,
+      reminderQueue: [],
 
       addTask: (title, isRoutine = false) => {
         const t = today();
@@ -335,6 +348,62 @@ export const useAppStore = create<AppState>()(
       getFocusEntriesForDate: (date) => {
         return get().focusEntries.filter((e) => dateOfJST(e.timestamp) === date);
       },
+
+      isReminderTaskDoneToday: (taskId) => {
+        const t = today();
+        const tasks = get().tasks;
+        const target = tasks.find((task) => task.id === taskId);
+        if (!target) return false;
+        if (target.isRoutine === true) {
+          // ルーティンテンプレ: 当日インスタンスが完了済みなら抑制
+          const instance = tasks.find(
+            (task) => task.routineSourceId === taskId && task.routineSpawnDate === t
+          );
+          return !!instance && instance.completed;
+        }
+        // 単発タスク or 当日インスタンス: そのまま完了済みか
+        return target.completed === true;
+      },
+
+      enqueueReminder: (taskId) => {
+        set((s) =>
+          s.reminderQueue.includes(taskId)
+            ? s
+            : { reminderQueue: [...s.reminderQueue, taskId] }
+        );
+      },
+
+      dequeueValidReminder: () => {
+        const queue = get().reminderQueue;
+        if (queue.length === 0) return null;
+        const t = today();
+        const tasks = get().tasks;
+        const isValid = (id: string): boolean => {
+          const task = tasks.find((x) => x.id === id);
+          // 当日プールに居て・未完了・当日スキップ降格されていない単発タスクのみ提示対象
+          return (
+            !!task &&
+            task.isRoutine !== true &&
+            !task.completed &&
+            task.skippedDate !== t
+          );
+        };
+        let pickedIndex = -1;
+        for (let i = 0; i < queue.length; i++) {
+          if (isValid(queue[i])) { pickedIndex = i; break; }
+        }
+        if (pickedIndex === -1) {
+          // 有効なものが無い → キューを空にして null
+          set({ reminderQueue: [] });
+          return null;
+        }
+        const picked = queue[pickedIndex];
+        // 先頭から picked までの無効分も合わせて捨てる（FIFO・古い無効を残さない）
+        set({ reminderQueue: queue.slice(pickedIndex + 1) });
+        return picked;
+      },
+
+      clearReminderQueue: () => set({ reminderQueue: [] }),
     }),
     {
       name: 'adhd-app-storage',

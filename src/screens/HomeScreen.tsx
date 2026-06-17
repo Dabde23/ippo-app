@@ -2,9 +2,10 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   View, StyleSheet, Pressable, TextInput,
   Modal, ScrollView, Switch,
-  AppState, KeyboardAvoidingView, Platform,
+  AppState, KeyboardAvoidingView, Platform, Alert,
 } from 'react-native';
 import * as Notifications from 'expo-notifications';
+import { ACTION_START, ACTION_LATER } from '../services/NotificationService';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { Text } from '../components/Text';
@@ -58,16 +59,76 @@ export function HomeScreen() {
     return () => subscription.remove();
   }, []);
 
-  // 通知タップ → 該当タスクをフォーカスカードにセット
+  // 通知への応答ハンドリング（本体タップ / 「今すぐ開始」 / 「次に回す」）。
+  // - 完了済み抑制: その日（JST）すでに完了済みのタスクには何もしない（蒸し返さない）。
+  // - 本体タップ: アプリを開くだけ（提示は置換しない）。
+  // - 今すぐ開始: 提示タスクを置換。タイマー作動中なら確認を挟む（案A）。
+  // - 次に回す: FIFO キューへ予約（現作業は中断しない）。
   useEffect(() => {
     if (Platform.OS === 'web') return;
     const sub = Notifications.addNotificationResponseReceivedListener((response) => {
-      const identifier = response.notification.request.identifier;
-      const match = identifier.match(/^task-reminder-(.+)$/);
-      if (!match) return;
-      const taskId = match[1];
-      const task = useAppStore.getState().tasks.find((t) => t.id === taskId && !t.completed);
-      if (task) setCurrentTaskId(taskId);
+      const req = response.notification.request;
+      // taskId は通知データ優先、無ければ識別子からフォールバック抽出。
+      const dataTaskId = (req.content.data as any)?.taskId;
+      const match = req.identifier.match(/^task-reminder-(.+)$/);
+      const taskId: string | undefined = dataTaskId ?? (match ? match[1] : undefined);
+      if (!taskId) return; // タスク非紐づけの独立リマインダー → 開くだけ
+
+      const store = useAppStore.getState();
+      // 完了済み抑制（受信時）: 当日すでに完了済みなら提示置換もキュー追加もしない。
+      if (store.isReminderTaskDoneToday(taskId)) return;
+
+      // ルーティンテンプレ id の場合は当日インスタンスへ解決（インスタンスが提示対象）。
+      const t = today();
+      const tasks = store.tasks;
+      let targetId = taskId;
+      const direct = tasks.find((x) => x.id === taskId);
+      if (direct?.isRoutine) {
+        const instance = tasks.find(
+          (x) => x.routineSourceId === taskId && x.routineSpawnDate === t
+        );
+        if (!instance) return; // 当日インスタンスが無ければ対象なし
+        targetId = instance.id;
+      }
+      // 提示対象として有効か（未完了・当日プール）。
+      const target = tasks.find((x) => x.id === targetId);
+      if (!target || target.completed || target.isRoutine) return;
+
+      const action = response.actionIdentifier;
+
+      if (action === ACTION_LATER) {
+        store.enqueueReminder(targetId);
+        return;
+      }
+
+      // ACTION_START または 本体タップ（DEFAULT）。
+      // 本体タップは「開くだけ＝置換しない」が決定だが、提示が空のときは置換して着手導線を確保する。
+      const isStart = action === ACTION_START;
+      if (!isStart) {
+        // 本体タップ: 提示は置換しない（ただし現提示が無ければ初期提示として採用）
+        setCurrentTaskId((prev) => prev ?? targetId);
+        return;
+      }
+
+      // 「今すぐ開始」: タイマー作動中なら確認を挟む（案A）。
+      if (store.timerTaskId !== null) {
+        Alert.alert(
+          '作業を切り替えますか？',
+          '今の作業を中断して、こちらに切り替えますか？',
+          [
+            { text: 'そのまま続ける', style: 'cancel' },
+            {
+              text: '切り替える',
+              onPress: () => {
+                useAppStore.getState().setTimerTask(null);
+                setCurrentTaskId(targetId);
+              },
+            },
+          ]
+        );
+        return;
+      }
+      setCurrentTaskId(targetId);
     });
     return () => sub.remove();
   }, []);
@@ -75,6 +136,12 @@ export function HomeScreen() {
   useEffect(() => {
     if (proposalPool.length === 0) { setCurrentTaskId(null); return; }
     if (currentTaskId && proposalPool.find((t) => t.id === currentTaskId)) return;
+    // 「次に回す」予約があればFIFOで優先提示。無効分は捨てられる。無ければランダム。
+    const queued = useAppStore.getState().dequeueValidReminder();
+    if (queued && proposalPool.find((t) => t.id === queued)) {
+      setCurrentTaskId(queued);
+      return;
+    }
     const picked = pickRandom(proposalPool);
     setCurrentTaskId(picked ? (picked as Task).id : null);
   }, [proposalPool.length, availableTasks.length]);

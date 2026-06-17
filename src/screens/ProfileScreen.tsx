@@ -16,6 +16,7 @@ import { useAppStore } from '../store/useAppStore';
 import {
   requestNotificationPermission,
   scheduleReminders,
+  openExactAlarmSettings,
 } from '../services/NotificationService';
 import { colors, spacing, radius, fontSize, fontWeight, shadow } from '../theme';
 
@@ -309,6 +310,23 @@ export function ProfileScreen() {
                   {reminders.length >= 10 ? '＋ 時刻を追加（上限10件）' : '＋ 時刻を追加'}
                 </Text>
               </Pressable>
+
+              {/* H-6: 正確アラーム誘導（Android のみ・通知が数分遅れる場合の案内） */}
+              {Platform.OS === 'android' && (
+                <View style={styles.exactAlarmHint}>
+                  <Text style={styles.exactAlarmHintText}>
+                    通知が数分遅れて届く場合は、端末の「アラームとリマインダー」をオンにしてください。
+                  </Text>
+                  <Pressable
+                    style={({ pressed }) => [styles.exactAlarmBtn, pressed && { opacity: 0.6 }]}
+                    onPress={() => openExactAlarmSettings()}
+                    hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
+                  >
+                    <Ionicons name="alarm-outline" size={16} color={colors.primary} />
+                    <Text style={styles.exactAlarmBtnText}>設定を開く</Text>
+                  </Pressable>
+                </View>
+              )}
             </>
           )}
 
@@ -730,6 +748,31 @@ const styles = StyleSheet.create({
   },
   addReminderTextDisabled: {
     color: colors.textMuted,
+  },
+  exactAlarmHint: {
+    marginTop: spacing.md,
+    paddingTop: spacing.sm,
+    borderTopWidth: 1,
+    borderTopColor: colors.border,
+    gap: spacing.xs,
+  },
+  exactAlarmHintText: {
+    fontSize: fontSize.xs,
+    color: colors.textMuted,
+    lineHeight: 18,
+  },
+  exactAlarmBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    alignSelf: 'flex-start',
+    paddingVertical: spacing.xs,
+  },
+  exactAlarmBtnText: {
+    fontSize: fontSize.sm,
+    color: colors.primary,
+    fontWeight: fontWeight.bold,
+    letterSpacing: 0.5,
   },
   timeBtn: {
     backgroundColor: colors.surfaceAlt,
