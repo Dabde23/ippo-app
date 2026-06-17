@@ -56,7 +56,9 @@ export interface FocusEntry {
   memo?: string;
 }
 
-export const PREMIUM_PRICE_JPY = 500;
+// アーリーアクセス(EA)価格。正式リリースは ¥580、EA 期間中は ¥350/月（永続）。
+// EA 期間中はこの値を表示する（決定: 2026-06-17 価格・GTM）。
+export const PREMIUM_PRICE_JPY = 350;
 export const CANCEL_NOTICE_DAYS = 5;
 export const XP_PER_TASK = 10;
 

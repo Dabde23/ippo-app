@@ -13,9 +13,8 @@ interface Props {
 }
 
 export function PremiumLock({ featureName, onUpgrade, children, locked }: Props) {
-  // BETA: 全機能開放 —— ベータ期間中はロックを常に無効化し、子要素をそのまま表示する。
-  // EA（アーリーアクセス）移行時に下の早期returnを削除し、locked プロップで制御を戻す。
-  const isLocked = false; // BETA: 元々は `locked ?? true`
+  // locked は呼び出し側（= !isPremium）で制御する。未指定なら有料扱い（ロック）。
+  const isLocked = locked ?? true;
   if (!isLocked) {
     return <>{children}</>;
   }
@@ -25,7 +24,8 @@ export function PremiumLock({ featureName, onUpgrade, children, locked }: Props)
       <Text style={styles.icon}>🔒</Text>
       <Text style={styles.title}>{featureName}</Text>
       <Text style={styles.description}>プレミアムプランで利用できます</Text>
-      <Text style={styles.price}>¥{PREMIUM_PRICE_JPY}/月</Text>
+      {/* EA（アーリーアクセス）価格表示。正式リリースで ¥580 に切り替え。 */}
+      <Text style={styles.price}>アーリーアクセス ¥{PREMIUM_PRICE_JPY}/月</Text>
       {onUpgrade && (
         <TouchableOpacity style={styles.button} onPress={onUpgrade} activeOpacity={0.8}>
           <Text style={styles.buttonText}>アップグレード</Text>

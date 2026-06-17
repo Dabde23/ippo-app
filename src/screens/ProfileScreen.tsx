@@ -1,37 +1,34 @@
 import React, { useState } from 'react';
 import {
   View, StyleSheet, ScrollView, Pressable,
-  Platform, Modal, TextInput, Switch, Alert,
+  Modal, TextInput, Alert, useWindowDimensions,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 const FORMSPREE_URL = 'https://formspree.io/f/xqejvywv';
 const EARLY_ACCESS_FORMSPREE_URL = 'https://formspree.io/f/xzdqzqnz';
 import { Text } from '../components/Text';
-import { XPBar } from '../components/XPBar';
-import { RoutinePanel } from '../components/RoutinePanel';
-import { TaskListPanel } from '../components/TaskListPanel';
-import { TrackingPanel } from '../components/TrackingPanel';
+import { ReviewPanel } from '../components/ReviewPanel';
+import { SettingsPanel } from '../components/SettingsPanel';
+import { MoodSparkline, hasSparklineData } from '../components/MoodSparkline';
 import { useAppStore } from '../store/useAppStore';
-import {
-  requestNotificationPermission,
-  scheduleReminders,
-  openExactAlarmSettings,
-} from '../services/NotificationService';
-import { colors, spacing, radius, fontSize, fontWeight, shadow } from '../theme';
-
-const TIME_OPTIONS = ['07:00','08:00','09:00','10:00','12:00','18:00','20:00','21:00','22:00'];
-const DAY_LABELS = ['月','火','水','木','金','土','日']; // index 0..6 -> day 1..7
+import { PREMIUM_PRICE_JPY } from '../store/useAppStore';
+import { colors, spacing, radius, fontSize, fontWeight } from '../theme';
 
 export function ProfileScreen() {
-  const { xp, badges, tasks, reminders, addReminder, removeReminder, updateReminder } = useAppStore();
-  const focusPromptEnabled = useAppStore((s) => s.focusPromptEnabled);
-  const toggleFocusPrompt = useAppStore((s) => s.toggleFocusPrompt);
-  const [routinePanelVisible, setRoutinePanelVisible] = useState(false);
-  const [taskListPanelVisible, setTaskListPanelVisible] = useState(false);
+  const { width } = useWindowDimensions();
+
+  const tasks = useAppStore((s) => s.tasks);
+  const moodEntries = useAppStore((s) => s.moodEntries);
+  const isPremium = useAppStore((s) => s.isPremium);
+
   const completedTotal = tasks.filter((t) => t.completed).length;
-  const [timePickerVisible, setTimePickerVisible] = useState(false);
-  const [editingReminderId, setEditingReminderId] = useState<string | null>(null);
+
+  // ハブから開くオーバーレイパネルの開閉 state（RoutinePanel 等の呼び出し方に合わせる）。
+  const [reviewPanelVisible, setReviewPanelVisible] = useState(false);
+  const [settingsPanelVisible, setSettingsPanelVisible] = useState(false);
+
+  // ベータ運営（フィードバック / 事前登録）の state はそのまま移設。
   const [feedbackVisible, setFeedbackVisible] = useState(false);
   const [feedbackText, setFeedbackText] = useState('');
   const [feedbackSending, setFeedbackSending] = useState(false);
@@ -41,6 +38,9 @@ export function ProfileScreen() {
   const [earlySending, setEarlySending] = useState(false);
   const [earlySent, setEarlySent] = useState(false);
 
+  // 振り返りカードのプレビュー横幅（カード内側パディング 2 分を引く）。
+  const sparklineWidth = Math.max(0, Math.round(width - spacing.md * 2 - spacing.md * 2));
+  const showSparkline = isPremium && hasSparklineData(moodEntries);
 
   async function handleFeedbackSubmit() {
     if (!feedbackText.trim() || feedbackSending) return;
@@ -94,245 +94,73 @@ export function ProfileScreen() {
     }
   }
 
-  // 最新の reminders を使って通知を再スケジュール
-  async function reschedule() {
-    const current = useAppStore.getState().reminders;
-    const msg = useAppStore.getState().reminderMessage;
-    await scheduleReminders(current, msg);
-  }
-
-  // ＋ 時刻を追加
-  async function handleAddReminder() {
-    if (reminders.length >= 10) return;
-    // 初回追加時に通知許可をリクエスト
-    if (reminders.length === 0) {
-      const granted = await requestNotificationPermission();
-      if (!granted) return;
-    }
-    addReminder('09:00');
-    await reschedule();
-  }
-
-  async function handleRemoveReminder(id: string) {
-    removeReminder(id);
-    await reschedule();
-  }
-
-  // 曜日チップをトグル
-  async function handleToggleDay(reminder: { id: string; days: number[] }, day: number) {
-    const next = reminder.days.includes(day)
-      ? reminder.days.filter((d) => d !== day)
-      : [...reminder.days, day].sort((a, b) => a - b);
-    updateReminder(reminder.id, undefined, next);
-    await reschedule();
-  }
-
-  function openTimePicker(reminderId: string) {
-    setEditingReminderId(reminderId);
-    setTimePickerVisible(true);
-  }
-
-  async function handleTimeSelect(time: string) {
-    setTimePickerVisible(false);
-    if (editingReminderId) {
-      updateReminder(editingReminderId, time);
-      setEditingReminderId(null);
-      await reschedule();
-    }
-  }
-
   return (
     <SafeAreaView style={styles.safe}>
-      {/* ── HEADER ── */}
+      {/* ── HEADER（実績サマリ：完了数のみ・罰でない範囲。XP/バッジは撤去） ── */}
       <View style={styles.header}>
         <View style={styles.rule} />
-        {/* Stats row */}
         <View style={styles.statsRow}>
           <View style={styles.statItem}>
             <Text style={styles.statNum}>{completedTotal}</Text>
             <Text style={styles.statLabel}>完了</Text>
           </View>
-          <View style={styles.statDivider} />
-          <View style={styles.statItem}>
-            <Text style={styles.statNum}>{xp}</Text>
-            <Text style={styles.statLabel}>XP</Text>
-          </View>
-          <View style={styles.statDivider} />
-          <View style={styles.statItem}>
-            <Text style={styles.statNum}>{badges.length}</Text>
-            <Text style={styles.statLabel}>バッジ</Text>
-          </View>
         </View>
-
-        <XPBar xp={xp} />
         <View style={styles.rule} />
       </View>
 
-      {/* ── CONTENT ── */}
+      {/* ── CONTENT（ハブ） ── */}
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
 
-        {/* Badges */}
-        <View style={styles.section}>
-          <Text style={styles.sectionLabel}>バッジ</Text>
-          <View style={styles.rule} />
-          {badges.length === 0 ? (
-            <View style={styles.emptyCard}>
-              <Ionicons name="medal-outline" size={28} color={colors.textMuted} />
-              <Text style={styles.emptyCardText}>タスクを完了して XP を貯めよう</Text>
-              <Text style={styles.emptyCardHint}>100 XP でバッジ獲得</Text>
-            </View>
-          ) : (
-            <View style={styles.badgeGrid}>
-              {badges.map((badge) => (
-                <View key={badge.id} style={styles.badgeCard}>
-                  <Text style={styles.badgeEmoji}>{badge.emoji}</Text>
-                  <Text style={styles.badgeName}>{badge.name}</Text>
-                  <Text style={styles.badgeDate}>{badge.earnedAt}</Text>
-                </View>
-              ))}
-            </View>
-          )}
-        </View>
-
-        {/* Routine management link */}
+        {/* 振り返り＝主役カード（上部・視覚的重み大）。タップで ReviewPanel を開く。 */}
         <Pressable
-          style={({ pressed }) => [styles.routineLink, pressed && { opacity: 0.6 }]}
-          onPress={() => setRoutinePanelVisible(true)}
+          style={({ pressed }) => [styles.reviewCard, pressed && { opacity: 0.85 }]}
+          onPress={() => setReviewPanelVisible(true)}
         >
-          <Text style={styles.routineLinkText}>ルーティン管理</Text>
-          <Text style={styles.routineLinkArrow}>→</Text>
-        </Pressable>
-
-        {/* Task list link */}
-        <Pressable
-          style={({ pressed }) => [styles.routineLink, pressed && { opacity: 0.6 }]}
-          onPress={() => setTaskListPanelVisible(true)}
-        >
-          <Text style={styles.routineLinkText}>タスク一覧</Text>
-          <Text style={styles.routineLinkArrow}>→</Text>
-        </Pressable>
-
-        {/* きろく（状態トラッキング） */}
-        <TrackingPanel />
-
-        {/* 集中度プロンプト設定 */}
-        <View style={styles.section}>
-          <Text style={styles.sectionLabel}>トラッキング設定</Text>
-          <View style={styles.rule} />
-          <View style={styles.toggleRow}>
-            <Text style={styles.toggleRowLabel}>タスク完了後に集中度を記録</Text>
-            <Switch
-              value={focusPromptEnabled}
-              onValueChange={toggleFocusPrompt}
-              trackColor={{ false: colors.border, true: colors.success }}
-              thumbColor="#FFFFFF"
-              ios_backgroundColor={colors.border}
-            />
+          <View style={styles.reviewCardHeader}>
+            <Text style={styles.reviewCardTitle}>振り返り</Text>
+            <Text style={styles.reviewCardArrow}>→</Text>
           </View>
-        </View>
 
-        {/* Reminder */}
-        <View style={styles.section}>
-          <Text style={styles.sectionLabel}>リマインダー</Text>
-          <View style={styles.rule} />
-
-          {Platform.OS === 'web' ? (
-            <View style={styles.reminderLocked}>
-              <Ionicons name="lock-closed" size={20} color={colors.textMuted} />
-              <Text style={styles.reminderLockedText}>モバイルアプリ版のみ利用出来ます</Text>
-            </View>
+          {/* プレビュー。
+              有料 & データ2日以上: 実データのスパークライン＋中立キャプション。
+              有料 & データ不足: 空状態の誘い文（捏造しない）。
+              無料: プレビューは空・🔒＋短い価値コピーのみ（ぼかしの釣りはしない）。 */}
+          {isPremium ? (
+            showSparkline ? (
+              <View style={styles.previewBox}>
+                <MoodSparkline width={sparklineWidth} />
+                <Text style={styles.previewCaption}>直近7日間の気分のうつりかわり</Text>
+              </View>
+            ) : (
+              <View style={styles.previewEmptyBox}>
+                <Text style={styles.previewInvite}>記録すると、ここにうつりかわりが出ます</Text>
+              </View>
+            )
           ) : (
-            <>
-              {reminders.map((reminder) => (
-                <View key={reminder.id} style={styles.reminderCard}>
-                  <View style={styles.reminderCardTop}>
-                    <TextInput
-                      style={styles.reminderNameInput}
-                      value={reminder.name}
-                      onChangeText={(text) => updateReminder(reminder.id, undefined, undefined, text)}
-                      onBlur={reschedule}
-                      placeholder="通知名を入力..."
-                      placeholderTextColor={colors.textDisabled}
-                      maxLength={50}
-                    />
-                    {reminder.routineTaskId && (
-                      <Ionicons name="repeat-outline" size={16} color={colors.textMuted} style={{ marginRight: spacing.sm }} />
-                    )}
-                    <Pressable
-                      style={({ pressed }) => [styles.reminderTimeBtn, pressed && { opacity: 0.6 }]}
-                      onPress={() => openTimePicker(reminder.id)}
-                      hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-                    >
-                      <View style={styles.reminderTimeBtnInner}>
-                        <Ionicons name="notifications" size={20} color={colors.textMain} />
-                        <Text style={styles.reminderTimeText}>{reminder.time}</Text>
-                      </View>
-                    </Pressable>
-                    <Pressable
-                      style={({ pressed }) => [styles.reminderRemoveBtn, pressed && { opacity: 0.5 }]}
-                      onPress={() => handleRemoveReminder(reminder.id)}
-                      hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-                    >
-                      <Text style={styles.reminderRemoveText}>×</Text>
-                    </Pressable>
-                  </View>
-                  <View style={styles.dayChipRow}>
-                    {DAY_LABELS.map((label, i) => {
-                      const day = i + 1;
-                      const on = reminder.days.includes(day);
-                      return (
-                        <Pressable
-                          key={day}
-                          style={[styles.dayChip, on && styles.dayChipOn]}
-                          onPress={() => handleToggleDay(reminder, day)}
-                          hitSlop={{ top: 6, bottom: 6, left: 2, right: 2 }}
-                        >
-                          <Text style={[styles.dayChipText, on && styles.dayChipTextOn]}>{label}</Text>
-                        </Pressable>
-                      );
-                    })}
-                  </View>
-                  {reminder.days.length === 0 && (
-                    <Text style={styles.noDayWarning}>曜日が未選択です。通知は届きません。</Text>
-                  )}
-                </View>
-              ))}
-
-              <Pressable
-                style={({ pressed }) => [
-                  styles.addReminderBtn,
-                  pressed && reminders.length < 10 && { opacity: 0.6 },
-                  reminders.length >= 10 && styles.addReminderBtnDisabled,
-                ]}
-                onPress={handleAddReminder}
-              >
-                <Text style={[styles.addReminderText, reminders.length >= 10 && styles.addReminderTextDisabled]}>
-                  {reminders.length >= 10 ? '＋ 時刻を追加（上限10件）' : '＋ 時刻を追加'}
-                </Text>
-              </Pressable>
-
-              {/* H-6: 正確アラーム誘導（Android のみ・通知が数分遅れる場合の案内） */}
-              {Platform.OS === 'android' && (
-                <View style={styles.exactAlarmHint}>
-                  <Text style={styles.exactAlarmHintText}>
-                    通知が数分遅れて届く場合は、端末の「アラームとリマインダー」をオンにしてください。
-                  </Text>
-                  <Pressable
-                    style={({ pressed }) => [styles.exactAlarmBtn, pressed && { opacity: 0.6 }]}
-                    onPress={() => openExactAlarmSettings()}
-                    hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
-                  >
-                    <Ionicons name="alarm-outline" size={16} color={colors.primary} />
-                    <Text style={styles.exactAlarmBtnText}>設定を開く</Text>
-                  </Pressable>
-                </View>
-              )}
-            </>
+            <View style={styles.previewLockedBox}>
+              <Text style={styles.previewLockIcon}>🔒</Text>
+              <Text style={styles.previewLockCopy}>気分や集中度のうつりかわりを振り返れます</Text>
+              <Text style={styles.previewLockPrice}>アーリーアクセス ¥{PREMIUM_PRICE_JPY}/月</Text>
+            </View>
           )}
+        </Pressable>
 
-        </View>
+        {/* 設定＝控えめなリンク行（下部・埋もれてOK）。タップで SettingsPanel を開く。 */}
+        <Pressable
+          style={({ pressed }) => [styles.settingsLink, pressed && { opacity: 0.6 }]}
+          onPress={() => setSettingsPanelVisible(true)}
+        >
+          <View style={styles.settingsLinkInner}>
+            <Ionicons name="settings-outline" size={18} color={colors.textSub} />
+            <Text style={styles.settingsLinkText}>設定</Text>
+          </View>
+          <Text style={styles.settingsLinkArrow}>→</Text>
+        </Pressable>
 
-        {/* Feedback */}
+        {/* スペーサーでベータ運営を最下部に寄せる（除去してもレイアウトが崩れない配置） */}
+        <View style={{ flex: 1 }} />
+
+        {/* ベータ運営（最下部固定・ベータ期のみ）。フィードバック送信＋事前登録を移設。 */}
         <View style={styles.section}>
           <Text style={styles.sectionLabel}>フィードバック</Text>
           <View style={styles.rule} />
@@ -345,14 +173,12 @@ export function ProfileScreen() {
           >
             <Text style={styles.feedbackBtnText}>感想を送る</Text>
           </Pressable>
-          {/* 事前登録ボタン（アーリーアクセスセクションから移動） */}
           <Pressable
             style={({ pressed }) => [styles.earlyBtn, pressed && { opacity: 0.7 }]}
             onPress={() => setEarlyAccessVisible(true)}
           >
             <Text style={styles.earlyBtnText}>ネイティブアプリの事前登録 →</Text>
           </Pressable>
-          {/* ストアリリース告知 */}
           <Text style={styles.releaseNotice}>
             ストアリリース開始に伴い一部機能は有料機能になります
           </Text>
@@ -360,7 +186,6 @@ export function ProfileScreen() {
 
         <View style={{ height: spacing.xxl }} />
       </ScrollView>
-
 
       {/* Feedback modal */}
       <Modal visible={feedbackVisible} animationType="fade" transparent>
@@ -455,36 +280,12 @@ export function ProfileScreen() {
         </View>
       </Modal>
 
-      {/* Time picker */}
-      <Modal visible={timePickerVisible} transparent animationType="fade">
-        <Pressable style={styles.timeOverlay} onPress={() => { setTimePickerVisible(false); setEditingReminderId(null); }}>
-          <View style={styles.timeSheet}>
-            <Text style={styles.timeSheetLabel}>時刻を選択</Text>
-            <View style={styles.rule} />
-            {TIME_OPTIONS.map((t) => {
-              const current = reminders.find((r) => r.id === editingReminderId)?.time;
-              return (
-                <Pressable
-                  key={t}
-                  style={({ pressed }) => [styles.timeOption, current === t && styles.timeOptionActive, pressed && { opacity: 0.6 }]}
-                  onPress={() => handleTimeSelect(t)}
-                >
-                  <Text style={[styles.timeOptionText, current === t && styles.timeOptionTextActive]}>{t}</Text>
-                </Pressable>
-              );
-            })}
-          </View>
-        </Pressable>
-      </Modal>
-
-      {routinePanelVisible && (
-        <RoutinePanel onClose={() => setRoutinePanelVisible(false)} />
+      {/* オーバーレイパネル（RoutinePanel と同じ条件描画パターン） */}
+      {reviewPanelVisible && (
+        <ReviewPanel onClose={() => setReviewPanelVisible(false)} />
       )}
-      {taskListPanelVisible && (
-        <TaskListPanel
-          onClose={() => setTaskListPanelVisible(false)}
-          onStartTask={() => setTaskListPanelVisible(false)}
-        />
+      {settingsPanelVisible && (
+        <SettingsPanel onClose={() => setSettingsPanelVisible(false)} />
       )}
     </SafeAreaView>
   );
@@ -505,16 +306,6 @@ const styles = StyleSheet.create({
     height: 1,
     backgroundColor: colors.ink,
   },
-  headerContent: {
-    paddingVertical: spacing.xs,
-  },
-  title: {
-    fontSize: fontSize.xxxl,
-    fontWeight: fontWeight.black,
-    color: colors.ink,
-    letterSpacing: -2,
-    lineHeight: 46,
-  },
   statsRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -523,11 +314,6 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: 'center',
     paddingVertical: spacing.sm,
-  },
-  statDivider: {
-    width: 1,
-    height: 32,
-    backgroundColor: colors.border,
   },
   statNum: {
     fontSize: fontSize.xxl,
@@ -543,6 +329,7 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
   scrollContent: {
+    flexGrow: 1,
     paddingHorizontal: spacing.md,
     paddingTop: spacing.lg,
     gap: spacing.xl,
@@ -557,272 +344,93 @@ const styles = StyleSheet.create({
     letterSpacing: 2.5,
     textTransform: 'uppercase',
   },
-  groupLabel: {
-    fontSize: fontSize.xs,
-    color: colors.textMuted,
-    fontWeight: fontWeight.bold,
-    letterSpacing: 1,
-    textTransform: 'uppercase',
-    marginTop: spacing.sm,
-    marginBottom: 2,
-  },
-  groupHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  clearBtn: {
-    paddingHorizontal: spacing.sm,
-    paddingVertical: 3,
-    borderRadius: radius.sm,
-    backgroundColor: colors.surfaceAlt,
-    borderWidth: 1,
-    borderColor: colors.border,
-    marginTop: spacing.sm,
-  },
-  clearBtnText: {
-    fontSize: fontSize.xs,
-    color: colors.textMuted,
-    fontWeight: fontWeight.bold,
-    letterSpacing: 0.5,
-  },
-  emptyCard: {
-    paddingVertical: spacing.xl,
-    alignItems: 'center',
-    gap: spacing.xs,
-  },
-  emptyCardText: { fontSize: fontSize.md, color: colors.textSub, fontWeight: fontWeight.medium },
-  emptyCardHint: { fontSize: fontSize.sm, color: colors.textMuted },
-  badgeGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: spacing.sm,
-  },
-  badgeCard: {
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: radius.md,
-    padding: spacing.md,
-    alignItems: 'center',
-    width: '30%',
-    gap: spacing.xs,
+  // 振り返り主役カード（視覚的重み大）
+  reviewCard: {
     backgroundColor: colors.surface,
-  },
-  badgeEmoji: { fontSize: 28 },
-  badgeName: { fontSize: fontSize.xs, color: colors.textMain, fontWeight: fontWeight.semibold, textAlign: 'center' },
-  badgeDate: { fontSize: 12, color: colors.textMuted, letterSpacing: 0.3 },
-  routineLink: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    backgroundColor: colors.surface,
-    borderWidth: 1.5,
+    borderWidth: 2,
     borderColor: colors.ink,
-    borderRadius: radius.md,
-    paddingVertical: spacing.md,
-    paddingHorizontal: spacing.md,
+    borderRadius: radius.lg,
+    padding: spacing.md,
+    gap: spacing.md,
   },
-  routineLinkText: {
-    fontSize: fontSize.md,
-    fontWeight: fontWeight.bold,
-    color: colors.textMain,
+  reviewCardHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  reviewCardTitle: {
+    fontSize: fontSize.lg,
+    fontWeight: fontWeight.black,
+    color: colors.ink,
     letterSpacing: 0.5,
   },
-  routineLinkArrow: {
-    fontSize: fontSize.lg,
+  reviewCardArrow: {
+    fontSize: fontSize.xl,
     fontWeight: fontWeight.black,
     color: colors.primary,
   },
-  reminderRow: {
+  previewBox: {
+    gap: spacing.xs,
+  },
+  previewCaption: {
+    fontSize: fontSize.xs,
+    color: colors.textMuted,
+    letterSpacing: 0.3,
+  },
+  previewEmptyBox: {
+    paddingVertical: spacing.lg,
+    alignItems: 'center',
+  },
+  previewInvite: {
+    fontSize: fontSize.sm,
+    color: colors.textMuted,
+    textAlign: 'center',
+  },
+  previewLockedBox: {
+    paddingVertical: spacing.lg,
+    alignItems: 'center',
+    gap: spacing.xs,
+  },
+  previewLockIcon: {
+    fontSize: 28,
+  },
+  previewLockCopy: {
+    fontSize: fontSize.sm,
+    color: colors.textSub,
+    textAlign: 'center',
+  },
+  previewLockPrice: {
+    fontSize: fontSize.sm,
+    fontWeight: fontWeight.bold,
+    color: colors.primary,
+  },
+  // 設定リンク行（控えめ）
+  settingsLink: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingVertical: spacing.sm,
-  },
-  reminderLabel: { fontSize: fontSize.md, fontWeight: fontWeight.bold, color: colors.textMain },
-  reminderSub: { fontSize: fontSize.xs, color: colors.textSub, marginTop: 2 },
-  reminderCard: {
-    backgroundColor: colors.surface,
-    borderWidth: 1.5,
-    borderColor: colors.border,
-    borderRadius: radius.md,
-    padding: spacing.md,
-    gap: spacing.sm,
-    marginTop: spacing.sm,
-  },
-  reminderCardTop: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  reminderTimeBtn: {
-    paddingVertical: spacing.xs,
-    paddingHorizontal: spacing.xs,
-  },
-  reminderTimeBtnInner: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-  },
-  reminderTimeText: {
-    fontSize: fontSize.lg,
-    fontWeight: fontWeight.black,
-    color: colors.textMain,
-    letterSpacing: 0.5,
-  },
-  reminderNameInput: {
-    fontSize: fontSize.md,
-    color: colors.textMain,
-    flex: 1,
-    paddingVertical: spacing.xs,
+    paddingVertical: spacing.md,
+    paddingHorizontal: spacing.sm,
     borderBottomWidth: 1,
     borderBottomColor: colors.border,
-    marginRight: spacing.sm,
   },
-  reminderRemoveBtn: {
-    paddingHorizontal: spacing.sm,
-    paddingVertical: spacing.xs,
-  },
-  reminderRemoveText: {
-    fontSize: fontSize.xl,
-    color: colors.danger,
-    lineHeight: 22,
-  },
-  dayChipRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    gap: 4,
-  },
-  dayChip: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: spacing.sm,
-    borderRadius: radius.sm,
-    backgroundColor: colors.surfaceAlt,
-    borderWidth: 1.5,
-    borderColor: colors.border,
-  },
-  dayChipOn: {
-    backgroundColor: colors.primary,
-    borderColor: colors.primary,
-  },
-  dayChipText: {
-    fontSize: fontSize.sm,
-    fontWeight: fontWeight.bold,
-    color: colors.textSub,
-  },
-  dayChipTextOn: {
-    color: colors.surface,
-  },
-  noDayWarning: {
-    fontSize: fontSize.xs,
-    fontWeight: fontWeight.bold,
-    color: colors.danger,
-    marginTop: spacing.xs,
-  },
-  reminderLocked: {
+  settingsLinkInner: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.sm,
-    paddingVertical: spacing.md,
   },
-  reminderLockedText: {
-    fontSize: fontSize.sm,
-    color: colors.textMuted,
-  },
-  addReminderBtn: {
-    paddingVertical: spacing.sm,
-    paddingHorizontal: spacing.md,
-    alignSelf: 'flex-start',
-    marginTop: spacing.sm,
-  },
-  addReminderBtnDisabled: {
-    opacity: 0.4,
-  },
-  addReminderText: {
+  settingsLinkText: {
     fontSize: fontSize.md,
-    color: colors.primary,
-    fontWeight: fontWeight.bold,
+    fontWeight: fontWeight.semibold,
+    color: colors.textSub,
     letterSpacing: 0.5,
   },
-  addReminderTextDisabled: {
-    color: colors.textMuted,
-  },
-  exactAlarmHint: {
-    marginTop: spacing.md,
-    paddingTop: spacing.sm,
-    borderTopWidth: 1,
-    borderTopColor: colors.border,
-    gap: spacing.xs,
-  },
-  exactAlarmHintText: {
-    fontSize: fontSize.xs,
-    color: colors.textMuted,
-    lineHeight: 18,
-  },
-  exactAlarmBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    alignSelf: 'flex-start',
-    paddingVertical: spacing.xs,
-  },
-  exactAlarmBtnText: {
-    fontSize: fontSize.sm,
-    color: colors.primary,
-    fontWeight: fontWeight.bold,
-    letterSpacing: 0.5,
-  },
-  timeBtn: {
-    backgroundColor: colors.surfaceAlt,
-    borderRadius: radius.md,
-    paddingVertical: spacing.sm,
-    paddingHorizontal: spacing.md,
-    alignSelf: 'flex-start',
-  },
-  timeBtnText: { fontSize: fontSize.sm, color: colors.primary, fontWeight: fontWeight.bold, letterSpacing: 0.5 },
-  reminderField: { gap: spacing.xs, marginTop: spacing.sm },
-  reminderFieldLabel: {
-    fontSize: fontSize.xs,
-    color: colors.textMuted,
-    fontWeight: fontWeight.bold,
-    letterSpacing: 1,
-  },
-  reminderInput: {
-    backgroundColor: colors.background,
-    borderRadius: radius.md,
-    paddingVertical: spacing.sm,
-    paddingHorizontal: spacing.md,
-    fontSize: fontSize.md,
-    color: colors.textMain,
-    borderWidth: 1.5,
-    borderColor: colors.border,
-  },
-  toggle: {
-    backgroundColor: colors.surfaceAlt,
-    borderRadius: radius.sm,
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.xs,
-    borderWidth: 1.5,
-    borderColor: colors.border,
-  },
-  toggleOn: { backgroundColor: colors.primary, borderColor: colors.primary },
-  toggleText: { fontSize: fontSize.xs, fontWeight: fontWeight.black, color: colors.ink, letterSpacing: 1 },
-  toggleRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingVertical: spacing.sm,
-    marginTop: spacing.xs,
-  },
-  toggleRowLabel: {
+  settingsLinkArrow: {
     fontSize: fontSize.md,
     fontWeight: fontWeight.bold,
-    color: colors.textMain,
-    flex: 1,
-    marginRight: spacing.md,
+    color: colors.textMuted,
   },
+  // ベータ運営
   feedbackDesc: {
     fontSize: fontSize.sm,
     color: colors.textSub,
@@ -842,26 +450,6 @@ const styles = StyleSheet.create({
     fontWeight: fontWeight.bold,
     letterSpacing: 1,
   },
-  feedbackInput: {
-    height: 120,
-    textAlignVertical: 'top',
-  },
-  feedbackSentContainer: {
-    paddingVertical: spacing.xl,
-    alignItems: 'center',
-  },
-  feedbackSentText: {
-    fontSize: fontSize.lg,
-    fontWeight: fontWeight.bold,
-    color: colors.primary,
-    letterSpacing: 1,
-  },
-  releaseNotice: {
-    fontSize: fontSize.xs,
-    color: colors.textMuted,
-    lineHeight: 18,
-    marginTop: spacing.xs,
-  },
   earlyBtn: {
     backgroundColor: colors.surface,
     borderRadius: radius.md,
@@ -876,6 +464,27 @@ const styles = StyleSheet.create({
     fontSize: fontSize.sm,
     color: colors.primary,
     fontWeight: fontWeight.bold,
+    letterSpacing: 1,
+  },
+  releaseNotice: {
+    fontSize: fontSize.xs,
+    color: colors.textMuted,
+    lineHeight: 18,
+    marginTop: spacing.xs,
+  },
+  // Modals
+  feedbackInput: {
+    height: 120,
+    textAlignVertical: 'top',
+  },
+  feedbackSentContainer: {
+    paddingVertical: spacing.xl,
+    alignItems: 'center',
+  },
+  feedbackSentText: {
+    fontSize: fontSize.lg,
+    fontWeight: fontWeight.bold,
+    color: colors.primary,
     letterSpacing: 1,
   },
   editOverlay: {
@@ -919,21 +528,4 @@ const styles = StyleSheet.create({
   },
   editSaveBtnDisabled: { backgroundColor: colors.textDisabled },
   editSaveText: { fontSize: fontSize.md, color: colors.surface, fontWeight: fontWeight.bold },
-  timeOverlay: {
-    flex: 1, backgroundColor: 'rgba(26,16,7,0.5)',
-    justifyContent: 'center', alignItems: 'center',
-  },
-  timeSheet: {
-    backgroundColor: colors.surface, borderRadius: radius.xl,
-    padding: spacing.lg, width: 240, gap: spacing.xs,
-    borderWidth: 1, borderColor: colors.border,
-  },
-  timeSheetLabel: {
-    fontSize: fontSize.xs, fontWeight: fontWeight.bold,
-    color: colors.primary, letterSpacing: 2.5, marginBottom: spacing.xs,
-  },
-  timeOption: { paddingVertical: spacing.sm, paddingHorizontal: spacing.md, borderRadius: radius.md, alignItems: 'center' },
-  timeOptionActive: { backgroundColor: colors.primaryLight },
-  timeOptionText: { fontSize: fontSize.md, color: colors.textSub },
-  timeOptionTextActive: { color: colors.primary, fontWeight: fontWeight.bold },
 });
