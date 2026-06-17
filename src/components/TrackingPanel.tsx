@@ -6,6 +6,7 @@ import { Calendar } from 'react-native-calendars';
 import { LineChart } from 'react-native-gifted-charts';
 import { Text } from './Text';
 import { useAppStore, MoodEntry, FocusEntry } from '../store/useAppStore';
+import { dateOfJST, today, timeOfJST } from '../utils/date';
 import { colors, spacing, radius, fontSize, fontWeight, moodColors, contrastTextColor } from '../theme';
 
 const MOOD_LINE = '#3B82F6';
@@ -18,28 +19,14 @@ const PERIODS = [
 ] as const;
 type PeriodKey = (typeof PERIODS)[number]['key'];
 
-// ローカル日付 YYYY-MM-DD
-function localDate(d: Date): string {
-  const y = d.getFullYear();
-  const m = String(d.getMonth() + 1).padStart(2, '0');
-  const day = String(d.getDate()).padStart(2, '0');
-  return `${y}-${m}-${day}`;
-}
-
-function dateOf(ts: string): string {
-  return localDate(new Date(ts));
-}
-
-function timeOf(ts: string): string {
-  const d = new Date(ts);
-  return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
-}
+// 日付・時刻は JST 統一ユーティリティ(utils/date)を使用する（QA #001）。
+// dateOfJST = JST の YYYY-MM-DD / timeOfJST = JST の HH:MM。
 
 // 日ごとの平均（四捨五入）マップを作る
 function averageByDate(entries: { timestamp: string; level: number }[]): Record<string, number> {
   const buckets: Record<string, number[]> = {};
   for (const e of entries) {
-    const d = dateOf(e.timestamp);
+    const d = dateOfJST(e.timestamp);
     (buckets[d] ||= []).push(e.level);
   }
   const out: Record<string, number> = {};
@@ -94,20 +81,21 @@ export function TrackingPanel() {
 
   // ── 詳細シート: 選択日のエントリ ──
   const dayMoods: MoodEntry[] = selectedDate
-    ? moodEntries.filter((e) => dateOf(e.timestamp) === selectedDate).sort((a, b) => a.timestamp.localeCompare(b.timestamp))
+    ? moodEntries.filter((e) => dateOfJST(e.timestamp) === selectedDate).sort((a, b) => a.timestamp.localeCompare(b.timestamp))
     : [];
   const dayFocus: FocusEntry[] = selectedDate
-    ? focusEntries.filter((e) => dateOf(e.timestamp) === selectedDate).sort((a, b) => a.timestamp.localeCompare(b.timestamp))
+    ? focusEntries.filter((e) => dateOfJST(e.timestamp) === selectedDate).sort((a, b) => a.timestamp.localeCompare(b.timestamp))
     : [];
 
   // ── グラフ: 期間内の日次平均 ──
+  // JST 基準で直近 periodDays 日の日付列を作る。JST は DST が無いため
+  // 1日=86,400,000ms の単純減算で正しい前日が得られる。
   const periodDays = PERIODS.find((p) => p.key === period)!.days;
-  const today = new Date();
+  const DAY_MS = 86400000;
+  const nowMs = Date.now();
   const days: string[] = [];
   for (let i = periodDays - 1; i >= 0; i--) {
-    const d = new Date(today);
-    d.setDate(today.getDate() - i);
-    days.push(localDate(d));
+    days.push(dateOfJST(nowMs - i * DAY_MS));
   }
   const focusAvgMap = averageByDate(focusEntries);
   const moodSeries = buildSeries(moodAvgMap, days);
@@ -150,7 +138,7 @@ export function TrackingPanel() {
             const dateStr: string = date?.dateString ?? '';
             const isSunday = new Date(dateStr + 'T00:00:00').getDay() === 0;
             const isDisabled = state === 'disabled';
-            const isToday = dateStr === localDate(new Date());
+            const isToday = dateStr === today();
 
             const customStyle = marking?.customStyles;
             const hasMark = !!customStyle?.container?.backgroundColor;
@@ -286,7 +274,7 @@ export function TrackingPanel() {
                   <Text style={styles.sheetGroupLabel}>気分</Text>
                   {dayMoods.map((e) => (
                     <View key={e.id} style={styles.entryRow}>
-                      <Text style={styles.entryTime}>{timeOf(e.timestamp)}</Text>
+                      <Text style={styles.entryTime}>{timeOfJST(e.timestamp)}</Text>
                       <View style={[styles.entryDot, { backgroundColor: moodColors[e.level] }]} />
                       <Text style={styles.entryLevel}>{e.level}</Text>
                       {e.memo ? <Text style={styles.entryMemo} numberOfLines={1}>{e.memo}</Text> : null}
@@ -300,7 +288,7 @@ export function TrackingPanel() {
                   <Text style={styles.sheetGroupLabel}>集中度</Text>
                   {dayFocus.map((e) => (
                     <View key={e.id} style={styles.entryRow}>
-                      <Text style={styles.entryTime}>{timeOf(e.timestamp)}</Text>
+                      <Text style={styles.entryTime}>{timeOfJST(e.timestamp)}</Text>
                       <View style={[styles.entryDot, { backgroundColor: moodColors[e.level] }]} />
                       <Text style={styles.entryLevel}>{e.level}</Text>
                       <Text style={styles.entryTask} numberOfLines={1}>{e.taskTitle}</Text>

@@ -124,7 +124,8 @@ export function HomeScreen() {
 
   const available = availableTaskCount();
   const completed = completedTaskCount();
-  const dateStr = new Date().toLocaleDateString('ja-JP', { year: 'numeric', month: 'long', day: 'numeric', weekday: 'short' });
+  // ヘッダー表示日付も JST に固定し、ロジックの「今日」(today()) と一致させる（QA #001）。
+  const dateStr = new Date().toLocaleDateString('ja-JP', { year: 'numeric', month: 'long', day: 'numeric', weekday: 'short', timeZone: 'Asia/Tokyo' });
 
   return (
     <SafeAreaView style={styles.safe}>

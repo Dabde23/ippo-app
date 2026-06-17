@@ -1,6 +1,10 @@
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { dateOfJST, today } from '../utils/date';
+
+// 日付の JST 統一ユーティリティを再エクスポート（既存の import 互換のため）。
+export { today, dateOfJST } from '../utils/date';
 
 export type Priority = 'high' | 'normal' | 'low'; // kept for backwards compat
 
@@ -52,15 +56,6 @@ export interface FocusEntry {
   memo?: string;
 }
 
-// timestamp(ISO8601) -> ローカル日付 YYYY-MM-DD
-function localDateOf(timestamp: string): string {
-  const d = new Date(timestamp);
-  const y = d.getFullYear();
-  const m = String(d.getMonth() + 1).padStart(2, '0');
-  const day = String(d.getDate()).padStart(2, '0');
-  return `${y}-${m}-${day}`;
-}
-
 export const PREMIUM_PRICE_JPY = 500;
 export const CANCEL_NOTICE_DAYS = 5;
 export const XP_PER_TASK = 10;
@@ -74,12 +69,6 @@ const BADGES: Omit<Badge, 'earnedAt'>[] = [
   { id: 'consistent',      name: '継続の力',         emoji: '💪' },
   { id: 'achiever',        name: 'アチーバー',       emoji: '🏆' },
 ];
-
-export function today(): string {
-  // ローカルタイムゾーン基準の日付を返す（localDateOf と整合）。
-  // UTC 基準だと日付境界が JST 9:00 になり、日次リセットがずれるため。
-  return localDateOf(new Date().toISOString());
-}
 
 function earnedBadgeCount(xp: number): number {
   return BADGE_THRESHOLDS.filter((t) => xp >= t).length;
@@ -333,18 +322,18 @@ export const useAppStore = create<AppState>()(
       toggleFocusPrompt: () => set((s) => ({ focusPromptEnabled: !s.focusPromptEnabled })),
 
       getMoodEntriesForDate: (date) => {
-        return get().moodEntries.filter((e) => localDateOf(e.timestamp) === date);
+        return get().moodEntries.filter((e) => dateOfJST(e.timestamp) === date);
       },
 
       getMoodAverageForDate: (date) => {
-        const entries = get().moodEntries.filter((e) => localDateOf(e.timestamp) === date);
+        const entries = get().moodEntries.filter((e) => dateOfJST(e.timestamp) === date);
         if (entries.length === 0) return null;
         const sum = entries.reduce((acc, e) => acc + e.level, 0);
         return Math.round(sum / entries.length);
       },
 
       getFocusEntriesForDate: (date) => {
-        return get().focusEntries.filter((e) => localDateOf(e.timestamp) === date);
+        return get().focusEntries.filter((e) => dateOfJST(e.timestamp) === date);
       },
     }),
     {
