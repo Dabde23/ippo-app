@@ -2,12 +2,22 @@ import React, { useState } from 'react';
 import {
   View, StyleSheet, Pressable, Modal, ScrollView, Dimensions,
 } from 'react-native';
-import { Calendar } from 'react-native-calendars';
+import { Calendar, LocaleConfig } from 'react-native-calendars';
 import { LineChart } from 'react-native-gifted-charts';
 import { Text } from './Text';
 import { useAppStore, MoodEntry, FocusEntry } from '../store/useAppStore';
 import { dateOfJST, today, timeOfJST } from '../utils/date';
 import { colors, spacing, radius, fontSize, fontWeight, moodColors, contrastTextColor } from '../theme';
+
+// カレンダー日本語化（曜日ヘッダーは一文字・週始まりは日曜）
+LocaleConfig.locales['ja'] = {
+  monthNames: ['1月', '2月', '3月', '4月', '5月', '6月', '7月', '8月', '9月', '10月', '11月', '12月'],
+  monthNamesShort: ['1月', '2月', '3月', '4月', '5月', '6月', '7月', '8月', '9月', '10月', '11月', '12月'],
+  dayNames: ['日曜日', '月曜日', '火曜日', '水曜日', '木曜日', '金曜日', '土曜日'],
+  dayNamesShort: ['日', '月', '火', '水', '木', '金', '土'],
+  today: '今日',
+};
+LocaleConfig.defaultLocale = 'ja';
 
 const MOOD_LINE = '#3B82F6';
 const FOCUS_LINE = '#22C55E';
@@ -37,24 +47,10 @@ function averageByDate(entries: { timestamp: string; level: number }[]): Record<
   return out;
 }
 
-// 欠損日を前方/後方補完して連続ラインにする（簡易グラフ向け）
+// 記録のある日の実データのみを返す（補完で値を捏造しない）
 function buildSeries(avgMap: Record<string, number>, days: string[]): { value: number }[] | null {
-  const raw = days.map((d) => (d in avgMap ? avgMap[d] : null));
-  if (raw.every((v) => v === null)) return null;
-  // 前方補完: 直近の有効値を保持して欠損を埋める
-  const filled: number[] = [];
-  let last: number | null = null;
-  for (const v of raw) {
-    if (v !== null) last = v;
-    filled.push(last as number); // 先頭欠損は後で補正するため一旦そのまま
-  }
-  // 先頭の欠損（last がまだ null だった区間）を最初の有効値で後方補完
-  const firstVal = raw.find((v) => v !== null) as number;
-  for (let i = 0; i < raw.length; i++) {
-    if (raw[i] !== null) break;
-    filled[i] = firstVal;
-  }
-  return filled.map((value) => ({ value }));
+  const points = days.filter((d) => d in avgMap).map((d) => ({ value: avgMap[d] }));
+  return points.length === 0 ? null : points;
 }
 
 export function TrackingPanel() {
@@ -124,6 +120,7 @@ export function TrackingPanel() {
       {/* カレンダー */}
       <View style={styles.calendarCard}>
         <Calendar
+          firstDay={0}
           markingType="custom"
           markedDates={markedDates}
           onDayPress={(day: { dateString: string }) => setSelectedDate(day.dateString)}
@@ -222,8 +219,8 @@ export function TrackingPanel() {
               color2={secondary?.color}
               thickness1={2}
               thickness2={2}
-              hideDataPoints1={periodDays > 7}
-              hideDataPoints2={periodDays > 7}
+              hideDataPoints1={moodSeries != null && moodSeries.length > 1 && periodDays > 7}
+              hideDataPoints2={focusSeries != null && focusSeries.length > 1 && periodDays > 7}
               dataPointsColor1={primary.color}
               dataPointsColor2={secondary?.color}
               dataPointsRadius={3}
@@ -246,7 +243,7 @@ export function TrackingPanel() {
           </View>
         ) : (
           <View style={styles.graphEmpty}>
-            <Text style={styles.graphEmptyText}>まだ記録がありません</Text>
+            <Text style={styles.graphEmptyText}>記録すると、ここにうつりかわりが出ます</Text>
           </View>
         )}
       </View>
