@@ -143,7 +143,7 @@ export const useAppStore = create<AppState>()(
       addTask: (title, isRoutine = false) => {
         const t = today();
         const task: Task = {
-          id: Date.now().toString(),
+          id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
           title,
           completed: false,
           xpAwarded: false,
