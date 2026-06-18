@@ -12,7 +12,6 @@ import { ReviewPanel } from '../components/ReviewPanel';
 import { SettingsPanel } from '../components/SettingsPanel';
 import { MoodSparkline, hasSparklineData } from '../components/MoodSparkline';
 import { useAppStore } from '../store/useAppStore';
-import { PREMIUM_PRICE_JPY } from '../store/useAppStore';
 import { colors, spacing, radius, fontSize, fontWeight } from '../theme';
 
 export function ProfileScreen() {
@@ -21,7 +20,6 @@ export function ProfileScreen() {
 
   const tasks = useAppStore((s) => s.tasks);
   const moodEntries = useAppStore((s) => s.moodEntries);
-  const isPremium = useAppStore((s) => s.isPremium);
 
   const completedTotal = tasks.filter((t) => t.completed).length;
 
@@ -37,7 +35,7 @@ export function ProfileScreen() {
 
   // 振り返りカードのプレビュー横幅（カード内側パディング 2 分を引く）。
   const sparklineWidth = Math.max(0, Math.round(width - spacing.md * 2 - spacing.md * 2));
-  const showSparkline = isPremium && hasSparklineData(moodEntries);
+  const showSparkline = hasSparklineData(moodEntries);
 
   async function handleFeedbackSubmit() {
     if (!feedbackText.trim() || feedbackSending) return;
@@ -97,25 +95,16 @@ export function ProfileScreen() {
           </View>
 
           {/* プレビュー。
-              有料 & データ2日以上: 実データのスパークライン＋中立キャプション。
-              有料 & データ不足: 空状態の誘い文（捏造しない）。
-              無料: プレビューは空・🔒＋短い価値コピーのみ（ぼかしの釣りはしない）。 */}
-          {isPremium ? (
-            showSparkline ? (
-              <View style={styles.previewBox}>
-                <MoodSparkline width={sparklineWidth} />
-                <Text style={styles.previewCaption}>直近7日間の気分のうつりかわり</Text>
-              </View>
-            ) : (
-              <View style={styles.previewEmptyBox}>
-                <Text style={styles.previewInvite}>記録すると、ここにうつりかわりが出ます</Text>
-              </View>
-            )
+              データ2日以上: 実データのスパークライン＋中立キャプション。
+              データ不足: 空状態の誘い文（捏造しない）。 */}
+          {showSparkline ? (
+            <View style={styles.previewBox}>
+              <MoodSparkline width={sparklineWidth} />
+              <Text style={styles.previewCaption}>直近7日間の気分のうつりかわり</Text>
+            </View>
           ) : (
-            <View style={styles.previewLockedBox}>
-              <Text style={styles.previewLockIcon}>🔒</Text>
-              <Text style={styles.previewLockCopy}>気分や集中度のうつりかわりを振り返れます</Text>
-              <Text style={styles.previewLockPrice}>アーリーアクセス ¥{PREMIUM_PRICE_JPY}/月</Text>
+            <View style={styles.previewEmptyBox}>
+              <Text style={styles.previewInvite}>記録すると、ここにうつりかわりが出ます</Text>
             </View>
           )}
         </Pressable>
@@ -304,24 +293,6 @@ const styles = StyleSheet.create({
     fontSize: fontSize.sm,
     color: colors.textMuted,
     textAlign: 'center',
-  },
-  previewLockedBox: {
-    paddingVertical: spacing.lg,
-    alignItems: 'center',
-    gap: spacing.xs,
-  },
-  previewLockIcon: {
-    fontSize: 28,
-  },
-  previewLockCopy: {
-    fontSize: fontSize.sm,
-    color: colors.textSub,
-    textAlign: 'center',
-  },
-  previewLockPrice: {
-    fontSize: fontSize.sm,
-    fontWeight: fontWeight.bold,
-    color: colors.primary,
   },
   // 設定リンク行（控えめ）
   settingsLink: {

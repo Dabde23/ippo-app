@@ -5,7 +5,6 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Text } from './Text';
-import { PremiumLock } from './PremiumLock';
 import { useAppStore } from '../store/useAppStore';
 import {
   requestNotificationPermission,
@@ -23,7 +22,7 @@ interface Props {
 }
 
 // 設定ページ（独立）。リマインダー設定（フェーズ2の機能・H-6誘導込み）＋集中度記録トグルを集約。
-// リマインダーは有料（isPremium でゲート）。集中度トグルは設定として常時表示。
+// すべて全ユーザーに常時表示。
 export function SettingsPanel({ onClose }: Props) {
   const { width } = useWindowDimensions();
   const panelWidth = Math.round(width * PANEL_RATIO);
@@ -34,8 +33,6 @@ export function SettingsPanel({ onClose }: Props) {
   const updateReminder = useAppStore((s) => s.updateReminder);
   const focusPromptEnabled = useAppStore((s) => s.focusPromptEnabled);
   const toggleFocusPrompt = useAppStore((s) => s.toggleFocusPrompt);
-  const isPremium = useAppStore((s) => s.isPremium);
-  const togglePremium = useAppStore((s) => s.togglePremium);
 
   const [timePickerVisible, setTimePickerVisible] = useState(false);
   const [editingReminderId, setEditingReminderId] = useState<string | null>(null);
@@ -103,7 +100,7 @@ export function SettingsPanel({ onClose }: Props) {
     }
   }
 
-  // リマインダー本体（フェーズ2から移設）。有料機能のため PremiumLock でゲートする。
+  // リマインダー本体（フェーズ2から移設）。
   const reminderBody = (
     Platform.OS === 'web' ? (
       <View style={styles.reminderLocked}>
@@ -218,13 +215,11 @@ export function SettingsPanel({ onClose }: Props) {
       </View>
 
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
-        {/* リマインダー（有料・isPremium でゲート） */}
+        {/* リマインダー */}
         <View style={styles.section}>
           <Text style={styles.sectionLabel}>リマインダー</Text>
           <View style={styles.rule} />
-          <PremiumLock featureName="リマインダー" locked={!isPremium} onUpgrade={togglePremium}>
-            {reminderBody}
-          </PremiumLock>
+          {reminderBody}
         </View>
 
         {/* 集中度記録トグル（設定として常時表示） */}

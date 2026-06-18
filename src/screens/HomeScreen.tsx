@@ -25,7 +25,6 @@ function pickRandom<T extends { id: string }>(arr: T[], excludeId?: string): T |
 
 export function HomeScreen() {
   const { tasks, xp, addTask, skipTask, setTimerTask, availableTaskCount, completedTaskCount } = useAppStore();
-  const isPremium = useAppStore((s) => s.isPremium);
   const navigation = useNavigation<any>();
 
   const [currentTaskId, setCurrentTaskId] = useState<string | null>(null);
@@ -291,12 +290,10 @@ export function HomeScreen() {
         <View style={{ height: spacing.xxl }} />
       </ScrollView>
 
-      {/* 気分記録ボタン（bottomBar直上・右寄せ）: 有料ユーザーのみ */}
-      {isPremium && (
-        <View style={styles.moodRow}>
-          <MoodInput />
-        </View>
-      )}
+      {/* 気分記録ボタン（bottomBar直上・右寄せ）: 全ユーザーに常時表示 */}
+      <View style={styles.moodRow}>
+        <MoodInput />
+      </View>
 
       {/* ── BOTTOM BAR ── */}
       <View style={styles.bottomBar}>

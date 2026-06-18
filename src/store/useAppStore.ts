@@ -56,9 +56,6 @@ export interface FocusEntry {
   memo?: string;
 }
 
-// アーリーアクセス(EA)価格。正式リリースは ¥580、EA 期間中は ¥350/月（永続）。
-// EA 期間中はこの値を表示する（決定: 2026-06-17 価格・GTM）。
-export const PREMIUM_PRICE_JPY = 350;
 export const XP_PER_TASK = 10;
 
 export const BADGE_THRESHOLDS = [100, 300, 600, 1000, 1500];
@@ -79,7 +76,6 @@ interface AppState {
   tasks: Task[];
   xp: number;
   badges: Badge[];
-  isPremium: boolean;
   pendingBadge: Badge | null;
   reminders: Reminder[];
   reminderMessage: string;
@@ -101,7 +97,6 @@ interface AppState {
   clearCompletedTasks: () => void;
   syncRoutineTasks: () => void;
   dismissBadge: () => void;
-  togglePremium: () => void;
   addReminder: (time: string, days?: number[], name?: string, routineTaskId?: string) => string;
   removeReminder: (id: string) => void;
   updateReminder: (id: string, time?: string, days?: number[], name?: string) => void;
@@ -134,7 +129,6 @@ export const useAppStore = create<AppState>()(
       tasks: [],
       xp: 0,
       badges: [],
-      isPremium: true,
       pendingBadge: null,
       reminders: [],
       reminderMessage: '今日のタスクを確認しよう！ひとつだけでも大丈夫。',
@@ -248,8 +242,6 @@ export const useAppStore = create<AppState>()(
       },
 
       dismissBadge: () => set({ pendingBadge: null }),
-
-      togglePremium: () => set((s) => ({ isPremium: !s.isPremium })),
 
       addReminder: (time, days = [1, 2, 3, 4, 5], name = '', routineTaskId = undefined) => {
         const id = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
@@ -395,7 +387,6 @@ export const useAppStore = create<AppState>()(
         tasks: state.tasks,
         xp: state.xp,
         badges: state.badges,
-        isPremium: state.isPremium,
         reminders: state.reminders,
         reminderMessage: state.reminderMessage,
         hasCompletedOnboarding: state.hasCompletedOnboarding,

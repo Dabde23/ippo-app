@@ -5,8 +5,6 @@ import {
 } from 'react-native';
 import { Text } from './Text';
 import { TrackingPanel } from './TrackingPanel';
-import { PremiumLock } from './PremiumLock';
-import { useAppStore } from '../store/useAppStore';
 import { colors, spacing } from '../theme';
 
 const PANEL_RATIO = 0.85;
@@ -16,15 +14,12 @@ interface Props {
   onClose: () => void;
 }
 
-// 振り返りページ（独立・有料）。
+// 振り返りページ（独立）。
 // 気分カレンダー＋気分/集中度グラフ（= TrackingPanel）を RoutinePanel/TaskListPanel と同じ
-// オーバーレイ（右からスライドインのフルハイト）として独立させる。isPremium でゲート。
+// オーバーレイ（右からスライドインのフルハイト）として独立させる。全ユーザーに常時表示。
 export function ReviewPanel({ onClose }: Props) {
   const { width } = useWindowDimensions();
   const panelWidth = Math.round(width * PANEL_RATIO);
-
-  const isPremium = useAppStore((s) => s.isPremium);
-  const togglePremium = useAppStore((s) => s.togglePremium);
 
   const translateX = useRef(new Animated.Value(IS_WEB ? 0 : panelWidth)).current;
   const overlayOpacity = useRef(new Animated.Value(IS_WEB ? 1 : 0)).current;
@@ -63,10 +58,7 @@ export function ReviewPanel({ onClose }: Props) {
       </View>
 
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
-        {/* isPremium でゲート。無料は 🔒 ＋ EA 価格コピー（開発用に togglePremium をアップグレードに割当）。 */}
-        <PremiumLock featureName="振り返り" locked={!isPremium} onUpgrade={togglePremium}>
-          <TrackingPanel />
-        </PremiumLock>
+        <TrackingPanel />
         <View style={{ height: spacing.xxl }} />
       </ScrollView>
     </>
