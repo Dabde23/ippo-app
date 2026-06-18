@@ -30,8 +30,9 @@ const SEMI_H = SEMI_CY + 20; // 160
 const SEMI_STROKE = 14;
 const SEMI_PATH_LEN = Math.PI * SEMI_R; // ≈ 376.99
 
-// Track path: from left (30, 140) counterclockwise through top (150, 20) to right (270, 140)
-const SEMI_TRACK = `M ${SEMI_CX - SEMI_R},${SEMI_CY} A ${SEMI_R},${SEMI_R} 0 0,0 ${SEMI_CX + SEMI_R},${SEMI_CY}`;
+// Track path: from left (30, 140) clockwise through top (150, 20) to right (270, 140)
+// sweep-flag=1 = clockwise in SVG (y-down) = visually goes UP through the top half
+const SEMI_TRACK = `M ${SEMI_CX - SEMI_R},${SEMI_CY} A ${SEMI_R},${SEMI_R} 0 0,1 ${SEMI_CX + SEMI_R},${SEMI_CY}`;
 
 export function TimerScreen() {
   const { timerTaskId, tasks, completeTask, setTimerTask, timerWorkMinutes, setTimerWorkMinutes } = useAppStore();
@@ -250,14 +251,15 @@ export function TimerScreen() {
   const ringColor = mode === 'work' ? colors.primary : colors.success;
   const modeLabel = mode === 'work' ? 'フォーカス' : 'ブレイク';
 
-  // Semicircle arc progress calculation
-  // ratio=1 when full time remains (arc fully filled), ratio=0 when time is up (arc empty)
+  // Arc shows ELAPSED time: grows from left→top→right as time passes
+  // ratio = remaining fraction (1 at start → 0 at end)
   const ratio = seconds / totalSec;
-  const dashOffset = SEMI_PATH_LEN * (1 - ratio);
+  // dashOffset=L when ratio=1 (no arc yet), 0 when ratio=0 (full arc)
+  const dashOffset = SEMI_PATH_LEN * ratio;
 
-  // Dot at leading edge of visible arc (arc fills left→top→right as ratio=1→0)
-  // ratio=1: dotAngle=0 → right end; ratio=0.5: π/2 → top; ratio=0: π → left end
-  const dotAngle = (1 - ratio) * Math.PI;
+  // Dot at leading edge (moves left→top→right as elapsed time grows)
+  // ratio=1 (start): dotAngle=π → left; ratio=0.5: π/2 → top; ratio=0: 0 → right
+  const dotAngle = ratio * Math.PI;
   const dotX = SEMI_CX + SEMI_R * Math.cos(dotAngle);
   const dotY = SEMI_CY - SEMI_R * Math.sin(dotAngle);
 
@@ -385,42 +387,19 @@ export function TimerScreen() {
           <Text style={styles.countdown}>{countdown}秒後にタイマースタート</Text>
         )}
 
-        {/* 3-button control row */}
-        <View style={styles.controlRow}>
-          {/* Abort button */}
-          <Pressable
-            style={({ pressed }) => [styles.sideBtn, pressed && { opacity: 0.7 }]}
-            onPress={handleAbort}
-            accessibilityRole="button"
-            accessibilityLabel="中止"
-          >
-            <Ionicons name="stop" size={22} color={colors.textSub} />
-          </Pressable>
-
-          {/* Play/Pause button (center, larger) */}
-          <Pressable
-            style={({ pressed }) => [styles.mainBtn, pressed && { opacity: 0.8 }]}
-            onPress={handleStartPause}
-            accessibilityRole="button"
-            accessibilityLabel={isRunning ? '一時停止' : 'スタート'}
-          >
-            <Ionicons
-              name={isRunning ? 'pause' : 'play'}
-              size={30}
-              color={colors.primary}
-            />
-          </Pressable>
-
-          {/* Reset button */}
-          <Pressable
-            style={({ pressed }) => [styles.sideBtn, pressed && { opacity: 0.7 }]}
-            onPress={handleReset}
-            accessibilityRole="button"
-            accessibilityLabel="リセット"
-          >
-            <Ionicons name="refresh" size={22} color={colors.textSub} />
-          </Pressable>
-        </View>
+        {/* Play/Pause button */}
+        <Pressable
+          style={({ pressed }) => [styles.mainBtn, pressed && { opacity: 0.8 }]}
+          onPress={handleStartPause}
+          accessibilityRole="button"
+          accessibilityLabel={isRunning ? '一時停止' : 'スタート'}
+        >
+          <Ionicons
+            name={isRunning ? 'pause' : 'play'}
+            size={30}
+            color={colors.primary}
+          />
+        </Pressable>
 
         {/* Task actions — kept exactly as-is */}
         {timerTask && (
@@ -472,8 +451,6 @@ const styles = StyleSheet.create({
   arcContainer: { alignItems: 'center', width: '100%' },
   timeRow: { alignItems: 'center', marginTop: -spacing.lg },
   countdown: { fontSize: fontSize.xs, color: colors.textSub, letterSpacing: 1, textAlign: 'center' },
-  controlRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: spacing.xl },
-  sideBtn: { width: 48, height: 48, borderRadius: 24, backgroundColor: colors.surfaceAlt, alignItems: 'center', justifyContent: 'center' },
   mainBtn: { width: 64, height: 64, borderRadius: 32, backgroundColor: colors.primaryLight, borderWidth: 1.5, borderColor: colors.primary, alignItems: 'center', justifyContent: 'center' },
   taskActions: { width: '100%', gap: spacing.sm, marginTop: spacing.xs },
   completeBtn: { alignItems: 'center', paddingVertical: 24, borderRadius: radius.lg, backgroundColor: colors.primary },
