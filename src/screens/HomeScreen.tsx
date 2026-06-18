@@ -5,6 +5,7 @@ import {
   AppState, KeyboardAvoidingView, Platform, Alert,
 } from 'react-native';
 import * as Notifications from 'expo-notifications';
+import { Ionicons } from '@expo/vector-icons';
 import { ACTION_START, ACTION_LATER } from '../services/NotificationService';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
@@ -26,6 +27,7 @@ function pickRandom<T>(arr: T[], excludeId?: string): T | null {
 
 export function HomeScreen() {
   const { tasks, xp, addTask, skipTask, setTimerTask, availableTaskCount, completedTaskCount } = useAppStore();
+  const isPremium = useAppStore((s) => s.isPremium);
   const navigation = useNavigation<any>();
 
   const [currentTaskId, setCurrentTaskId] = useState<string | null>(null);
@@ -211,6 +213,12 @@ export function HomeScreen() {
                 <Text style={styles.completedTagLabel}>完了</Text>
               </View>
             )}
+            <Pressable
+              onPress={() => navigation.navigate('Profile')}
+              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+            >
+              <Ionicons name="person-outline" size={24} color={colors.ink} />
+            </Pressable>
           </View>
         </View>
         <XPBar xp={xp} />
@@ -285,10 +293,12 @@ export function HomeScreen() {
         <View style={{ height: spacing.xxl }} />
       </ScrollView>
 
-      {/* 気分記録ボタン（bottomBar直上・右寄せ） */}
-      <View style={styles.moodRow}>
-        <MoodInput />
-      </View>
+      {/* 気分記録ボタン（bottomBar直上・右寄せ）: 有料ユーザーのみ */}
+      {isPremium && (
+        <View style={styles.moodRow}>
+          <MoodInput />
+        </View>
+      )}
 
       {/* ── BOTTOM BAR ── */}
       <View style={styles.bottomBar}>

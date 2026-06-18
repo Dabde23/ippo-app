@@ -27,7 +27,7 @@ const RING_R = (RING_SIZE - RING_STROKE) / 2;
 const RING_CIRCUMFERENCE = 2 * Math.PI * RING_R;
 
 export function TimerScreen() {
-  const { timerTaskId, tasks, completeTask, skipTask, setTimerTask, timerWorkMinutes, setTimerWorkMinutes } = useAppStore();
+  const { timerTaskId, tasks, completeTask, setTimerTask, timerWorkMinutes, setTimerWorkMinutes } = useAppStore();
 
   const [seconds, setSeconds] = useState(timerWorkMinutes * 60);
   const [isRunning, setIsRunning] = useState(false);
@@ -179,16 +179,6 @@ export function TimerScreen() {
     navigation.navigate('Home');
   }, [setTimerTask, navigation, timerWorkMinutes]);
 
-  const handleSkip = useCallback(() => {
-    if (!timerTask) return;
-    if (autostartRef.current) clearTimeout(autostartRef.current);
-    cancelTimerEndNotification();
-    skipTask(timerTask.id);
-    setTimerTask(null);
-    setIsRunning(false);
-    navigation.navigate('Home');
-  }, [timerTask, skipTask, setTimerTask, navigation]);
-
   const totalSec = mode === 'work' ? workSec : breakSec;
   const progress = 1 - seconds / totalSec;
   const ringColor = mode === 'work' ? colors.primary : colors.success;
@@ -196,21 +186,31 @@ export function TimerScreen() {
 
   return (
     <SafeAreaView style={styles.safe}>
-      {/* ── HEADER ── */}
-      <View style={styles.header}>
-        <View style={styles.headerRule} />
-        <View style={styles.headerContent}>
-          <Text style={styles.modeTag}>{modeLabel}</Text>
+      {/* ── HEADER ── 走行中は非表示 */}
+      {!isRunning && (
+        <View style={styles.header}>
+          <View style={styles.headerRule} />
+          <View style={styles.headerContent}>
+            <Text style={styles.modeTag}>{modeLabel}</Text>
+            <Pressable
+              onPress={() => navigation.navigate('Profile')}
+              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+            >
+              <Ionicons name="person-outline" size={24} color={colors.ink} />
+            </Pressable>
+          </View>
+          {timerTask && (
+            <Text style={styles.taskName} numberOfLines={2}>{timerTask.title}</Text>
+          )}
+          <View style={styles.headerRule} />
         </View>
-        {timerTask && (
-          <Text style={styles.taskName} numberOfLines={2}>{timerTask.title}</Text>
-        )}
-        <View style={styles.headerRule} />
-      </View>
+      )}
 
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-        {/* プリセット選択行 */}
-        <View style={styles.presetRow}>
+        {/* プリセット選択行: 開始前／一時停止中のみ表示 */}
+        {!isRunning && (
+          <>
+            <View style={styles.presetRow}>
           {PRESETS.map((p) => {
             const isActive = timerWorkMinutes === p.work && !showCustomInput;
             return (
@@ -267,6 +267,8 @@ export function TimerScreen() {
             作業 {timerWorkMinutes}分 + 休憩 {getBreakMinutes(timerWorkMinutes)}分
           </Text>
         )}
+          </>
+        )}
 
         {/* Ring + start/pause */}
         <View style={styles.ringRow}>
@@ -297,19 +299,19 @@ export function TimerScreen() {
             <View style={styles.ringInner}>
               <TimerDisplay seconds={seconds} isRunning={isRunning} color={isRunning ? ringColor : colors.ink} />
             </View>
+            <Pressable
+              style={({ pressed }) => [styles.startBtn, pressed && { opacity: 0.7 }]}
+              onPress={handleStartPause}
+              accessibilityRole="button"
+              accessibilityLabel={isRunning ? '一時停止' : 'スタート'}
+            >
+              <Ionicons
+                name={isRunning ? 'pause' : 'play'}
+                size={26}
+                color={colors.primary}
+              />
+            </Pressable>
           </View>
-          <Pressable
-            style={({ pressed }) => [styles.startBtn, pressed && { opacity: 0.7 }]}
-            onPress={handleStartPause}
-            accessibilityRole="button"
-            accessibilityLabel={isRunning ? '一時停止' : 'スタート'}
-          >
-            <Ionicons
-              name={isRunning ? 'pause' : 'play'}
-              size={26}
-              color={colors.primary}
-            />
-          </Pressable>
         </View>
 
         {/* Progress bar */}
@@ -326,20 +328,12 @@ export function TimerScreen() {
             >
               <Text style={styles.completeBtnText}>タスク完了！</Text>
             </Pressable>
-            <View style={styles.subActions}>
-              <Pressable
-                style={({ pressed }) => [styles.subBtn, styles.abortBtn, pressed && { opacity: 0.6 }]}
-                onPress={handleAbort}
-              >
-                <Text style={[styles.subBtnText, styles.abortBtnText]}>中断</Text>
-              </Pressable>
-              <Pressable
-                style={({ pressed }) => [styles.subBtn, styles.skipBtn, pressed && { opacity: 0.6 }]}
-                onPress={handleSkip}
-              >
-                <Text style={[styles.subBtnText, styles.skipBtnText]}>後に回す</Text>
-              </Pressable>
-            </View>
+            <Pressable
+              style={({ pressed }) => [styles.abortOnlyBtn, pressed && { opacity: 0.6 }]}
+              onPress={handleAbort}
+            >
+              <Text style={styles.abortOnlyBtnText}>中断</Text>
+            </Pressable>
           </View>
         )}
       </ScrollView>
@@ -458,8 +452,7 @@ const styles = StyleSheet.create({
     paddingLeft: spacing.xs,
   },
   ringRow: {
-    flexDirection: 'row',
-    alignItems: 'flex-end',
+    alignItems: 'center',
     justifyContent: 'center',
     width: '100%',
   },
@@ -494,13 +487,13 @@ const styles = StyleSheet.create({
   },
   startBtn: {
     position: 'absolute',
-    bottom: 0,
-    right: 0,
-    width: 56,
-    height: 56,
+    left: 140,
+    top: 140,
+    width: 52,
+    height: 52,
     alignItems: 'center',
     justifyContent: 'center',
-    borderRadius: radius.lg,
+    borderRadius: 26,
     backgroundColor: colors.primaryLight,
     borderWidth: 1.5,
     borderColor: colors.primary,
@@ -522,36 +515,21 @@ const styles = StyleSheet.create({
     color: colors.surface,
     letterSpacing: 1,
   },
-  subActions: {
-    flexDirection: 'row',
-    gap: spacing.lg,
-    marginTop: spacing.xl,
-  },
-  subBtn: {
-    flex: 1,
+  abortOnlyBtn: {
+    width: '100%',
     alignItems: 'center',
     paddingVertical: 12,
     borderRadius: radius.md,
     borderWidth: 1.5,
+    borderColor: colors.danger,
+    backgroundColor: '#F6E4E4',
+    marginTop: spacing.xl,
   },
-  subBtnText: {
+  abortOnlyBtnText: {
     fontSize: fontSize.sm,
     fontWeight: fontWeight.bold,
     letterSpacing: 1,
-  },
-  abortBtn: {
-    borderColor: colors.danger,
-    backgroundColor: '#F6E4E4',
-  },
-  abortBtnText: {
     color: colors.danger,
-  },
-  skipBtn: {
-    borderColor: colors.border,
-    backgroundColor: colors.surfaceAlt,
-  },
-  skipBtnText: {
-    color: colors.textSub,
   },
   taskName: {
     fontSize: fontSize.md,
