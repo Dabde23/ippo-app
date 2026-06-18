@@ -7,7 +7,6 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 const FORMSPREE_URL = 'https://formspree.io/f/xqejvywv';
-const EARLY_ACCESS_FORMSPREE_URL = 'https://formspree.io/f/xzdqzqnz';
 import { Text } from '../components/Text';
 import { ReviewPanel } from '../components/ReviewPanel';
 import { SettingsPanel } from '../components/SettingsPanel';
@@ -30,15 +29,11 @@ export function ProfileScreen() {
   const [reviewPanelVisible, setReviewPanelVisible] = useState(false);
   const [settingsPanelVisible, setSettingsPanelVisible] = useState(false);
 
-  // ベータ運営（フィードバック / 事前登録）の state はそのまま移設。
+  // フィードバック state
   const [feedbackVisible, setFeedbackVisible] = useState(false);
   const [feedbackText, setFeedbackText] = useState('');
   const [feedbackSending, setFeedbackSending] = useState(false);
   const [feedbackSent, setFeedbackSent] = useState(false);
-  const [earlyAccessVisible, setEarlyAccessVisible] = useState(false);
-  const [earlyEmail, setEarlyEmail] = useState('');
-  const [earlySending, setEarlySending] = useState(false);
-  const [earlySent, setEarlySent] = useState(false);
 
   // 振り返りカードのプレビュー横幅（カード内側パディング 2 分を引く）。
   const sparklineWidth = Math.max(0, Math.round(width - spacing.md * 2 - spacing.md * 2));
@@ -65,34 +60,6 @@ export function ProfileScreen() {
       // モーダルは開けたまま・入力を保持
     } finally {
       setFeedbackSending(false);
-    }
-  }
-
-  async function handleEarlyAccessSubmit() {
-    const email = earlyEmail.trim();
-    if (!email.includes('@') || earlySending) return;
-    setEarlySending(true);
-    try {
-      const res = await fetch(EARLY_ACCESS_FORMSPREE_URL, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          email,
-          type: 'early_access_registration',
-        }),
-      });
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      setEarlySent(true);
-      setEarlyEmail('');
-      setTimeout(() => {
-        setEarlySent(false);
-        setEarlyAccessVisible(false);
-      }, 1500);
-    } catch {
-      Alert.alert('送信失敗', 'メールアドレスを確認して、もう一度お試しください。');
-      // モーダルは開けたまま・入力を保持
-    } finally {
-      setEarlySending(false);
     }
   }
 
@@ -181,15 +148,6 @@ export function ProfileScreen() {
           >
             <Text style={styles.feedbackBtnText}>感想を送る</Text>
           </Pressable>
-          <Pressable
-            style={({ pressed }) => [styles.earlyBtn, pressed && { opacity: 0.7 }]}
-            onPress={() => setEarlyAccessVisible(true)}
-          >
-            <Text style={styles.earlyBtnText}>ネイティブアプリの事前登録 →</Text>
-          </Pressable>
-          <Text style={styles.releaseNotice}>
-            ストアリリース開始に伴い一部機能は有料機能になります
-          </Text>
         </View>
 
         <View style={{ height: spacing.xxl }} />
@@ -233,53 +191,6 @@ export function ProfileScreen() {
                     disabled={!feedbackText.trim() || feedbackSending}
                   >
                     <Text style={styles.editSaveText}>{feedbackSending ? '送信中...' : '送る'}</Text>
-                  </Pressable>
-                </View>
-              </>
-            )}
-          </View>
-        </View>
-      </Modal>
-
-      {/* Early access modal */}
-      <Modal visible={earlyAccessVisible} animationType="fade" transparent>
-        <View style={styles.editOverlay}>
-          <View style={styles.editSheet}>
-            <Text style={styles.editLabel}>アーリーアクセス事前登録</Text>
-            <View style={styles.rule} />
-            {earlySent ? (
-              <View style={styles.feedbackSentContainer}>
-                <Text style={styles.feedbackSentText}>登録ありがとうございます！</Text>
-              </View>
-            ) : (
-              <>
-                <TextInput
-                  style={styles.editInput}
-                  value={earlyEmail}
-                  onChangeText={setEarlyEmail}
-                  placeholder="メールアドレス"
-                  placeholderTextColor={colors.textDisabled}
-                  keyboardType="email-address"
-                  autoCapitalize="none"
-                  autoCorrect={false}
-                  maxLength={200}
-                  autoFocus
-                  editable={!earlySending}
-                />
-                <View style={styles.editActions}>
-                  <Pressable
-                    style={({ pressed }) => [styles.editCancelBtn, pressed && { opacity: 0.6 }]}
-                    onPress={() => { setEarlyAccessVisible(false); setEarlyEmail(''); }}
-                    disabled={earlySending}
-                  >
-                    <Text style={styles.editCancelText}>キャンセル</Text>
-                  </Pressable>
-                  <Pressable
-                    style={({ pressed }) => [styles.editSaveBtn, (!earlyEmail.includes('@') || earlySending) && styles.editSaveBtnDisabled, pressed && { opacity: 0.85 }]}
-                    onPress={handleEarlyAccessSubmit}
-                    disabled={!earlyEmail.includes('@') || earlySending}
-                  >
-                    <Text style={styles.editSaveText}>{earlySending ? '送信中...' : '送信'}</Text>
                   </Pressable>
                 </View>
               </>
@@ -457,28 +368,6 @@ const styles = StyleSheet.create({
     color: colors.background,
     fontWeight: fontWeight.bold,
     letterSpacing: 1,
-  },
-  earlyBtn: {
-    backgroundColor: colors.surface,
-    borderRadius: radius.md,
-    borderWidth: 1.5,
-    borderColor: colors.primary,
-    paddingVertical: spacing.sm,
-    paddingHorizontal: spacing.md,
-    alignSelf: 'flex-start',
-    marginTop: spacing.xs,
-  },
-  earlyBtnText: {
-    fontSize: fontSize.sm,
-    color: colors.primary,
-    fontWeight: fontWeight.bold,
-    letterSpacing: 1,
-  },
-  releaseNotice: {
-    fontSize: fontSize.xs,
-    color: colors.textMuted,
-    lineHeight: 18,
-    marginTop: spacing.xs,
   },
   // Modals
   feedbackInput: {

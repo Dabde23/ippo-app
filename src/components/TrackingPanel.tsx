@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import {
-  View, StyleSheet, Pressable, Modal, ScrollView, Dimensions,
+  View, StyleSheet, Pressable, Modal, ScrollView, useWindowDimensions,
 } from 'react-native';
 import { Calendar, LocaleConfig } from 'react-native-calendars';
 import { LineChart } from 'react-native-gifted-charts';
@@ -54,6 +54,7 @@ function buildSeries(avgMap: Record<string, number>, days: string[]): { value: n
 }
 
 export function TrackingPanel() {
+  const { width: screenW } = useWindowDimensions();
   // セレクタは配列をそのまま取得（webの無限ループ回避）
   const moodEntries = useAppStore((s) => s.moodEntries);
   const focusEntries = useAppStore((s) => s.focusEntries);
@@ -97,7 +98,6 @@ export function TrackingPanel() {
   const moodSeries = buildSeries(moodAvgMap, days);
   const focusSeries = buildSeries(focusAvgMap, days);
 
-  const screenW = Dimensions.get('window').width;
   const chartWidth = Math.max(0, screenW - spacing.md * 2 - spacing.md * 2 - 40);
 
   const hasGraphData = moodSeries != null || focusSeries != null;

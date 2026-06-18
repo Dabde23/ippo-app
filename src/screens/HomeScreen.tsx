@@ -17,10 +17,8 @@ import { MoodInput } from '../components/MoodInput';
 import { useAppStore, Task, today, XP_PER_TASK } from '../store/useAppStore';
 import { colors, spacing, radius, fontSize, fontWeight, shadow } from '../theme';
 
-function pickRandom<T>(arr: T[], excludeId?: string): T | null {
-  const pool = excludeId
-    ? (arr as unknown as Task[]).filter((t) => t.id !== excludeId) as unknown as T[]
-    : arr;
+function pickRandom<T extends { id: string }>(arr: T[], excludeId?: string): T | null {
+  const pool = excludeId ? arr.filter((t) => t.id !== excludeId) : arr;
   if (pool.length === 0) return null;
   return pool[Math.floor(Math.random() * pool.length)];
 }

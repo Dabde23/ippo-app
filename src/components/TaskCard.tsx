@@ -9,8 +9,7 @@ import {
   cancelTaskReminder,
 } from '../services/NotificationService';
 import { colors, spacing, radius, fontSize, fontWeight } from '../theme';
-
-const TIME_OPTIONS = ['07:00','08:00','09:00','10:00','12:00','18:00','20:00','21:00','22:00'];
+import { TIME_OPTIONS } from '../constants/reminder';
 
 interface Props {
   task: Task;

@@ -11,11 +11,10 @@ import {
   scheduleReminders,
 } from '../services/NotificationService';
 import { colors, spacing, radius, fontSize, fontWeight } from '../theme';
+import { TIME_OPTIONS, DAY_LABELS } from '../constants/reminder';
 
 const PANEL_RATIO = 0.85;
 const IS_WEB = Platform.OS === 'web';
-const TIME_OPTIONS = ['07:00','08:00','09:00','10:00','12:00','18:00','20:00','21:00','22:00'];
-const DAY_LABELS = ['月','火','水','木','金','土','日']; // index 0〜6 → 曜日番号 1〜7
 
 // 曜日配列 → サマリー文字列
 function daysSummary(days: number[]): string {
@@ -99,7 +98,7 @@ export function RoutinePanel({ onClose }: RoutinePanelProps) {
       setPickerTime(linkedReminder.time);
       setPickerDays(linkedReminder.days);
     } else {
-      // 新規モード: 07:00 / 平日
+      // 新規モード: 07:00 / 毎日
       setPickerTime('07:00');
       setPickerDays([1, 2, 3, 4, 5, 6, 7]);
     }

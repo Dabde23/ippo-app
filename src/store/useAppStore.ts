@@ -59,7 +59,6 @@ export interface FocusEntry {
 // アーリーアクセス(EA)価格。正式リリースは ¥580、EA 期間中は ¥350/月（永続）。
 // EA 期間中はこの値を表示する（決定: 2026-06-17 価格・GTM）。
 export const PREMIUM_PRICE_JPY = 350;
-export const CANCEL_NOTICE_DAYS = 5;
 export const XP_PER_TASK = 10;
 
 export const BADGE_THRESHOLDS = [100, 300, 600, 1000, 1500];
@@ -117,9 +116,6 @@ interface AppState {
   addMoodEntry: (level: TrackingLevel, memo?: string) => void;
   addFocusEntry: (level: TrackingLevel, taskId: string, taskTitle: string, memo?: string) => void;
   toggleFocusPrompt: () => void;
-  getMoodEntriesForDate: (date: string) => MoodEntry[];
-  getMoodAverageForDate: (date: string) => number | null;
-  getFocusEntriesForDate: (date: string) => FocusEntry[];
   // ── リマインダー通知アクション系 ──
   // 指定 taskId が「JST の今日すでに完了済み」か。単発タスク=そのまま completed か、
   // ルーティンテンプレ=当日インスタンスが completed かを見る（完了済み抑制の判定）。
@@ -335,21 +331,6 @@ export const useAppStore = create<AppState>()(
       },
 
       toggleFocusPrompt: () => set((s) => ({ focusPromptEnabled: !s.focusPromptEnabled })),
-
-      getMoodEntriesForDate: (date) => {
-        return get().moodEntries.filter((e) => dateOfJST(e.timestamp) === date);
-      },
-
-      getMoodAverageForDate: (date) => {
-        const entries = get().moodEntries.filter((e) => dateOfJST(e.timestamp) === date);
-        if (entries.length === 0) return null;
-        const sum = entries.reduce((acc, e) => acc + e.level, 0);
-        return Math.round(sum / entries.length);
-      },
-
-      getFocusEntriesForDate: (date) => {
-        return get().focusEntries.filter((e) => dateOfJST(e.timestamp) === date);
-      },
 
       isReminderTaskDoneToday: (taskId) => {
         const t = today();
