@@ -24,7 +24,13 @@ function pickRandom<T extends { id: string }>(arr: T[], excludeId?: string): T |
 }
 
 export function HomeScreen() {
-  const { tasks, xp, addTask, skipTask, setTimerTask, availableTaskCount, completedTaskCount } = useAppStore();
+  const tasks = useAppStore((s) => s.tasks);
+  const xp = useAppStore((s) => s.xp);
+  const addTask = useAppStore((s) => s.addTask);
+  const skipTask = useAppStore((s) => s.skipTask);
+  const setTimerTask = useAppStore((s) => s.setTimerTask);
+  const availableTaskCount = useAppStore((s) => s.availableTaskCount);
+  const completedTaskCount = useAppStore((s) => s.completedTaskCount);
   const navigation = useNavigation<any>();
 
   const [currentTaskId, setCurrentTaskId] = useState<string | null>(null);
