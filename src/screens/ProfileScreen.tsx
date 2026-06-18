@@ -5,6 +5,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
+import { useNavigation } from '@react-navigation/native';
 const FORMSPREE_URL = 'https://formspree.io/f/xqejvywv';
 const EARLY_ACCESS_FORMSPREE_URL = 'https://formspree.io/f/xzdqzqnz';
 import { Text } from '../components/Text';
@@ -17,6 +18,7 @@ import { colors, spacing, radius, fontSize, fontWeight } from '../theme';
 
 export function ProfileScreen() {
   const { width } = useWindowDimensions();
+  const navigation = useNavigation<any>();
 
   const tasks = useAppStore((s) => s.tasks);
   const moodEntries = useAppStore((s) => s.moodEntries);
@@ -104,6 +106,12 @@ export function ProfileScreen() {
             <Text style={styles.statNum}>{completedTotal}</Text>
             <Text style={styles.statLabel}>完了</Text>
           </View>
+          <Pressable
+            onPress={() => navigation.goBack()}
+            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+          >
+            <Ionicons name="close" size={24} color={colors.ink} />
+          </Pressable>
         </View>
         <View style={styles.rule} />
       </View>
