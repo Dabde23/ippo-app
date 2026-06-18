@@ -213,13 +213,23 @@ export const useAppStore = create<AppState>()(
 
       // Spawn a daily instance for each routine template that hasn't been
       // added for the current day yet. Idempotent: safe to call repeatedly.
+      // Also purges stale routine instances (completed or skipped, not today).
       syncRoutineTasks: () => {
         set((state) => {
           const t = today();
-          const templates = state.tasks.filter((task) => task.isRoutine === true);
+
+          // M-4: 古いルーティンインスタンスを削除。
+          // 条件: routineSourceId を持つ（インスタンス）AND（完了済み OR スキップ済み）AND 今日以前
+          const purged = state.tasks.filter((task) => {
+            if (!task.routineSourceId) return true; // テンプレート・単発タスクは保持
+            if (task.routineSpawnDate === t) return true; // 今日のインスタンスは保持
+            return !(task.completed || task.skippedDate !== null);
+          });
+
+          const templates = purged.filter((task) => task.isRoutine === true);
           const newInstances: Task[] = [];
           for (const tpl of templates) {
-            const alreadySpawned = state.tasks.some(
+            const alreadySpawned = purged.some(
               (task) => task.routineSourceId === tpl.id && task.routineSpawnDate === t
             );
             if (alreadySpawned) continue;
@@ -236,8 +246,8 @@ export const useAppStore = create<AppState>()(
               routineSpawnDate: t,
             });
           }
-          if (newInstances.length === 0) return state;
-          return { tasks: [...newInstances, ...state.tasks] };
+          if (newInstances.length === 0 && purged.length === state.tasks.length) return state;
+          return { tasks: [...newInstances, ...purged] };
         });
       },
 
