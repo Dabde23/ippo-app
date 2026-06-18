@@ -7,7 +7,7 @@ import Svg, { Path, Circle as SvgCircle } from 'react-native-svg';
 import { Text } from '../components/Text';
 import { TimerDisplay } from '../components/TimerDisplay';
 import { FocusModal } from '../components/FocusModal';
-import { colors, spacing, radius, fontSize, fontWeight, shadow } from '../theme';
+import { colors, spacing, radius, fontSize, fontWeight } from '../theme';
 import { useAppStore } from '../store/useAppStore';
 import { scheduleTimerEndNotification, cancelTimerEndNotification, cancelTaskReminder } from '../services/NotificationService';
 
@@ -171,7 +171,7 @@ export function TimerScreen() {
     if (countdownIntervalRef.current) clearInterval(countdownIntervalRef.current);
     cancelTimerEndNotification();
     setIsRunning(false);
-    setSeconds(totalSec);
+    setSeconds(workSec);
     setMode('work');
     setCountdown(null);
     phaseEndTimeRef.current = null;
@@ -255,11 +255,8 @@ export function TimerScreen() {
   const ratio = seconds / totalSec;
   const dashOffset = SEMI_PATH_LEN * (1 - ratio);
 
-  // Dot position at the end of the visible arc
-  // angle goes from 0 (right end) to PI (left end) as ratio goes from 0 to 1
-  // Since arc goes from left to right counterclockwise through top:
-  // At ratio=1 (full): dot at left end (angle=PI from center)
-  // At ratio=0 (empty): dot at right end (angle=0 from center)
+  // Dot at leading edge of visible arc (arc fills left→top→right as ratio=1→0)
+  // ratio=1: dotAngle=0 → right end; ratio=0.5: π/2 → top; ratio=0: π → left end
   const dotAngle = (1 - ratio) * Math.PI;
   const dotX = SEMI_CX + SEMI_R * Math.cos(dotAngle);
   const dotY = SEMI_CY - SEMI_R * Math.sin(dotAngle);
@@ -478,7 +475,6 @@ const styles = StyleSheet.create({
   controlRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: spacing.xl },
   sideBtn: { width: 48, height: 48, borderRadius: 24, backgroundColor: colors.surfaceAlt, alignItems: 'center', justifyContent: 'center' },
   mainBtn: { width: 64, height: 64, borderRadius: 32, backgroundColor: colors.primaryLight, borderWidth: 1.5, borderColor: colors.primary, alignItems: 'center', justifyContent: 'center' },
-  controls: { paddingBottom: spacing.lg },
   taskActions: { width: '100%', gap: spacing.sm, marginTop: spacing.xs },
   completeBtn: { alignItems: 'center', paddingVertical: 24, borderRadius: radius.lg, backgroundColor: colors.primary },
   completeBtnText: { fontSize: fontSize.lg, fontWeight: fontWeight.black, color: colors.surface, letterSpacing: 1 },
