@@ -10,7 +10,6 @@ import { ProfileScreen } from '../screens/ProfileScreen';
 import { OnboardingScreen } from '../screens/OnboardingScreen';
 import { colors } from '../theme';
 import { useAppStore } from '../store/useAppStore';
-import { BadgeModal } from './BadgeModal';
 
 const Stack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
@@ -66,7 +65,7 @@ function MainTabNavigator() {
 }
 
 export function AppNavigator() {
-  const { pendingBadge, dismissBadge, hasCompletedOnboarding } = useAppStore();
+  const hasCompletedOnboarding = useAppStore((s) => s.hasCompletedOnboarding);
 
   if (!hasCompletedOnboarding) return <OnboardingScreen />;
 
@@ -80,7 +79,6 @@ export function AppNavigator() {
           options={{ presentation: 'modal', headerShown: false }}
         />
       </Stack.Navigator>
-      {pendingBadge && <BadgeModal badge={pendingBadge} onDismiss={dismissBadge} />}
     </NavigationContainer>
   );
 }

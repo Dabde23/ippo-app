@@ -13,7 +13,6 @@ export interface Task {
   title: string;
   priority?: Priority; // legacy field, no longer used
   completed: boolean;
-  xpAwarded: boolean;
   createdAt: string;
   skippedDate: string | null;
   isRoutine: boolean;
@@ -29,13 +28,6 @@ export interface Reminder {
   time: string;    // HH:MM
   days: number[];  // 1=月 2=火 3=水 4=木 5=金 6=土 7=日
   routineTaskId?: string; // ルーティンテンプレートと連動する場合のID
-}
-
-export interface Badge {
-  id: string;
-  name: string;
-  emoji: string;
-  earnedAt: string;
 }
 
 export type TrackingLevel = 1 | 2 | 3 | 4 | 5;
@@ -56,27 +48,8 @@ export interface FocusEntry {
   memo?: string;
 }
 
-export const XP_PER_TASK = 10;
-
-export const BADGE_THRESHOLDS = [100, 300, 600, 1000, 1500];
-
-const BADGES: Omit<Badge, 'earnedAt'>[] = [
-  { id: 'first-step',      name: 'はじめの一歩',    emoji: '🌱' },
-  { id: 'getting-started', name: 'スタートダッシュ', emoji: '🚀' },
-  { id: 'focused',         name: '集中の達人',       emoji: '🎯' },
-  { id: 'consistent',      name: '継続の力',         emoji: '💪' },
-  { id: 'achiever',        name: 'アチーバー',       emoji: '🏆' },
-];
-
-function earnedBadgeCount(xp: number): number {
-  return BADGE_THRESHOLDS.filter((t) => xp >= t).length;
-}
-
 interface AppState {
   tasks: Task[];
-  xp: number;
-  badges: Badge[];
-  pendingBadge: Badge | null;
   reminders: Reminder[];
   reminderMessage: string;
   hasCompletedOnboarding: boolean;
@@ -96,7 +69,6 @@ interface AppState {
   deleteRoutine: (id: string) => void;
   clearCompletedTasks: () => void;
   syncRoutineTasks: () => void;
-  dismissBadge: () => void;
   addReminder: (time: string, days?: number[], name?: string, routineTaskId?: string) => string;
   removeReminder: (id: string) => void;
   updateReminder: (id: string, time?: string, days?: number[], name?: string) => void;
@@ -127,9 +99,6 @@ export const useAppStore = create<AppState>()(
   persist(
     (set, get) => ({
       tasks: [],
-      xp: 0,
-      badges: [],
-      pendingBadge: null,
       reminders: [],
       reminderMessage: '今日のタスクを確認しよう！ひとつだけでも大丈夫。',
       hasCompletedOnboarding: false,
@@ -146,7 +115,6 @@ export const useAppStore = create<AppState>()(
           id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
           title,
           completed: false,
-          xpAwarded: false,
           createdAt: t,
           skippedDate: null,
           isRoutine,
@@ -161,24 +129,11 @@ export const useAppStore = create<AppState>()(
           const task = state.tasks.find((t) => t.id === id);
           if (!task || task.completed) return state;
 
-          const earned = XP_PER_TASK;
           const tasks = state.tasks.map((t) =>
-            t.id === id ? { ...t, completed: true, xpAwarded: true } : t
+            t.id === id ? { ...t, completed: true } : t
           );
 
-          const newXp = state.xp + earned;
-          const prevCount = earnedBadgeCount(state.xp);
-          const newCount = earnedBadgeCount(newXp);
-          let pendingBadge: Badge | null = null;
-          let badges = state.badges;
-          if (newCount > prevCount && newCount <= BADGES.length) {
-            const template = BADGES[newCount - 1];
-            const newBadge: Badge = { ...template, earnedAt: today() };
-            badges = [...state.badges, newBadge];
-            pendingBadge = newBadge;
-          }
-
-          return { tasks, xp: newXp, badges, pendingBadge };
+          return { tasks };
         });
       },
 
@@ -237,7 +192,6 @@ export const useAppStore = create<AppState>()(
               id: `${tpl.id}-${t}`,
               title: tpl.title,
               completed: false,
-              xpAwarded: false,
               createdAt: t,
               skippedDate: null,
               isRoutine: false,
@@ -250,8 +204,6 @@ export const useAppStore = create<AppState>()(
           return { tasks: [...newInstances, ...purged] };
         });
       },
-
-      dismissBadge: () => set({ pendingBadge: null }),
 
       addReminder: (time, days = [1, 2, 3, 4, 5], name = '', routineTaskId = undefined) => {
         const id = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
@@ -395,8 +347,6 @@ export const useAppStore = create<AppState>()(
       storage: createJSONStorage(() => AsyncStorage),
       partialize: (state) => ({
         tasks: state.tasks,
-        xp: state.xp,
-        badges: state.badges,
         reminders: state.reminders,
         reminderMessage: state.reminderMessage,
         hasCompletedOnboarding: state.hasCompletedOnboarding,
@@ -431,9 +381,9 @@ export const useAppStore = create<AppState>()(
         state.reminders = state.reminders.map((r) =>
           typeof (r as any).name === 'string' ? r : { ...r, name: '' }
         );
-        // タスクやXPが存在するのにhasCompletedOnboardingがfalseの場合は
+        // タスクが存在するのにhasCompletedOnboardingがfalseの場合は
         // migration起因のデータ破損と判断して復元する
-        if (!state.hasCompletedOnboarding && (state.tasks.length > 0 || state.xp > 0)) {
+        if (!state.hasCompletedOnboarding && state.tasks.length > 0) {
           state.hasCompletedOnboarding = true;
         }
         // 状態トラッキング: 旧データに無いフィールドをデフォルト補完

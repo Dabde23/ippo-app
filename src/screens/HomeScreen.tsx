@@ -10,11 +10,10 @@ import { ACTION_START, ACTION_LATER } from '../services/NotificationService';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { Text } from '../components/Text';
-import { XPBar } from '../components/XPBar';
 import { TaskCard } from '../components/TaskCard';
 import { TaskListPanel } from '../components/TaskListPanel';
 import { MoodInput } from '../components/MoodInput';
-import { useAppStore, Task, today, XP_PER_TASK } from '../store/useAppStore';
+import { useAppStore, Task, today } from '../store/useAppStore';
 import { colors, spacing, radius, fontSize, fontWeight, shadow } from '../theme';
 
 function pickRandom<T extends { id: string }>(arr: T[], excludeId?: string): T | null {
@@ -25,7 +24,6 @@ function pickRandom<T extends { id: string }>(arr: T[], excludeId?: string): T |
 
 export function HomeScreen() {
   const tasks = useAppStore((s) => s.tasks);
-  const xp = useAppStore((s) => s.xp);
   const addTask = useAppStore((s) => s.addTask);
   const skipTask = useAppStore((s) => s.skipTask);
   const setTimerTask = useAppStore((s) => s.setTimerTask);
@@ -224,7 +222,6 @@ export function HomeScreen() {
             </Pressable>
           </View>
         </View>
-        <XPBar xp={xp} />
         <View style={styles.headerRule} />
       </View>
 
@@ -246,7 +243,6 @@ export function HomeScreen() {
               <View style={styles.focusCardBody}>
                 <Text style={styles.focusTitle}>{currentTask.title}</Text>
                 <View style={styles.focusFooter}>
-                  <Text style={styles.focusXp}>+{XP_PER_TASK} XP</Text>
                   <Pressable
                     style={({ pressed }) => [styles.skipBtn, pressed && { opacity: 0.65 }]}
                     onPress={handleSkip}
@@ -477,19 +473,7 @@ const styles = StyleSheet.create({
   focusFooter: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  focusXp: {
-    fontSize: fontSize.xs,
-    fontWeight: fontWeight.bold,
-    color: colors.primary,
-    letterSpacing: 1.5,
-    textTransform: 'uppercase',
-    borderWidth: 1,
-    borderColor: colors.primary,
-    paddingHorizontal: spacing.sm,
-    paddingVertical: 3,
-    borderRadius: radius.sm,
+    justifyContent: 'flex-end',
   },
 
   // ── Action buttons ──
