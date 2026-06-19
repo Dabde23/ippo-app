@@ -1,20 +1,15 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { View, StyleSheet, Pressable, ScrollView, TextInput, AppState } from 'react-native';
+import { View, StyleSheet, Pressable, ScrollView, TextInput, AppState, Modal, Platform } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
+import * as Haptics from 'expo-haptics';
 import Svg, { Path, Circle as SvgCircle } from 'react-native-svg';
 import { Text } from '../components/Text';
 import { TimerDisplay } from '../components/TimerDisplay';
 import { colors, spacing, radius, fontSize, fontWeight } from '../theme';
 import { useAppStore } from '../store/useAppStore';
 import { scheduleTimerEndNotification, cancelTimerEndNotification, cancelTaskReminder } from '../services/NotificationService';
-
-const PRESETS = [
-  { label: '15分', work: 10, break: 5 },
-  { label: '30分', work: 25, break: 5 },
-  { label: '1時間', work: 50, break: 10 },
-] as const;
 
 function getBreakMinutes(workMin: number): number {
   return workMin === 50 ? 10 : 5;
@@ -34,17 +29,15 @@ const SEMI_PATH_LEN = Math.PI * SEMI_R; // ≈ 376.99
 const SEMI_TRACK = `M ${SEMI_CX - SEMI_R},${SEMI_CY} A ${SEMI_R},${SEMI_R} 0 0,1 ${SEMI_CX + SEMI_R},${SEMI_CY}`;
 
 export function TimerScreen() {
-  const { timerTaskId, tasks, completeTask, setTimerTask, timerWorkMinutes, setTimerWorkMinutes, fiveMinMode, setFiveMinMode } = useAppStore();
+  const { timerTaskId, tasks, completeTask, setTimerTask, deferToNextDay, timerWorkMinutes, setTimerWorkMinutes, fiveMinMode, setFiveMinMode } = useAppStore();
 
   const [seconds, setSeconds] = useState(timerWorkMinutes * 60);
   const [isRunning, setIsRunning] = useState(false);
   const [mode, setMode] = useState<'work' | 'break'>('work');
-  const [customInput, setCustomInput] = useState('');
-  const [showCustomInput, setShowCustomInput] = useState(false);
-  const [countdown, setCountdown] = useState<number | null>(null);
+  const [editingWork, setEditingWork] = useState(false);
+  const [workInput, setWorkInput] = useState('');
+  const [fiveMinDone, setFiveMinDone] = useState(false);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  const autostartRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const countdownIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const phaseEndTimeRef = useRef<number | null>(null);
 
   // 「5分だけ」モード時は作業時間を5分に上書き（arc/フェーズ整合のため effective を使用）。
@@ -66,6 +59,16 @@ export function TimerScreen() {
       if (phaseEndTimeRef.current === null) return;
       const remaining = phaseEndTimeRef.current - Date.now();
       if (remaining <= 0) {
+        // 「5分だけ」モードで work フェーズが終了したら break に移らず 3 択を表示。
+        if (fiveMinMode && mode === 'work') {
+          if (intervalRef.current) clearInterval(intervalRef.current);
+          cancelTimerEndNotification();
+          phaseEndTimeRef.current = null;
+          setIsRunning(false);
+          setSeconds(0);
+          setFiveMinDone(true);
+          return;
+        }
         const next = mode === 'work' ? 'break' : 'work';
         const nextSec = next === 'work' ? workSec : breakSec;
         phaseEndTimeRef.current = Date.now() + nextSec * 1000;
@@ -78,19 +81,21 @@ export function TimerScreen() {
       }
     }, 250);
     return () => { if (intervalRef.current) clearInterval(intervalRef.current); };
-  }, [isRunning, mode, workSec, breakSec]);
-
-  useEffect(() => {
-    return () => {
-      if (autostartRef.current) clearTimeout(autostartRef.current);
-      if (countdownIntervalRef.current) clearInterval(countdownIntervalRef.current);
-    };
-  }, []);
+  }, [isRunning, mode, workSec, breakSec, fiveMinMode]);
 
   useEffect(() => {
     const sub = AppState.addEventListener('change', (nextAppState) => {
       if (nextAppState !== 'active' || !isRunning || phaseEndTimeRef.current === null) return;
       const now = Date.now();
+      // 「5分だけ」モードの work 終了がバックグラウンド中に来ていたら 3 択へ。
+      if (fiveMinMode && mode === 'work' && phaseEndTimeRef.current <= now) {
+        cancelTimerEndNotification();
+        phaseEndTimeRef.current = null;
+        setIsRunning(false);
+        setSeconds(0);
+        setFiveMinDone(true);
+        return;
+      }
       let endTime = phaseEndTimeRef.current;
       let currentMode = mode;
       while (endTime <= now) {
@@ -109,57 +114,24 @@ export function TimerScreen() {
       }
     });
     return () => sub.remove();
-  }, [isRunning, mode, workSec, breakSec]);
+  }, [isRunning, mode, workSec, breakSec, fiveMinMode]);
 
+  // タイマー対象が変わったら、カウントダウンなしで即開始。走行中でも一旦リセットして再開。
   useEffect(() => {
     if (!timerTaskId) return;
     // fiveMinMode なら開始秒数を 5分に上書き。
     const startSec = (fiveMinMode ? 5 : timerWorkMinutes) * 60;
-    if (autostartRef.current) clearTimeout(autostartRef.current);
-    if (countdownIntervalRef.current) clearInterval(countdownIntervalRef.current);
     cancelTimerEndNotification();
-    setIsRunning(false);
-    setSeconds(startSec);
     setMode('work');
-    phaseEndTimeRef.current = null;
-
-    // Start countdown display
-    setCountdown(2);
-    countdownIntervalRef.current = setInterval(() => {
-      setCountdown((prev) => {
-        if (prev === null || prev <= 1) {
-          clearInterval(countdownIntervalRef.current!);
-          countdownIntervalRef.current = null;
-          return null;
-        }
-        return prev - 1;
-      });
-    }, 1000);
-
-    autostartRef.current = setTimeout(() => {
-      phaseEndTimeRef.current = Date.now() + startSec * 1000;
-      setIsRunning(true);
-      setCountdown(null);
-      scheduleTimerEndNotification(startSec, 'ブレイクの時間です');
-    }, 2000);
-    return () => {
-      if (autostartRef.current) clearTimeout(autostartRef.current);
-      if (countdownIntervalRef.current) clearInterval(countdownIntervalRef.current);
-    };
+    setSeconds(startSec);
+    setFiveMinDone(false);
+    setEditingWork(false);
+    phaseEndTimeRef.current = Date.now() + startSec * 1000;
+    setIsRunning(true);
+    scheduleTimerEndNotification(startSec, 'ブレイクの時間です');
   }, [timerTaskId, fiveMinMode]);
 
   function handleStartPause() {
-    // Cancel pending autostart/countdown if any
-    if (autostartRef.current) {
-      clearTimeout(autostartRef.current);
-      autostartRef.current = null;
-    }
-    if (countdownIntervalRef.current) {
-      clearInterval(countdownIntervalRef.current);
-      countdownIntervalRef.current = null;
-    }
-    setCountdown(null);
-
     const newRunning = !isRunning;
     if (newRunning) {
       phaseEndTimeRef.current = Date.now() + seconds * 1000;
@@ -169,77 +141,57 @@ export function TimerScreen() {
     setIsRunning(newRunning);
   }
 
-  function handleReset() {
-    if (autostartRef.current) clearTimeout(autostartRef.current);
-    if (countdownIntervalRef.current) clearInterval(countdownIntervalRef.current);
-    cancelTimerEndNotification();
-    setIsRunning(false);
-    setSeconds(workSec);
-    setMode('work');
-    setCountdown(null);
-    phaseEndTimeRef.current = null;
-  }
-
-  function applyPreset(workMin: number) {
-    if (autostartRef.current) clearTimeout(autostartRef.current);
-    if (countdownIntervalRef.current) clearInterval(countdownIntervalRef.current);
-    cancelTimerEndNotification();
-    setTimerWorkMinutes(workMin);
-    setCustomInput('');
-    setShowCustomInput(false);
-    setMode('work');
-    const sec = workMin * 60;
-    setSeconds(sec);
-    setIsRunning(false);
-    phaseEndTimeRef.current = null;
-
-    // Start countdown display
-    setCountdown(2);
-    countdownIntervalRef.current = setInterval(() => {
-      setCountdown((prev) => {
-        if (prev === null || prev <= 1) {
-          clearInterval(countdownIntervalRef.current!);
-          countdownIntervalRef.current = null;
-          return null;
-        }
-        return prev - 1;
-      });
-    }, 1000);
-
-    autostartRef.current = setTimeout(() => {
-      phaseEndTimeRef.current = Date.now() + sec * 1000;
-      setIsRunning(true);
-      setCountdown(null);
-      scheduleTimerEndNotification(sec, 'ブレイクの時間です');
-    }, 2000);
+  // インライン作業時間入力の確定。
+  function commitWorkInput() {
+    const n = parseInt(workInput, 10);
+    if (!isNaN(n) && n >= 1 && n <= 180) {
+      setTimerWorkMinutes(n);
+      if (mode === 'work' && !isRunning) setSeconds(n * 60);
+    }
+    setEditingWork(false);
   }
 
   const handleComplete = useCallback(() => {
     if (!timerTask) return;
-    if (autostartRef.current) clearTimeout(autostartRef.current);
-    if (countdownIntervalRef.current) clearInterval(countdownIntervalRef.current);
     cancelTimerEndNotification();
     if (timerTask.taskReminderTime) cancelTaskReminder(timerTask.id);
+    if (Platform.OS !== 'web') {
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    }
     completeTask(timerTask.id);
     setIsRunning(false);
-    setCountdown(null);
+    setFiveMinDone(false);
     setTimerTask(null);
     setFiveMinMode(false);
     navigation.navigate('Home');
   }, [timerTask, completeTask, setTimerTask, setFiveMinMode, navigation]);
 
-  const handleAbort = useCallback(() => {
-    if (autostartRef.current) clearTimeout(autostartRef.current);
-    if (countdownIntervalRef.current) clearInterval(countdownIntervalRef.current);
+  const handleDeferAndGoHome = useCallback(() => {
     cancelTimerEndNotification();
-    setTimerTask(null);
-    setFiveMinMode(false);
+    if (Platform.OS !== 'web') {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    }
+    if (timerTask) deferToNextDay(timerTask.id);
     setIsRunning(false);
+    setFiveMinDone(false);
     setSeconds(timerWorkMinutes * 60);
     setMode('work');
-    setCountdown(null);
+    setTimerTask(null);
+    setFiveMinMode(false);
     navigation.navigate('Home');
-  }, [setTimerTask, setFiveMinMode, navigation, timerWorkMinutes]);
+  }, [timerTask, deferToNextDay, setTimerTask, setFiveMinMode, navigation, timerWorkMinutes]);
+
+  // 「5分だけ」→「続ける」: 通常タイマーに切り替えて即再開（break なし）。
+  const handleContinueFull = useCallback(() => {
+    const sec = timerWorkMinutes * 60;
+    setFiveMinDone(false);
+    setFiveMinMode(false);
+    setMode('work');
+    setSeconds(sec);
+    phaseEndTimeRef.current = Date.now() + sec * 1000;
+    setIsRunning(true);
+    scheduleTimerEndNotification(sec, 'ブレイクの時間です');
+  }, [timerWorkMinutes, setFiveMinMode]);
 
   const ringColor = mode === 'work' ? colors.primary : colors.success;
   const modeLabel = mode === 'work' ? 'フォーカス' : 'ブレイク';
@@ -263,12 +215,6 @@ export function TimerScreen() {
           <View style={styles.headerRule} />
           <View style={styles.headerContent}>
             <Text style={styles.modeTag}>{modeLabel}</Text>
-            <Pressable
-              onPress={() => navigation.navigate('Profile')}
-              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-            >
-              <Ionicons name="person-outline" size={24} color={colors.ink} />
-            </Pressable>
           </View>
           {timerTask && (
             <Text style={styles.taskName} numberOfLines={2}>{timerTask.title}</Text>
@@ -279,64 +225,32 @@ export function TimerScreen() {
 
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         {!isRunning && (
-          <>
-            <View style={styles.presetRow}>
-          {PRESETS.map((p) => {
-            const isActive = timerWorkMinutes === p.work && !showCustomInput;
-            return (
+          <View style={styles.durationRow}>
+            {editingWork ? (
+              <TextInput
+                style={styles.durationInput}
+                value={workInput}
+                onChangeText={(v) => setWorkInput(v.replace(/[^0-9]/g, ''))}
+                onSubmitEditing={commitWorkInput}
+                onBlur={commitWorkInput}
+                keyboardType="number-pad"
+                maxLength={3}
+                returnKeyType="done"
+                autoFocus
+              />
+            ) : (
               <Pressable
-                key={p.label}
-                style={({ pressed }) => [styles.presetChip, isActive && styles.presetChipActive, pressed && { opacity: 0.7 }]}
-                onPress={() => applyPreset(p.work)}
+                style={({ pressed }) => [styles.durationChip, pressed && { opacity: 0.7 }]}
+                onPress={() => {
+                  setWorkInput(String(timerWorkMinutes));
+                  setEditingWork(true);
+                }}
               >
-                <Text style={[styles.presetChipText, isActive && styles.presetChipTextActive]}>{p.label}</Text>
+                <Text style={styles.durationChipText}>作業 {timerWorkMinutes}分</Text>
               </Pressable>
-            );
-          })}
-          <Pressable
-            style={({ pressed }) => [styles.presetChip, showCustomInput && styles.presetChipActive, pressed && { opacity: 0.7 }]}
-            onPress={() => setShowCustomInput((v) => !v)}
-          >
-            <Text style={[styles.presetChipText, showCustomInput && styles.presetChipTextActive]}>カスタム</Text>
-          </Pressable>
-        </View>
-
-        {showCustomInput ? (
-          <View style={styles.customArea}>
-            <TextInput
-              style={[styles.customInputField, customInput !== '' && styles.customInputFieldActive]}
-              value={customInput}
-              onChangeText={(v) => {
-                const n = v.replace(/[^0-9]/g, '');
-                setCustomInput(n);
-              }}
-              onEndEditing={(e) => {
-                const n = parseInt(e.nativeEvent.text, 10);
-                if (!isNaN(n) && n >= 1 && n <= 180) {
-                  applyPreset(n);
-                } else {
-                  setCustomInput('');
-                }
-              }}
-              keyboardType="number-pad"
-              placeholder="作業時間（分）を入力"
-              placeholderTextColor={colors.textDisabled}
-              maxLength={3}
-              returnKeyType="done"
-              autoFocus
-            />
-            {customInput !== '' && (
-              <Text style={styles.customBreakHint}>
-                ↳ 休憩 {getBreakMinutes(parseInt(customInput, 10))}分（自動）
-              </Text>
             )}
+            <Text style={styles.durationBreak}>+ 休憩 {getBreakMinutes(timerWorkMinutes)}分</Text>
           </View>
-        ) : (
-          <Text style={styles.presetDetail}>
-            作業 {timerWorkMinutes}分 + 休憩 {getBreakMinutes(timerWorkMinutes)}分
-          </Text>
-        )}
-          </>
         )}
 
         {/* Semicircle arc */}
@@ -375,11 +289,6 @@ export function TimerScreen() {
           <TimerDisplay seconds={seconds} isRunning={isRunning} color={isRunning ? ringColor : colors.ink} />
         </View>
 
-        {/* Countdown announcement */}
-        {countdown !== null && !isRunning && (
-          <Text style={styles.countdown}>{countdown}秒後にタイマースタート</Text>
-        )}
-
         {/* Play/Pause button */}
         <Pressable
           style={({ pressed }) => [styles.mainBtn, pressed && { opacity: 0.8 }]}
@@ -394,24 +303,56 @@ export function TimerScreen() {
           />
         </Pressable>
 
-        {/* Task actions — kept exactly as-is */}
+        {/* Task actions: 完了 / 今日はここまで */}
         {timerTask && (
           <View style={styles.taskActions}>
             <Pressable
               style={({ pressed }) => [styles.completeBtn, pressed && { backgroundColor: colors.primaryDark }]}
               onPress={handleComplete}
             >
-              <Text style={styles.completeBtnText}>タスク完了！</Text>
+              <Text style={styles.completeBtnText}>完了</Text>
             </Pressable>
             <Pressable
-              style={({ pressed }) => [styles.abortOnlyBtn, pressed && { opacity: 0.6 }]}
-              onPress={handleAbort}
+              style={({ pressed }) => [styles.deferBtn, pressed && { opacity: 0.6 }]}
+              onPress={handleDeferAndGoHome}
             >
-              <Text style={styles.abortOnlyBtnText}>中断</Text>
+              <Text style={styles.deferBtnText}>今日はここまで</Text>
             </Pressable>
           </View>
         )}
       </ScrollView>
+
+      {/* 「5分だけ」終了後の 3 択モーダル */}
+      <Modal
+        visible={fiveMinDone}
+        transparent
+        animationType="fade"
+        onRequestClose={handleDeferAndGoHome}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalCard}>
+            <Text style={styles.modalTitle}>5分が経ちました</Text>
+            <Pressable
+              style={({ pressed }) => [styles.modalPrimaryBtn, pressed && { backgroundColor: colors.primaryDark }]}
+              onPress={handleComplete}
+            >
+              <Text style={styles.modalPrimaryText}>完了</Text>
+            </Pressable>
+            <Pressable
+              style={({ pressed }) => [styles.modalSecondaryBtn, pressed && { opacity: 0.7 }]}
+              onPress={handleContinueFull}
+            >
+              <Text style={styles.modalSecondaryText}>続ける</Text>
+            </Pressable>
+            <Pressable
+              style={({ pressed }) => [styles.modalGhostBtn, pressed && { opacity: 0.6 }]}
+              onPress={handleDeferAndGoHome}
+            >
+              <Text style={styles.modalGhostText}>今日はここまで</Text>
+            </Pressable>
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -424,24 +365,27 @@ const styles = StyleSheet.create({
   title: { fontSize: fontSize.xxxl, fontWeight: fontWeight.black, color: colors.ink, letterSpacing: -2, lineHeight: 46 },
   modeTag: { fontSize: fontSize.xs, fontWeight: fontWeight.bold, color: colors.primary, letterSpacing: 3, textTransform: 'uppercase' },
   content: { paddingHorizontal: spacing.md, paddingTop: spacing.lg, gap: spacing.xl, alignItems: 'center', paddingBottom: spacing.xxl },
-  presetRow: { flexDirection: 'row', gap: spacing.sm, width: '100%' },
-  presetChip: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingVertical: spacing.md, borderRadius: radius.md, borderWidth: 1.5, borderColor: colors.border, minHeight: 52 },
-  presetChipActive: { borderColor: colors.primary, backgroundColor: colors.primaryLight },
-  presetChipText: { fontSize: fontSize.sm, fontWeight: fontWeight.bold, color: colors.textSub, letterSpacing: 0.5 },
-  presetChipTextActive: { color: colors.primary },
-  presetDetail: { fontSize: fontSize.xs, color: colors.textSub, letterSpacing: 0.5, alignSelf: 'flex-start', marginTop: -spacing.sm },
-  customArea: { width: '100%', gap: spacing.xs },
-  customInputField: { fontSize: fontSize.sm, fontWeight: fontWeight.bold, color: colors.textSub, backgroundColor: colors.surfaceAlt, borderRadius: radius.md, borderWidth: 1.5, borderColor: colors.border, paddingHorizontal: spacing.md, paddingVertical: spacing.sm },
-  customInputFieldActive: { borderColor: colors.primary, color: colors.primary },
-  customBreakHint: { fontSize: fontSize.xs, color: colors.textSub, letterSpacing: 0.3, paddingLeft: spacing.xs },
+  durationRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, alignSelf: 'flex-start' },
+  durationChip: { paddingHorizontal: spacing.md, paddingVertical: spacing.sm, borderRadius: radius.md, borderWidth: 1.5, borderColor: colors.primary, backgroundColor: colors.primaryLight },
+  durationChipText: { fontSize: fontSize.sm, fontWeight: fontWeight.bold, color: colors.primary, letterSpacing: 0.5 },
+  durationInput: { minWidth: 96, fontSize: fontSize.sm, fontWeight: fontWeight.bold, color: colors.primary, backgroundColor: colors.surfaceAlt, borderRadius: radius.md, borderWidth: 1.5, borderColor: colors.primary, paddingHorizontal: spacing.md, paddingVertical: spacing.sm },
+  durationBreak: { fontSize: fontSize.sm, fontWeight: fontWeight.bold, color: colors.textSub, letterSpacing: 0.5 },
   arcContainer: { alignItems: 'center', width: '100%' },
   timeRow: { alignItems: 'center', marginTop: -spacing.lg },
-  countdown: { fontSize: fontSize.xs, color: colors.textSub, letterSpacing: 1, textAlign: 'center' },
   mainBtn: { width: 64, height: 64, borderRadius: 32, backgroundColor: colors.primaryLight, borderWidth: 1.5, borderColor: colors.primary, alignItems: 'center', justifyContent: 'center' },
   taskActions: { width: '100%', gap: spacing.sm, marginTop: spacing.xs },
   completeBtn: { alignItems: 'center', paddingVertical: 24, borderRadius: radius.lg, backgroundColor: colors.primary },
   completeBtnText: { fontSize: fontSize.lg, fontWeight: fontWeight.black, color: colors.surface, letterSpacing: 1 },
-  abortOnlyBtn: { width: '100%', alignItems: 'center', paddingVertical: 12, borderRadius: radius.md, borderWidth: 1.5, borderColor: colors.danger, backgroundColor: '#F6E4E4', marginTop: spacing.xl },
-  abortOnlyBtnText: { fontSize: fontSize.sm, fontWeight: fontWeight.bold, letterSpacing: 1, color: colors.danger },
+  deferBtn: { width: '100%', alignItems: 'center', paddingVertical: 16, borderRadius: radius.md, borderWidth: 1.5, borderColor: colors.border, backgroundColor: colors.surfaceAlt, marginTop: spacing.lg },
+  deferBtnText: { fontSize: fontSize.sm, fontWeight: fontWeight.bold, letterSpacing: 1, color: colors.textSub },
   taskName: { fontSize: fontSize.md, fontWeight: fontWeight.black, color: colors.ink, paddingVertical: spacing.xs, letterSpacing: -0.3 },
+  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.45)', alignItems: 'center', justifyContent: 'center', paddingHorizontal: spacing.xl },
+  modalCard: { width: '100%', maxWidth: 360, backgroundColor: colors.surface, borderRadius: radius.lg, padding: spacing.lg, gap: spacing.sm },
+  modalTitle: { fontSize: fontSize.lg, fontWeight: fontWeight.black, color: colors.ink, textAlign: 'center', marginBottom: spacing.sm },
+  modalPrimaryBtn: { alignItems: 'center', paddingVertical: 18, borderRadius: radius.md, backgroundColor: colors.primary },
+  modalPrimaryText: { fontSize: fontSize.md, fontWeight: fontWeight.black, color: colors.surface, letterSpacing: 1 },
+  modalSecondaryBtn: { alignItems: 'center', paddingVertical: 16, borderRadius: radius.md, borderWidth: 1.5, borderColor: colors.primary, backgroundColor: colors.primaryLight },
+  modalSecondaryText: { fontSize: fontSize.sm, fontWeight: fontWeight.bold, color: colors.primary, letterSpacing: 1 },
+  modalGhostBtn: { alignItems: 'center', paddingVertical: 14, borderRadius: radius.md },
+  modalGhostText: { fontSize: fontSize.sm, fontWeight: fontWeight.bold, color: colors.textSub, letterSpacing: 1 },
 });
