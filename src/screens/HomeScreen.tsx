@@ -27,7 +27,6 @@ export function HomeScreen() {
   const skipTask = useAppStore((s) => s.skipTask);
   const setTimerTask = useAppStore((s) => s.setTimerTask);
   const availableTaskCount = useAppStore((s) => s.availableTaskCount);
-  const completedTaskCount = useAppStore((s) => s.completedTaskCount);
   const navigation = useNavigation<any>();
 
   const [currentTaskId, setCurrentTaskId] = useState<string | null>(null);
@@ -192,37 +191,9 @@ export function HomeScreen() {
   }
 
   const available = availableTaskCount();
-  const completed = completedTaskCount();
-  // ヘッダー表示日付も JST に固定し、ロジックの「今日」(today()) と一致させる（QA #001）。
-  const dateStr = new Date().toLocaleDateString('ja-JP', { year: 'numeric', month: 'long', day: 'numeric', weekday: 'short', timeZone: 'Asia/Tokyo' });
 
   return (
     <SafeAreaView style={styles.safe}>
-
-      {/* ── HEADER ── */}
-      <View style={styles.header}>
-        <View style={styles.headerRule} />
-        <View style={styles.headerContent}>
-          <View style={styles.headerLeft}>
-            <Text style={styles.dateLabel}>{dateStr}</Text>
-          </View>
-          <View style={styles.headerRight}>
-            {completed > 0 && (
-              <View style={styles.completedTag}>
-                <Text style={styles.completedTagNum}>{completed}</Text>
-                <Text style={styles.completedTagLabel}>完了</Text>
-              </View>
-            )}
-            <Pressable
-              onPress={() => navigation.navigate('Profile')}
-              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-            >
-              <Ionicons name="person-outline" size={24} color={colors.ink} />
-            </Pressable>
-          </View>
-        </View>
-        <View style={styles.headerRule} />
-      </View>
 
       {/* ── SCROLL CONTENT ── */}
       <ScrollView
@@ -364,64 +335,10 @@ const styles = StyleSheet.create({
     backgroundColor: colors.background,
   },
 
-  // ── Header ──
-  header: {
-    paddingHorizontal: spacing.md,
-    paddingTop: spacing.md,
-    paddingBottom: spacing.sm,
-    gap: spacing.sm,
-  },
+  // ── Divider ──
   headerRule: {
     height: 1,
     backgroundColor: colors.ink,
-  },
-  headerContent: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-end',
-    paddingVertical: spacing.xs,
-  },
-  headerLeft: {
-    gap: 2,
-  },
-  appName: {
-    fontSize: fontSize.xxxl,
-    fontWeight: fontWeight.black,
-    color: colors.ink,
-    letterSpacing: -2,
-    lineHeight: 46,
-  },
-  dateLabel: {
-    fontSize: fontSize.xs,
-    color: colors.textSub,
-    letterSpacing: 1,
-    textTransform: 'uppercase',
-  },
-  headerRight: {
-    flexDirection: 'row',
-    gap: spacing.sm,
-    alignItems: 'center',
-    paddingBottom: spacing.xs,
-  },
-  completedTag: {
-    flexDirection: 'row',
-    alignItems: 'baseline',
-    gap: 3,
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: radius.sm,
-    paddingHorizontal: spacing.sm,
-    paddingVertical: 3,
-  },
-  completedTagNum: {
-    fontSize: fontSize.md,
-    fontWeight: fontWeight.black,
-    color: colors.ink,
-  },
-  completedTagLabel: {
-    fontSize: fontSize.xs,
-    color: colors.textSub,
-    letterSpacing: 1,
   },
 
   // ── Scroll ──
