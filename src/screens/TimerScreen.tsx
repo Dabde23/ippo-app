@@ -401,8 +401,8 @@ const styles = StyleSheet.create({
     height: 4,
   },
   timerTaskCardBody: {
-    padding: spacing.xl,
-    minHeight: 76 + spacing.xl * 2,
+    padding: spacing.lg,
+    minHeight: 60 + spacing.lg * 2,
   },
   timerTaskCardTitle: {
     fontSize: 24,
@@ -410,7 +410,7 @@ const styles = StyleSheet.create({
     color: colors.ink,
     lineHeight: 38,
     letterSpacing: -0.5,
-    minHeight: 76,
+    minHeight: 60,
   },
   durationRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, alignSelf: 'flex-start' },
   durationChip: { paddingHorizontal: spacing.md, paddingVertical: spacing.sm, borderRadius: radius.md, borderWidth: 1.5, borderColor: colors.primary, backgroundColor: colors.primaryLight },
@@ -430,7 +430,7 @@ const styles = StyleSheet.create({
     right: 0,
     alignItems: 'center',
   },
-  mainBtn: { width: 64, height: 64, borderRadius: 32, backgroundColor: colors.primaryLight, borderWidth: 1.5, borderColor: colors.primary, alignItems: 'center', justifyContent: 'center', marginHorizontal: 8, ...shadow.soft },
+  mainBtn: { width: 64, height: 64, borderRadius: 32, backgroundColor: colors.background, borderWidth: 1.5, borderColor: colors.primary, alignItems: 'center', justifyContent: 'center', marginHorizontal: 8, ...shadow.soft },
   taskActions: { width: '100%', gap: spacing.md, marginTop: spacing.xs },
   completeBtn: { alignItems: 'center', paddingVertical: 24, marginHorizontal: 8, borderRadius: radius.xl, backgroundColor: colors.primary, ...shadow.card },
   completeBtnText: { fontSize: fontSize.lg, fontWeight: fontWeight.black, color: colors.surface, letterSpacing: 1 },

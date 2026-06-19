@@ -467,7 +467,7 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.md,
     marginHorizontal: 8,
     borderRadius: radius.xl,
-    backgroundColor: colors.primaryLight,
+    backgroundColor: colors.background,
     borderWidth: 1.5,
     borderColor: colors.primary,
     ...shadow.soft,
