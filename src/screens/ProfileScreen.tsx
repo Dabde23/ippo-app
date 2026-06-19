@@ -1,30 +1,25 @@
 import React, { useState } from 'react';
 import {
   View, StyleSheet, ScrollView, Pressable,
-  Modal, TextInput, Alert, useWindowDimensions,
+  Modal, TextInput, Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 const FORMSPREE_URL = 'https://formspree.io/f/xqejvywv';
 import { Text } from '../components/Text';
-import { ReviewPanel } from '../components/ReviewPanel';
 import { SettingsPanel } from '../components/SettingsPanel';
-import { MoodSparkline, hasSparklineData } from '../components/MoodSparkline';
 import { useAppStore } from '../store/useAppStore';
 import { colors, spacing, radius, fontSize, fontWeight } from '../theme';
 
 export function ProfileScreen() {
-  const { width } = useWindowDimensions();
   const navigation = useNavigation<any>();
 
   const tasks = useAppStore((s) => s.tasks);
-  const moodEntries = useAppStore((s) => s.moodEntries);
 
   const completedTotal = tasks.filter((t) => t.completed).length;
 
   // ハブから開くオーバーレイパネルの開閉 state（RoutinePanel 等の呼び出し方に合わせる）。
-  const [reviewPanelVisible, setReviewPanelVisible] = useState(false);
   const [settingsPanelVisible, setSettingsPanelVisible] = useState(false);
 
   // フィードバック state
@@ -32,10 +27,6 @@ export function ProfileScreen() {
   const [feedbackText, setFeedbackText] = useState('');
   const [feedbackSending, setFeedbackSending] = useState(false);
   const [feedbackSent, setFeedbackSent] = useState(false);
-
-  // 振り返りカードのプレビュー横幅（カード内側パディング 2 分を引く）。
-  const sparklineWidth = Math.max(0, Math.round(width - spacing.md * 2 - spacing.md * 2));
-  const showSparkline = hasSparklineData(moodEntries);
 
   async function handleFeedbackSubmit() {
     if (!feedbackText.trim() || feedbackSending) return;
@@ -83,31 +74,6 @@ export function ProfileScreen() {
 
       {/* ── CONTENT（ハブ） ── */}
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
-
-        {/* 振り返り＝主役カード（上部・視覚的重み大）。タップで ReviewPanel を開く。 */}
-        <Pressable
-          style={({ pressed }) => [styles.reviewCard, pressed && { opacity: 0.85 }]}
-          onPress={() => setReviewPanelVisible(true)}
-        >
-          <View style={styles.reviewCardHeader}>
-            <Text style={styles.reviewCardTitle}>振り返り</Text>
-            <Text style={styles.reviewCardArrow}>→</Text>
-          </View>
-
-          {/* プレビュー。
-              データ2日以上: 実データのスパークライン＋中立キャプション。
-              データ不足: 空状態の誘い文（捏造しない）。 */}
-          {showSparkline ? (
-            <View style={styles.previewBox}>
-              <MoodSparkline width={sparklineWidth} />
-              <Text style={styles.previewCaption}>直近7日間の気分のうつりかわり</Text>
-            </View>
-          ) : (
-            <View style={styles.previewEmptyBox}>
-              <Text style={styles.previewInvite}>記録すると、ここにうつりかわりが出ます</Text>
-            </View>
-          )}
-        </Pressable>
 
         {/* 設定＝控えめなリンク行（下部・埋もれてOK）。タップで SettingsPanel を開く。 */}
         <Pressable
@@ -189,9 +155,6 @@ export function ProfileScreen() {
       </Modal>
 
       {/* オーバーレイパネル（RoutinePanel と同じ条件描画パターン） */}
-      {reviewPanelVisible && (
-        <ReviewPanel onClose={() => setReviewPanelVisible(false)} />
-      )}
       {settingsPanelVisible && (
         <SettingsPanel onClose={() => setSettingsPanelVisible(false)} />
       )}
@@ -251,48 +214,6 @@ const styles = StyleSheet.create({
     color: colors.primary,
     letterSpacing: 2.5,
     textTransform: 'uppercase',
-  },
-  // 振り返り主役カード（視覚的重み大）
-  reviewCard: {
-    backgroundColor: colors.surface,
-    borderWidth: 2,
-    borderColor: colors.ink,
-    borderRadius: radius.lg,
-    padding: spacing.md,
-    gap: spacing.md,
-  },
-  reviewCardHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  reviewCardTitle: {
-    fontSize: fontSize.lg,
-    fontWeight: fontWeight.black,
-    color: colors.ink,
-    letterSpacing: 0.5,
-  },
-  reviewCardArrow: {
-    fontSize: fontSize.xl,
-    fontWeight: fontWeight.black,
-    color: colors.primary,
-  },
-  previewBox: {
-    gap: spacing.xs,
-  },
-  previewCaption: {
-    fontSize: fontSize.xs,
-    color: colors.textMuted,
-    letterSpacing: 0.3,
-  },
-  previewEmptyBox: {
-    paddingVertical: spacing.lg,
-    alignItems: 'center',
-  },
-  previewInvite: {
-    fontSize: fontSize.sm,
-    color: colors.textMuted,
-    textAlign: 'center',
   },
   // 設定リンク行（控えめ）
   settingsLink: {

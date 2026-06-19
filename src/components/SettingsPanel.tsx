@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import {
   View, StyleSheet, Pressable, ScrollView,
-  Platform, Animated, useWindowDimensions, Modal, TextInput, Switch,
+  Platform, Animated, useWindowDimensions, Modal, TextInput,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Text } from './Text';
@@ -31,8 +31,6 @@ export function SettingsPanel({ onClose }: Props) {
   const addReminder = useAppStore((s) => s.addReminder);
   const removeReminder = useAppStore((s) => s.removeReminder);
   const updateReminder = useAppStore((s) => s.updateReminder);
-  const focusPromptEnabled = useAppStore((s) => s.focusPromptEnabled);
-  const toggleFocusPrompt = useAppStore((s) => s.toggleFocusPrompt);
 
   const [timePickerVisible, setTimePickerVisible] = useState(false);
   const [editingReminderId, setEditingReminderId] = useState<string | null>(null);
@@ -220,22 +218,6 @@ export function SettingsPanel({ onClose }: Props) {
           <Text style={styles.sectionLabel}>リマインダー</Text>
           <View style={styles.rule} />
           {reminderBody}
-        </View>
-
-        {/* 集中度記録トグル（設定として常時表示） */}
-        <View style={styles.section}>
-          <Text style={styles.sectionLabel}>トラッキング設定</Text>
-          <View style={styles.rule} />
-          <View style={styles.toggleRow}>
-            <Text style={styles.toggleRowLabel}>タスク完了後に集中度を記録</Text>
-            <Switch
-              value={focusPromptEnabled}
-              onValueChange={toggleFocusPrompt}
-              trackColor={{ false: colors.border, true: colors.success }}
-              thumbColor="#FFFFFF"
-              ios_backgroundColor={colors.border}
-            />
-          </View>
         </View>
 
         <View style={{ height: spacing.xxl }} />
@@ -487,20 +469,6 @@ const styles = StyleSheet.create({
     color: colors.primary,
     fontWeight: fontWeight.bold,
     letterSpacing: 0.5,
-  },
-  toggleRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingVertical: spacing.sm,
-    marginTop: spacing.xs,
-  },
-  toggleRowLabel: {
-    fontSize: fontSize.md,
-    fontWeight: fontWeight.bold,
-    color: colors.textMain,
-    flex: 1,
-    marginRight: spacing.md,
   },
   timeOverlay: {
     flex: 1, backgroundColor: 'rgba(26,16,7,0.5)',

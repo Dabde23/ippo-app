@@ -12,7 +12,6 @@ import { useNavigation } from '@react-navigation/native';
 import { Text } from '../components/Text';
 import { TaskCard } from '../components/TaskCard';
 import { TaskListPanel } from '../components/TaskListPanel';
-import { MoodInput } from '../components/MoodInput';
 import { useAppStore, Task, today } from '../store/useAppStore';
 import { colors, spacing, radius, fontSize, fontWeight, shadow } from '../theme';
 
@@ -292,11 +291,6 @@ export function HomeScreen() {
         <View style={{ height: spacing.xxl }} />
       </ScrollView>
 
-      {/* 気分記録ボタン（bottomBar直上・右寄せ）: 全ユーザーに常時表示 */}
-      <View style={styles.moodRow}>
-        <MoodInput />
-      </View>
-
       {/* ── BOTTOM BAR ── */}
       <View style={styles.bottomBar}>
         <Pressable
@@ -555,14 +549,6 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
     borderTopColor: colors.ink,
     backgroundColor: colors.background,
-  },
-  moodRow: {
-    alignItems: 'flex-end',
-    paddingRight: spacing.md,
-    paddingBottom: spacing.lg,
-    backgroundColor: colors.background,
-    zIndex: 10,
-    overflow: 'visible',
   },
   fab: {
     backgroundColor: colors.ink,

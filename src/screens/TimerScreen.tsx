@@ -6,7 +6,6 @@ import { useNavigation } from '@react-navigation/native';
 import Svg, { Path, Circle as SvgCircle } from 'react-native-svg';
 import { Text } from '../components/Text';
 import { TimerDisplay } from '../components/TimerDisplay';
-import { FocusModal } from '../components/FocusModal';
 import { colors, spacing, radius, fontSize, fontWeight } from '../theme';
 import { useAppStore } from '../store/useAppStore';
 import { scheduleTimerEndNotification, cancelTimerEndNotification, cancelTaskReminder } from '../services/NotificationService';
@@ -42,7 +41,6 @@ export function TimerScreen() {
   const [mode, setMode] = useState<'work' | 'break'>('work');
   const [customInput, setCustomInput] = useState('');
   const [showCustomInput, setShowCustomInput] = useState(false);
-  const [focusTarget, setFocusTarget] = useState<{ id: string; title: string } | null>(null);
   const [countdown, setCountdown] = useState<number | null>(null);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const autostartRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -218,23 +216,12 @@ export function TimerScreen() {
     if (countdownIntervalRef.current) clearInterval(countdownIntervalRef.current);
     cancelTimerEndNotification();
     if (timerTask.taskReminderTime) cancelTaskReminder(timerTask.id);
-    const completed = { id: timerTask.id, title: timerTask.title };
-    completeTask(completed.id);
+    completeTask(timerTask.id);
     setIsRunning(false);
     setCountdown(null);
-    if (useAppStore.getState().focusPromptEnabled) {
-      setFocusTarget(completed);
-    } else {
-      setTimerTask(null);
-      navigation.navigate('Home');
-    }
-  }, [timerTask, completeTask, setTimerTask, navigation]);
-
-  const handleFocusModalClose = useCallback(() => {
-    setFocusTarget(null);
     setTimerTask(null);
     navigation.navigate('Home');
-  }, [setTimerTask, navigation]);
+  }, [timerTask, completeTask, setTimerTask, navigation]);
 
   const handleAbort = useCallback(() => {
     if (autostartRef.current) clearTimeout(autostartRef.current);
@@ -419,13 +406,6 @@ export function TimerScreen() {
           </View>
         )}
       </ScrollView>
-
-      <FocusModal
-        visible={focusTarget != null}
-        taskId={focusTarget?.id ?? ''}
-        taskTitle={focusTarget?.title ?? ''}
-        onClose={handleFocusModalClose}
-      />
     </SafeAreaView>
   );
 }

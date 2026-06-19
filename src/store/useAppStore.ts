@@ -30,24 +30,6 @@ export interface Reminder {
   routineTaskId?: string; // ルーティンテンプレートと連動する場合のID
 }
 
-export type TrackingLevel = 1 | 2 | 3 | 4 | 5;
-
-export interface MoodEntry {
-  id: string;
-  timestamp: string; // ISO8601
-  level: TrackingLevel;
-  memo?: string;
-}
-
-export interface FocusEntry {
-  id: string;
-  timestamp: string; // ISO8601
-  level: TrackingLevel;
-  taskId: string;
-  taskTitle: string;
-  memo?: string;
-}
-
 interface AppState {
   tasks: Task[];
   reminders: Reminder[];
@@ -55,9 +37,6 @@ interface AppState {
   hasCompletedOnboarding: boolean;
   timerTaskId: string | null;
   timerWorkMinutes: number;
-  moodEntries: MoodEntry[];
-  focusEntries: FocusEntry[];
-  focusPromptEnabled: boolean;
   // リマインダー「次に回す」の FIFO 提示キュー（taskId を来た順に保持）。永続化しない。
   reminderQueue: string[];
 
@@ -80,9 +59,6 @@ interface AppState {
   routineTasks: () => Task[];
   setTimerTask: (id: string | null) => void;
   setTimerWorkMinutes: (minutes: number) => void;
-  addMoodEntry: (level: TrackingLevel, memo?: string) => void;
-  addFocusEntry: (level: TrackingLevel, taskId: string, taskTitle: string, memo?: string) => void;
-  toggleFocusPrompt: () => void;
   // ── リマインダー通知アクション系 ──
   // 指定 taskId が「JST の今日すでに完了済み」か。単発タスク=そのまま completed か、
   // ルーティンテンプレ=当日インスタンスが completed かを見る（完了済み抑制の判定）。
@@ -104,9 +80,6 @@ export const useAppStore = create<AppState>()(
       hasCompletedOnboarding: false,
       timerTaskId: null,
       timerWorkMinutes: 25,
-      moodEntries: [],
-      focusEntries: [],
-      focusPromptEnabled: true,
       reminderQueue: [],
 
       addTask: (title, isRoutine = false) => {
@@ -262,30 +235,6 @@ export const useAppStore = create<AppState>()(
         return get().tasks.filter((task) => task.isRoutine === true);
       },
 
-      addMoodEntry: (level, memo) => {
-        const entry: MoodEntry = {
-          id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
-          timestamp: new Date().toISOString(),
-          level,
-          ...(memo && memo.trim() ? { memo: memo.trim() } : {}),
-        };
-        set((s) => ({ moodEntries: [...s.moodEntries, entry] }));
-      },
-
-      addFocusEntry: (level, taskId, taskTitle, memo) => {
-        const entry: FocusEntry = {
-          id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
-          timestamp: new Date().toISOString(),
-          level,
-          taskId,
-          taskTitle,
-          ...(memo && memo.trim() ? { memo: memo.trim() } : {}),
-        };
-        set((s) => ({ focusEntries: [...s.focusEntries, entry] }));
-      },
-
-      toggleFocusPrompt: () => set((s) => ({ focusPromptEnabled: !s.focusPromptEnabled })),
-
       isReminderTaskDoneToday: (taskId) => {
         const t = today();
         const tasks = get().tasks;
@@ -351,9 +300,6 @@ export const useAppStore = create<AppState>()(
         reminderMessage: state.reminderMessage,
         hasCompletedOnboarding: state.hasCompletedOnboarding,
         timerWorkMinutes: state.timerWorkMinutes,
-        moodEntries: state.moodEntries,
-        focusEntries: state.focusEntries,
-        focusPromptEnabled: state.focusPromptEnabled,
       }),
       onRehydrateStorage: () => (state) => {
         if (!state) return;
@@ -386,10 +332,6 @@ export const useAppStore = create<AppState>()(
         if (!state.hasCompletedOnboarding && state.tasks.length > 0) {
           state.hasCompletedOnboarding = true;
         }
-        // 状態トラッキング: 旧データに無いフィールドをデフォルト補完
-        if (!Array.isArray(state.moodEntries)) state.moodEntries = [];
-        if (!Array.isArray(state.focusEntries)) state.focusEntries = [];
-        if (typeof state.focusPromptEnabled !== 'boolean') state.focusPromptEnabled = true;
       },
     }
   )
