@@ -25,8 +25,11 @@ export function HomeScreen() {
   const tasks = useAppStore((s) => s.tasks);
   const addTask = useAppStore((s) => s.addTask);
   const skipTask = useAppStore((s) => s.skipTask);
+  const deferToNextDay = useAppStore((s) => s.deferToNextDay);
   const setTimerTask = useAppStore((s) => s.setTimerTask);
   const availableTaskCount = useAppStore((s) => s.availableTaskCount);
+  const pendingUndoTask = useAppStore((s) => s.pendingUndoTask);
+  const restoreUndoTask = useAppStore((s) => s.restoreUndoTask);
   const navigation = useNavigation<any>();
 
   const [currentTaskId, setCurrentTaskId] = useState<string | null>(null);
@@ -39,9 +42,18 @@ export function HomeScreen() {
 
   const todayStr = today();
   const doableTasks = tasks.filter((t) => t.isRoutine !== true);
-  const availableTasks = doableTasks.filter((t) => !t.completed && t.skippedDate !== todayStr);
-  const skippedTasks = doableTasks.filter((t) => !t.completed && t.skippedDate === todayStr);
-  const completedTasks = doableTasks.filter((t) => t.completed);
+  // 提示候補: skippedDate ≠ today かつ deferredDate ≠ today
+  const availableTasks = doableTasks.filter(
+    (t) => !t.completed && t.skippedDate !== todayStr && t.deferredDate !== todayStr
+  );
+  // 後回し: skippedDate === today かつ deferredDate ≠ today
+  const skippedTasks = doableTasks.filter(
+    (t) => !t.completed && t.skippedDate === todayStr && t.deferredDate !== todayStr
+  );
+  // 翌日に再提示: deferredDate === today（表示しない・「全タスク」導線判定にのみ使用）
+  const deferredTasks = doableTasks.filter(
+    (t) => !t.completed && t.deferredDate === todayStr
+  );
   const proposalPool = availableTasks.length > 0 ? availableTasks : skippedTasks;
   const currentTask = proposalPool.find((t) => t.id === currentTaskId) ?? null;
 
@@ -148,19 +160,38 @@ export function HomeScreen() {
   }, [proposalPool.length, availableTasks.length]);
   // availableTasks.length の変化（available→0）でも再選択が走るよう deps に追加
 
-  const handleSkip = useCallback(() => {
+  // 「後回し」ボタン: 提示候補フェーズ→後回し(skipped)、後回しフェーズ→翌日(deferred)。
+  const handleDefer = useCallback(() => {
     if (!currentTask) return;
-    if (availableTasks.length > 0) {
-      // availableフェーズ: skipTask を呼んで次の available から選ぶ
+    if (availableTasks.find((t) => t.id === currentTask.id)) {
+      // 提示候補フェーズ: 後回し状態へ
       skipTask(currentTask.id);
       const next = pickRandom(availableTasks.filter((t) => t.id !== currentTask.id));
       setCurrentTaskId((next as Task | null)?.id ?? null);
     } else {
-      // skippedフェーズ: skipTask は呼ばず次の skipped から選ぶだけ
+      // 後回しフェーズ: 翌日に再提示へ
+      deferToNextDay(currentTask.id);
       const next = pickRandom(skippedTasks.filter((t) => t.id !== currentTask.id));
       setCurrentTaskId((next as Task | null)?.id ?? null);
     }
-  }, [currentTask, availableTasks, skippedTasks, skipTask]);
+  }, [currentTask, availableTasks, skippedTasks, skipTask, deferToNextDay]);
+
+  // 「5分だけ」ボタン: fiveMinMode を立ててタイマーへ。
+  const handleFiveMin = useCallback(() => {
+    if (!currentTask) return;
+    useAppStore.getState().setFiveMinMode(true);
+    setTimerTask(currentTask.id);
+    navigation.navigate('Timer');
+  }, [currentTask, setTimerTask, navigation]);
+
+  // Undo トースト: pendingUndoTask が立っている間表示し、8秒で自動クリア。
+  useEffect(() => {
+    if (!pendingUndoTask) return;
+    const timer = setTimeout(() => {
+      useAppStore.getState().clearUndoTask();
+    }, 8000);
+    return () => clearTimeout(timer);
+  }, [pendingUndoTask]);
 
   function handleStartFromList(taskId: string) {
     setCurrentTaskId(taskId);
@@ -195,6 +226,24 @@ export function HomeScreen() {
   return (
     <SafeAreaView style={styles.safe}>
 
+      {/* ── UNDO TOAST（非ブロッキング・上部オーバーレイ） ── */}
+      {pendingUndoTask && (
+        <View style={styles.toastWrap} pointerEvents="box-none">
+          <View style={styles.toast}>
+            <Text style={styles.toastText} numberOfLines={1}>
+              「{pendingUndoTask.title}」は完了しました
+            </Text>
+            <Pressable
+              style={({ pressed }) => [styles.toastBtn, pressed && { opacity: 0.6 }]}
+              onPress={() => restoreUndoTask()}
+              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+            >
+              <Text style={styles.toastBtnText}>元に戻す</Text>
+            </Pressable>
+          </View>
+        </View>
+      )}
+
       {/* ── SCROLL CONTENT ── */}
       <ScrollView
         style={styles.scroll}
@@ -212,25 +261,31 @@ export function HomeScreen() {
               <View style={[styles.focusCardBar, { backgroundColor: currentTask.routineSourceId ? colors.success : colors.primary }]} />
               <View style={styles.focusCardBody}>
                 <Text style={styles.focusTitle}>{currentTask.title}</Text>
-                <View style={styles.focusFooter}>
-                  <Pressable
-                    style={({ pressed }) => [styles.skipBtn, pressed && { opacity: 0.65 }]}
-                    onPress={handleSkip}
-                  >
-                    <Text style={styles.skipBtnText}>後に回す</Text>
-                  </Pressable>
-                </View>
               </View>
             </View>
 
-            {/* Action button */}
+            {/* Action buttons: はじめる（全幅） + [5分だけ][後回し] */}
             <View style={styles.actionRow}>
               <Pressable
                 style={({ pressed }) => [styles.doneBtn, pressed && { backgroundColor: colors.primaryDark }]}
                 onPress={() => { setTimerTask(currentTask!.id); navigation.navigate('Timer'); }}
               >
-                <Text style={styles.doneBtnText}>開始！</Text>
+                <Text style={styles.doneBtnText}>はじめる</Text>
               </Pressable>
+              <View style={styles.subActionRow}>
+                <Pressable
+                  style={({ pressed }) => [styles.subBtn, pressed && { opacity: 0.65 }]}
+                  onPress={handleFiveMin}
+                >
+                  <Text style={styles.subBtnText}>5分だけ</Text>
+                </Pressable>
+                <Pressable
+                  style={({ pressed }) => [styles.subBtn, pressed && { opacity: 0.65 }]}
+                  onPress={handleDefer}
+                >
+                  <Text style={styles.subBtnText}>後回し</Text>
+                </Pressable>
+              </View>
             </View>
           </>
         ) : doableTasks.length === 0 ? (
@@ -250,7 +305,7 @@ export function HomeScreen() {
         ) : null}
 
         {/* View all */}
-        {(available > 0 || skippedTasks.length > 0) && (
+        {(available > 0 || skippedTasks.length > 0 || deferredTasks.length > 0) && (
           <Pressable
             style={({ pressed }) => [styles.viewAllBtn, pressed && { opacity: 0.5 }]}
             onPress={() => setTaskListPanelVisible(true)}
@@ -381,28 +436,27 @@ const styles = StyleSheet.create({
     lineHeight: 38,
     letterSpacing: -0.5,
   },
-  focusFooter: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'flex-end',
-  },
-
   // ── Action buttons ──
   actionRow: {
     marginBottom: spacing.xl,
+    gap: spacing.sm,
   },
-  skipBtn: {
+  subActionRow: {
+    flexDirection: 'row',
+    gap: spacing.sm,
+  },
+  subBtn: {
+    flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.xs,
-    borderRadius: radius.sm,
+    paddingVertical: spacing.md,
+    borderRadius: radius.md,
     backgroundColor: colors.surfaceAlt,
-    borderWidth: 1,
+    borderWidth: 1.5,
     borderColor: colors.border,
   },
-  skipBtnText: {
-    fontSize: fontSize.xs,
+  subBtnText: {
+    fontSize: fontSize.sm,
     color: colors.textSub,
     fontWeight: fontWeight.bold,
     letterSpacing: 0.5,
@@ -536,5 +590,42 @@ const styles = StyleSheet.create({
     fontWeight: fontWeight.black,
     fontSize: fontSize.md,
     letterSpacing: 1,
+  },
+  // ── Undo toast ──
+  toastWrap: {
+    position: 'absolute',
+    top: spacing.md,
+    left: spacing.md,
+    right: spacing.md,
+    zIndex: 1000,
+    alignItems: 'center',
+  },
+  toast: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: spacing.md,
+    width: '100%',
+    backgroundColor: colors.ink,
+    borderRadius: radius.md,
+    paddingVertical: spacing.md,
+    paddingHorizontal: spacing.lg,
+    ...shadow.card,
+  },
+  toastText: {
+    flex: 1,
+    fontSize: fontSize.sm,
+    color: colors.surface,
+    fontWeight: fontWeight.semibold,
+  },
+  toastBtn: {
+    paddingVertical: spacing.xs,
+    paddingHorizontal: spacing.sm,
+  },
+  toastBtnText: {
+    fontSize: fontSize.sm,
+    color: colors.primary,
+    fontWeight: fontWeight.black,
+    letterSpacing: 0.5,
   },
 });
