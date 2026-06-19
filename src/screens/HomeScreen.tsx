@@ -28,7 +28,6 @@ export function HomeScreen() {
   const deferToNextDay = useAppStore((s) => s.deferToNextDay);
   const setTimerTask = useAppStore((s) => s.setTimerTask);
   const availableTaskCount = useAppStore((s) => s.availableTaskCount);
-  const completionToastTitle = useAppStore((s) => s.completionToastTitle);
   const navigation = useNavigation<any>();
 
   const [currentTaskId, setCurrentTaskId] = useState<string | null>(null);
@@ -146,14 +145,6 @@ export function HomeScreen() {
   }, []);
 
   useEffect(() => {
-    if (!completionToastTitle) return;
-    const timer = setTimeout(() => {
-      useAppStore.getState().clearCompletionToast();
-    }, 1500);
-    return () => clearTimeout(timer);
-  }, [completionToastTitle]);
-
-  useEffect(() => {
     if (proposalPool.length === 0) { setCurrentTaskId(null); return; }
     if (currentTaskId && proposalPool.find((t) => t.id === currentTaskId)) return;
     // 「次に回す」予約があればFIFOで優先提示。無効分は捨てられる。無ければランダム。
@@ -223,14 +214,6 @@ export function HomeScreen() {
 
   return (
     <SafeAreaView style={styles.safe}>
-      {completionToastTitle && (
-        <View style={styles.completionToastWrap} pointerEvents="none">
-          <View style={styles.completionToast}>
-            <Text style={styles.completionToastText}>✓ 完了</Text>
-          </View>
-        </View>
-      )}
-
       {/* ── TOP BAR（タスク一覧入口・常時表示） ── */}
       <View style={styles.topBar}>
         <Pressable
@@ -576,26 +559,5 @@ const styles = StyleSheet.create({
     fontWeight: fontWeight.black,
     fontSize: fontSize.md,
     letterSpacing: 1,
-  },
-  // ── Completion toast ──
-  completionToastWrap: {
-    position: 'absolute',
-    bottom: 90,
-    left: spacing.md,
-    right: spacing.md,
-    zIndex: 1000,
-    alignItems: 'center',
-  },
-  completionToast: {
-    backgroundColor: colors.ink,
-    borderRadius: radius.md,
-    paddingVertical: spacing.sm,
-    paddingHorizontal: spacing.lg,
-  },
-  completionToastText: {
-    fontSize: fontSize.sm,
-    color: colors.surface,
-    fontWeight: fontWeight.black,
-    letterSpacing: 0.5,
   },
 });

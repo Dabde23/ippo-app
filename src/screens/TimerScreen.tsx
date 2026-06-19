@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { View, StyleSheet, Pressable, ScrollView, TextInput, AppState, Modal, Platform } from 'react-native';
+import { View, StyleSheet, Pressable, ScrollView, TextInput, AppState, Modal, Platform, Vibration } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
@@ -159,7 +159,7 @@ export function TimerScreen() {
       if (Platform.OS === 'ios') {
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
       } else {
-        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => {});
+        Vibration.vibrate(80);
       }
     }
     completeTask(timerTask.id);
@@ -167,7 +167,6 @@ export function TimerScreen() {
     setFiveMinDone(false);
     setTimerTask(null);
     setFiveMinMode(false);
-    useAppStore.getState().setCompletionToast(timerTask.title);
     navigation.navigate('Home');
   }, [timerTask, completeTask, setTimerTask, setFiveMinMode, navigation]);
 
