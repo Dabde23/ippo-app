@@ -39,12 +39,18 @@ export function TaskListPanel({ onClose, onStartTask }: Props) {
   const panelWidth = Math.round(width * PANEL_RATIO);
 
   const tasks = useAppStore((s) => s.tasks);
-  const clearCompletedTasks = useAppStore((s) => s.clearCompletedTasks);
   const todayStr = today();
   const doableTasks = tasks.filter((t) => t.isRoutine !== true);
-  const availableTasks = doableTasks.filter((t) => !t.completed && t.skippedDate !== todayStr);
-  const skippedTasks = doableTasks.filter((t) => !t.completed && t.skippedDate === todayStr);
-  const completedTasks = doableTasks.filter((t) => t.completed);
+  // 3状態セクション: 提示候補 / 後回し / 翌日に再提示
+  const availableTasks = doableTasks.filter(
+    (t) => !t.completed && t.skippedDate !== todayStr && t.deferredDate !== todayStr
+  );
+  const skippedTasks = doableTasks.filter(
+    (t) => !t.completed && t.skippedDate === todayStr && t.deferredDate !== todayStr
+  );
+  const deferredTasks = doableTasks.filter(
+    (t) => !t.completed && t.deferredDate === todayStr
+  );
 
   // ルーティンセグメント用
   const routines = tasks.filter((t) => t.isRoutine === true);
@@ -159,7 +165,7 @@ export function TaskListPanel({ onClose, onStartTask }: Props) {
         <>
           {availableTasks.length > 0 && (
             <>
-              <Text style={styles.sectionLabel}>残り {availableTasks.length} 件</Text>
+              <Text style={styles.sectionLabel}>残り {availableTasks.length} 件（提示候補）</Text>
               {availableTasks.map((t) => (
                 <TaskCard key={t.id} task={t} onStart={() => onStartTask(t.id)} />
               ))}
@@ -167,33 +173,16 @@ export function TaskListPanel({ onClose, onStartTask }: Props) {
           )}
           {skippedTasks.length > 0 && (
             <>
-              <Text style={styles.sectionLabel}>後回しタスク {skippedTasks.length} 件</Text>
+              <Text style={styles.sectionLabel}>後回し {skippedTasks.length} 件</Text>
               {skippedTasks.map((t) => (
                 <TaskCard key={t.id} task={t} onStart={() => onStartTask(t.id)} />
               ))}
             </>
           )}
-          {completedTasks.length > 0 && (
+          {deferredTasks.length > 0 && (
             <>
-              <View style={styles.sectionLabelRow}>
-                <Text style={styles.sectionLabel}>完了 {completedTasks.length} 件</Text>
-                <Pressable
-                  style={({ pressed }) => [styles.clearBtn, pressed && { opacity: 0.6 }]}
-                  onPress={() => {
-                    if (Platform.OS === 'web') {
-                      if (window.confirm('完了済みタスクをすべて削除しますか？')) clearCompletedTasks();
-                      return;
-                    }
-                    Alert.alert('完了済みを削除', 'すべての完了済みタスクを削除しますか？', [
-                      { text: 'キャンセル', style: 'cancel' },
-                      { text: '削除', style: 'destructive', onPress: clearCompletedTasks },
-                    ]);
-                  }}
-                >
-                  <Text style={styles.clearBtnText}>すべて削除</Text>
-                </Pressable>
-              </View>
-              {completedTasks.map((t) => (
+              <Text style={styles.sectionLabel}>翌日 {deferredTasks.length} 件（翌日に再提示）</Text>
+              {deferredTasks.map((t) => (
                 <TaskCard key={t.id} task={t} />
               ))}
             </>
@@ -484,13 +473,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.md,
     paddingTop: spacing.lg,
   },
-  sectionLabelRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginTop: spacing.md,
-    marginBottom: spacing.xs,
-  },
   sectionLabel: {
     fontSize: fontSize.xs,
     fontWeight: fontWeight.bold,
@@ -499,16 +481,6 @@ const styles = StyleSheet.create({
     textTransform: 'uppercase',
     marginTop: spacing.md,
     marginBottom: spacing.xs,
-  },
-  clearBtn: {
-    paddingHorizontal: spacing.sm,
-    paddingVertical: spacing.xs,
-  },
-  clearBtnText: {
-    fontSize: fontSize.xs,
-    color: colors.danger,
-    fontWeight: fontWeight.bold,
-    letterSpacing: 0.5,
   },
   emptyState: {
     paddingVertical: spacing.xxl,
