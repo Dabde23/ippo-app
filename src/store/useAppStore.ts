@@ -15,6 +15,9 @@ export interface Task {
   completed: boolean;
   createdAt: string;
   skippedDate: string | null;
+  // 3状態モデル: null=提示候補 / today()=翌日に再提示（今日非表示）。
+  // skippedDate と排他（同時に today にしない）。
+  deferredDate: string | null;
   isRoutine: boolean;
   routineCreatedAt: string; // 登録日 YYYY-MM-DD ('' for non-routine tasks)
   routineSourceId?: string; // daily instance -> id of the routine template it came from
@@ -39,10 +42,18 @@ interface AppState {
   timerWorkMinutes: number;
   // リマインダー「次に回す」の FIFO 提示キュー（taskId を来た順に保持）。永続化しない。
   reminderQueue: string[];
+  // 単発タスク完了時の Undo 用退避（非永続）。
+  pendingUndoTask: Task | null;
+  // 「5分だけ」モード（TimerScreen へ伝達、非永続）。
+  fiveMinMode: boolean;
 
   addTask: (title: string, isRoutine?: boolean) => string;
   completeTask: (id: string) => void;
   skipTask: (id: string) => void;
+  deferToNextDay: (id: string) => void;
+  restoreUndoTask: () => void;
+  clearUndoTask: () => void;
+  setFiveMinMode: (v: boolean) => void;
   editTask: (id: string, title: string) => void;
   deleteTask: (id: string) => void;
   deleteRoutine: (id: string) => void;
@@ -81,6 +92,8 @@ export const useAppStore = create<AppState>()(
       timerTaskId: null,
       timerWorkMinutes: 25,
       reminderQueue: [],
+      pendingUndoTask: null,
+      fiveMinMode: false,
 
       addTask: (title, isRoutine = false) => {
         const t = today();
@@ -90,6 +103,7 @@ export const useAppStore = create<AppState>()(
           completed: false,
           createdAt: t,
           skippedDate: null,
+          deferredDate: null,
           isRoutine,
           routineCreatedAt: isRoutine ? t : '',
         };
@@ -100,23 +114,53 @@ export const useAppStore = create<AppState>()(
       completeTask: (id) => {
         set((state) => {
           const task = state.tasks.find((t) => t.id === id);
-          if (!task || task.completed) return state;
+          if (!task) return state;
 
-          const tasks = state.tasks.map((t) =>
-            t.id === id ? { ...t, completed: true } : t
-          );
+          // ルーティンインスタンス: 完了にせず翌日へ defer（翌日 sync で削除→新規 spawn）。
+          if (task.routineSourceId) {
+            const tasks = state.tasks.map((t) =>
+              t.id === id ? { ...t, deferredDate: today(), skippedDate: null } : t
+            );
+            return { tasks };
+          }
 
-          return { tasks };
+          // 単発タスク: store から削除し Undo 用に退避。
+          return {
+            tasks: state.tasks.filter((t) => t.id !== id),
+            pendingUndoTask: task,
+          };
         });
       },
 
       skipTask: (id) => {
         set((state) => ({
           tasks: state.tasks.map((t) =>
-            t.id === id ? { ...t, skippedDate: today() } : t
+            t.id === id ? { ...t, skippedDate: today(), deferredDate: null } : t
           ),
         }));
       },
+
+      deferToNextDay: (id) => {
+        set((state) => ({
+          tasks: state.tasks.map((t) =>
+            t.id === id ? { ...t, deferredDate: today(), skippedDate: null } : t
+          ),
+        }));
+      },
+
+      restoreUndoTask: () => {
+        set((state) => {
+          if (!state.pendingUndoTask) return state;
+          return {
+            tasks: [state.pendingUndoTask, ...state.tasks],
+            pendingUndoTask: null,
+          };
+        });
+      },
+
+      clearUndoTask: () => set({ pendingUndoTask: null }),
+
+      setFiveMinMode: (v) => set({ fiveMinMode: v }),
 
       editTask: (id, title) => {
         set((state) => ({
@@ -151,7 +195,7 @@ export const useAppStore = create<AppState>()(
           const purged = state.tasks.filter((task) => {
             if (!task.routineSourceId) return true; // テンプレート・単発タスクは保持
             if (task.routineSpawnDate === t) return true; // 今日のインスタンスは保持
-            return !(task.completed || task.skippedDate !== null);
+            return !(task.completed || task.skippedDate !== null || task.deferredDate !== null);
           });
 
           const templates = purged.filter((task) => task.isRoutine === true);
@@ -167,6 +211,7 @@ export const useAppStore = create<AppState>()(
               completed: false,
               createdAt: t,
               skippedDate: null,
+              deferredDate: null,
               isRoutine: false,
               routineCreatedAt: '',
               routineSourceId: tpl.id,
@@ -224,7 +269,7 @@ export const useAppStore = create<AppState>()(
 
       availableTaskCount: () => {
         const t = today();
-        return get().tasks.filter((task) => task.isRoutine !== true && !task.completed && task.skippedDate !== t).length;
+        return get().tasks.filter((task) => task.isRoutine !== true && !task.completed && task.skippedDate !== t && task.deferredDate !== t).length;
       },
 
       completedTaskCount: () => {
@@ -245,10 +290,11 @@ export const useAppStore = create<AppState>()(
           const instance = tasks.find(
             (task) => task.routineSourceId === taskId && task.routineSpawnDate === t
           );
-          return !!instance && instance.completed;
+          // 完了（=defer 済み）または当日 defer のインスタンスを「今日完了済み」とみなす
+          return !!instance && (instance.completed || instance.deferredDate === t);
         }
-        // 単発タスク or 当日インスタンス: そのまま完了済みか
-        return target.completed === true;
+        // 単発タスク or 当日インスタンス: 完了済み or 当日 defer なら抑制
+        return target.completed === true || target.deferredDate === t;
       },
 
       enqueueReminder: (taskId) => {
@@ -271,7 +317,8 @@ export const useAppStore = create<AppState>()(
             !!task &&
             task.isRoutine !== true &&
             !task.completed &&
-            task.skippedDate !== t
+            task.skippedDate !== t &&
+            task.deferredDate !== t
           );
         };
         let pickedIndex = -1;
@@ -327,6 +374,12 @@ export const useAppStore = create<AppState>()(
         state.reminders = state.reminders.map((r) =>
           typeof (r as any).name === 'string' ? r : { ...r, name: '' }
         );
+        // 旧データに deferredDate が無い場合は null で補完（3状態モデル移行）
+        if (Array.isArray(state.tasks)) {
+          state.tasks = state.tasks.map((t) =>
+            (t as any).deferredDate === undefined ? { ...t, deferredDate: null } : t
+          );
+        }
         // タスクが存在するのにhasCompletedOnboardingがfalseの場合は
         // migration起因のデータ破損と判断して復元する
         if (!state.hasCompletedOnboarding && state.tasks.length > 0) {
