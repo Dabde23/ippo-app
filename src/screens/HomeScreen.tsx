@@ -509,8 +509,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     paddingVertical: 15,
     marginHorizontal: 8,
-    // fab高さ(=paddingVertical 15*2 + テキスト約22 ≒ 52)の半分だけ上にはみ出し、
-    // bottomBar の上ボーダーをファブ垂直中央が貫くよう配置。
     marginTop: -26,
     ...shadow.card,
   },
