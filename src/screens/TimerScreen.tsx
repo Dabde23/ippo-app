@@ -163,6 +163,7 @@ export function TimerScreen() {
     setFiveMinDone(false);
     setTimerTask(null);
     setFiveMinMode(false);
+    useAppStore.getState().setCompletionToast(timerTask.title);
     navigation.navigate('Home');
   }, [timerTask, completeTask, setTimerTask, setFiveMinMode, navigation]);
 

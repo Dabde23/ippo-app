@@ -44,12 +44,16 @@ interface AppState {
   reminderQueue: string[];
   // 「5分だけ」モード（TimerScreen へ伝達、非永続）。
   fiveMinMode: boolean;
+  // 完了フィードバック用トーストタイトル（非永続）。null = 非表示。
+  completionToastTitle: string | null;
 
   addTask: (title: string, isRoutine?: boolean) => string;
   completeTask: (id: string) => void;
   skipTask: (id: string) => void;
   deferToNextDay: (id: string) => void;
   setFiveMinMode: (v: boolean) => void;
+  setCompletionToast: (title: string) => void;
+  clearCompletionToast: () => void;
   editTask: (id: string, title: string) => void;
   deleteTask: (id: string) => void;
   deleteRoutine: (id: string) => void;
@@ -89,6 +93,7 @@ export const useAppStore = create<AppState>()(
       timerWorkMinutes: 25,
       reminderQueue: [],
       fiveMinMode: false,
+      completionToastTitle: null,
 
       addTask: (title, isRoutine = false) => {
         const t = today();
@@ -141,6 +146,9 @@ export const useAppStore = create<AppState>()(
       },
 
       setFiveMinMode: (v) => set({ fiveMinMode: v }),
+
+      setCompletionToast: (title) => set({ completionToastTitle: title }),
+      clearCompletionToast: () => set({ completionToastTitle: null }),
 
       editTask: (id, title) => {
         set((state) => ({
