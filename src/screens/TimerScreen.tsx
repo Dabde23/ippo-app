@@ -34,7 +34,7 @@ const SEMI_PATH_LEN = Math.PI * SEMI_R; // ≈ 376.99
 const SEMI_TRACK = `M ${SEMI_CX - SEMI_R},${SEMI_CY} A ${SEMI_R},${SEMI_R} 0 0,1 ${SEMI_CX + SEMI_R},${SEMI_CY}`;
 
 export function TimerScreen() {
-  const { timerTaskId, tasks, completeTask, setTimerTask, timerWorkMinutes, setTimerWorkMinutes } = useAppStore();
+  const { timerTaskId, tasks, completeTask, setTimerTask, timerWorkMinutes, setTimerWorkMinutes, fiveMinMode, setFiveMinMode } = useAppStore();
 
   const [seconds, setSeconds] = useState(timerWorkMinutes * 60);
   const [isRunning, setIsRunning] = useState(false);
@@ -47,8 +47,10 @@ export function TimerScreen() {
   const countdownIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const phaseEndTimeRef = useRef<number | null>(null);
 
-  const workSec = timerWorkMinutes * 60;
-  const breakSec = getBreakMinutes(timerWorkMinutes) * 60;
+  // 「5分だけ」モード時は作業時間を5分に上書き（arc/フェーズ整合のため effective を使用）。
+  const effectiveWorkMin = fiveMinMode ? 5 : timerWorkMinutes;
+  const workSec = effectiveWorkMin * 60;
+  const breakSec = getBreakMinutes(effectiveWorkMin) * 60;
   const totalSec = mode === 'work' ? workSec : breakSec;
 
   const navigation = useNavigation<any>();
@@ -111,11 +113,13 @@ export function TimerScreen() {
 
   useEffect(() => {
     if (!timerTaskId) return;
+    // fiveMinMode なら開始秒数を 5分に上書き。
+    const startSec = (fiveMinMode ? 5 : timerWorkMinutes) * 60;
     if (autostartRef.current) clearTimeout(autostartRef.current);
     if (countdownIntervalRef.current) clearInterval(countdownIntervalRef.current);
     cancelTimerEndNotification();
     setIsRunning(false);
-    setSeconds(timerWorkMinutes * 60);
+    setSeconds(startSec);
     setMode('work');
     phaseEndTimeRef.current = null;
 
@@ -133,16 +137,16 @@ export function TimerScreen() {
     }, 1000);
 
     autostartRef.current = setTimeout(() => {
-      phaseEndTimeRef.current = Date.now() + timerWorkMinutes * 60 * 1000;
+      phaseEndTimeRef.current = Date.now() + startSec * 1000;
       setIsRunning(true);
       setCountdown(null);
-      scheduleTimerEndNotification(timerWorkMinutes * 60, 'ブレイクの時間です');
+      scheduleTimerEndNotification(startSec, 'ブレイクの時間です');
     }, 2000);
     return () => {
       if (autostartRef.current) clearTimeout(autostartRef.current);
       if (countdownIntervalRef.current) clearInterval(countdownIntervalRef.current);
     };
-  }, [timerTaskId]);
+  }, [timerTaskId, fiveMinMode]);
 
   function handleStartPause() {
     // Cancel pending autostart/countdown if any
@@ -220,20 +224,22 @@ export function TimerScreen() {
     setIsRunning(false);
     setCountdown(null);
     setTimerTask(null);
+    setFiveMinMode(false);
     navigation.navigate('Home');
-  }, [timerTask, completeTask, setTimerTask, navigation]);
+  }, [timerTask, completeTask, setTimerTask, setFiveMinMode, navigation]);
 
   const handleAbort = useCallback(() => {
     if (autostartRef.current) clearTimeout(autostartRef.current);
     if (countdownIntervalRef.current) clearInterval(countdownIntervalRef.current);
     cancelTimerEndNotification();
     setTimerTask(null);
+    setFiveMinMode(false);
     setIsRunning(false);
     setSeconds(timerWorkMinutes * 60);
     setMode('work');
     setCountdown(null);
     navigation.navigate('Home');
-  }, [setTimerTask, navigation, timerWorkMinutes]);
+  }, [setTimerTask, setFiveMinMode, navigation, timerWorkMinutes]);
 
   const ringColor = mode === 'work' ? colors.primary : colors.success;
   const modeLabel = mode === 'work' ? 'フォーカス' : 'ブレイク';
