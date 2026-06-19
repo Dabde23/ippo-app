@@ -17,8 +17,9 @@ const Tab = createBottomTabNavigator();
 type IoniconName = React.ComponentProps<typeof Ionicons>['name'];
 
 const TAB_ICONS: Record<string, { outline: IoniconName; filled: IoniconName }> = {
-  Home:  { outline: 'today-outline', filled: 'today' },
-  Timer: { outline: 'timer-outline', filled: 'timer' },
+  Home:     { outline: 'today-outline',          filled: 'today' },
+  Timer:    { outline: 'timer-outline',          filled: 'timer' },
+  Reminder: { outline: 'notifications-outline',  filled: 'notifications' },
 };
 
 const linking: any = {
@@ -29,9 +30,9 @@ const linking: any = {
         screens: {
           Home: '',
           Timer: 'timer',
+          Reminder: 'reminder',
         },
       },
-      Profile: 'profile',
     },
   },
 };
@@ -58,8 +59,9 @@ function MainTabNavigator() {
         },
       })}
     >
-      <Tab.Screen name="Home"  component={HomeScreen}  options={{ tabBarLabel: '今日' }} />
-      <Tab.Screen name="Timer" component={TimerScreen} options={{ tabBarLabel: 'タイマー' }} />
+      <Tab.Screen name="Home"     component={HomeScreen}    options={{ tabBarLabel: '今日' }} />
+      <Tab.Screen name="Timer"    component={TimerScreen}   options={{ tabBarLabel: 'タイマー' }} />
+      <Tab.Screen name="Reminder" component={ProfileScreen} options={{ tabBarLabel: 'リマインダー' }} />
     </Tab.Navigator>
   );
 }
@@ -73,11 +75,6 @@ export function AppNavigator() {
     <NavigationContainer linking={linking}>
       <Stack.Navigator screenOptions={{ headerShown: false }}>
         <Stack.Screen name="Main" component={MainTabNavigator} />
-        <Stack.Screen
-          name="Profile"
-          component={ProfileScreen}
-          options={{ presentation: 'modal', headerShown: false }}
-        />
       </Stack.Navigator>
     </NavigationContainer>
   );
