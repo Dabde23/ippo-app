@@ -156,7 +156,11 @@ export function TimerScreen() {
     cancelTimerEndNotification();
     if (timerTask.taskReminderTime) cancelTaskReminder(timerTask.id);
     if (Platform.OS !== 'web') {
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
+      if (Platform.OS === 'ios') {
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
+      } else {
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => {});
+      }
     }
     completeTask(timerTask.id);
     setIsRunning(false);

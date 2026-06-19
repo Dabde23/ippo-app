@@ -165,7 +165,7 @@ export function TaskListPanel({ onClose, onStartTask }: Props) {
         <>
           {availableTasks.length > 0 && (
             <>
-              <Text style={styles.sectionLabel}>残り {availableTasks.length} 件（提示候補）</Text>
+              <Text style={styles.sectionLabel}>残り {availableTasks.length} 件</Text>
               {availableTasks.map((t) => (
                 <TaskCard key={t.id} task={t} onStart={() => onStartTask(t.id)} />
               ))}

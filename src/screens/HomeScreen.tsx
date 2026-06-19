@@ -237,7 +237,7 @@ export function HomeScreen() {
           style={({ pressed }) => [styles.listIconBtn, pressed && { opacity: 0.5 }]}
           onPress={() => setTaskListPanelVisible(true)}
         >
-          <Ionicons name="list" size={22} color={colors.ink} />
+          <Ionicons name="list" size={28} color={colors.ink} />
         </Pressable>
       </View>
 
@@ -580,7 +580,7 @@ const styles = StyleSheet.create({
   // ── Completion toast ──
   completionToastWrap: {
     position: 'absolute',
-    top: spacing.md,
+    bottom: 90,
     left: spacing.md,
     right: spacing.md,
     zIndex: 1000,
