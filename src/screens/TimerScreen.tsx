@@ -281,8 +281,8 @@ export function TimerScreen() {
           </View>
         )}
 
-        {/* Semicircle arc */}
-        <View style={styles.arcContainer}>
+        {/* Semicircle arc + Time display overlay */}
+        <View style={styles.arcWrapper}>
           <Svg width={SEMI_W} height={SEMI_H}>
             {/* Track (background arc) */}
             <Path
@@ -310,11 +310,9 @@ export function TimerScreen() {
               fill={ringColor}
             />
           </Svg>
-        </View>
-
-        {/* Time display */}
-        <View style={styles.timeRow}>
-          <TimerDisplay seconds={seconds} isRunning={isRunning} color={isRunning ? ringColor : colors.ink} />
+          <View style={styles.timeOverlay}>
+            <TimerDisplay seconds={seconds} isRunning={isRunning} color={isRunning ? ringColor : colors.ink} />
+          </View>
         </View>
 
         {/* Play/Pause button */}
@@ -397,9 +395,18 @@ const styles = StyleSheet.create({
   durationBreakChip: { paddingHorizontal: spacing.md, paddingVertical: spacing.sm, borderRadius: radius.md, borderWidth: 1.5, borderColor: colors.success, backgroundColor: colors.successLight },
   durationBreakChipText: { fontSize: fontSize.sm, fontWeight: fontWeight.bold, color: colors.success, letterSpacing: 0.5 },
   durationInput: { minWidth: 80, fontSize: fontSize.sm, fontWeight: fontWeight.bold, color: colors.primary, backgroundColor: colors.surfaceAlt, borderRadius: radius.md, borderWidth: 1.5, borderColor: colors.primary, paddingHorizontal: spacing.md, paddingVertical: spacing.sm },
-  arcContainer: { alignItems: 'center', width: '100%' },
-  timeRow: { alignItems: 'center', marginTop: -spacing.xl },
-  mainBtn: { width: 64, height: 64, borderRadius: 32, backgroundColor: colors.primaryLight, borderWidth: 1.5, borderColor: colors.primary, alignItems: 'center', justifyContent: 'center', marginTop: -spacing.lg, marginHorizontal: 8, ...shadow.soft },
+  arcWrapper: {
+    width: SEMI_W,
+    position: 'relative',
+  },
+  timeOverlay: {
+    position: 'absolute',
+    top: 30,
+    left: 0,
+    right: 0,
+    alignItems: 'center',
+  },
+  mainBtn: { width: 64, height: 64, borderRadius: 32, backgroundColor: colors.primaryLight, borderWidth: 1.5, borderColor: colors.primary, alignItems: 'center', justifyContent: 'center', marginHorizontal: 8, ...shadow.soft },
   taskActions: { width: '100%', gap: spacing.md, marginTop: spacing.xs },
   completeBtn: { alignItems: 'center', paddingVertical: 24, marginHorizontal: 8, borderRadius: radius.xl, backgroundColor: colors.primary, ...shadow.card },
   completeBtnText: { fontSize: fontSize.lg, fontWeight: fontWeight.black, color: colors.surface, letterSpacing: 1 },
