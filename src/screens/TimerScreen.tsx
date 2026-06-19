@@ -7,20 +7,16 @@ import * as Haptics from 'expo-haptics';
 import Svg, { Path, Circle as SvgCircle } from 'react-native-svg';
 import { Text } from '../components/Text';
 import { TimerDisplay } from '../components/TimerDisplay';
-import { colors, spacing, radius, fontSize, fontWeight } from '../theme';
+import { colors, spacing, radius, fontSize, fontWeight, shadow } from '../theme';
 import { useAppStore } from '../store/useAppStore';
 import { scheduleTimerEndNotification, cancelTimerEndNotification, cancelTaskReminder } from '../services/NotificationService';
 
-function getBreakMinutes(workMin: number): number {
-  return workMin === 50 ? 10 : 5;
-}
-
 // Semicircle arc constants
 const SEMI_W = 300;
-const SEMI_R = 120;
+const SEMI_R = 140;
 const SEMI_CX = SEMI_W / 2; // 150
-const SEMI_CY = SEMI_R + 20; // 140
-const SEMI_H = SEMI_CY + 20; // 160
+const SEMI_CY = SEMI_R + 20; // 160
+const SEMI_H = SEMI_CY + 20; // 180
 const SEMI_STROKE = 14;
 const SEMI_PATH_LEN = Math.PI * SEMI_R; // ≈ 376.99
 
@@ -29,13 +25,15 @@ const SEMI_PATH_LEN = Math.PI * SEMI_R; // ≈ 376.99
 const SEMI_TRACK = `M ${SEMI_CX - SEMI_R},${SEMI_CY} A ${SEMI_R},${SEMI_R} 0 0,1 ${SEMI_CX + SEMI_R},${SEMI_CY}`;
 
 export function TimerScreen() {
-  const { timerTaskId, tasks, completeTask, setTimerTask, deferToNextDay, timerWorkMinutes, setTimerWorkMinutes, fiveMinMode, setFiveMinMode } = useAppStore();
+  const { timerTaskId, tasks, completeTask, setTimerTask, deferToNextDay, timerWorkMinutes, setTimerWorkMinutes, timerBreakMinutes, setTimerBreakMinutes, fiveMinMode, setFiveMinMode } = useAppStore();
 
   const [seconds, setSeconds] = useState(timerWorkMinutes * 60);
   const [isRunning, setIsRunning] = useState(false);
   const [mode, setMode] = useState<'work' | 'break'>('work');
   const [editingWork, setEditingWork] = useState(false);
   const [workInput, setWorkInput] = useState('');
+  const [editingBreak, setEditingBreak] = useState(false);
+  const [breakInput, setBreakInput] = useState('');
   const [fiveMinDone, setFiveMinDone] = useState(false);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const phaseEndTimeRef = useRef<number | null>(null);
@@ -43,7 +41,7 @@ export function TimerScreen() {
   // 「5分だけ」モード時は作業時間を5分に上書き（arc/フェーズ整合のため effective を使用）。
   const effectiveWorkMin = fiveMinMode ? 5 : timerWorkMinutes;
   const workSec = effectiveWorkMin * 60;
-  const breakSec = getBreakMinutes(effectiveWorkMin) * 60;
+  const breakSec = timerBreakMinutes * 60;
   const totalSec = mode === 'work' ? workSec : breakSec;
 
   const navigation = useNavigation<any>();
@@ -126,6 +124,7 @@ export function TimerScreen() {
     setSeconds(startSec);
     setFiveMinDone(false);
     setEditingWork(false);
+    setEditingBreak(false);
     phaseEndTimeRef.current = Date.now() + startSec * 1000;
     setIsRunning(true);
     scheduleTimerEndNotification(startSec, 'ブレイクの時間です');
@@ -149,6 +148,16 @@ export function TimerScreen() {
       if (mode === 'work' && !isRunning) setSeconds(n * 60);
     }
     setEditingWork(false);
+  }
+
+  // インライン休憩時間入力の確定（1〜60分）。
+  function commitBreakInput() {
+    const n = parseInt(breakInput, 10);
+    if (!isNaN(n) && n >= 1 && n <= 60) {
+      setTimerBreakMinutes(n);
+      if (mode === 'break' && !isRunning) setSeconds(n * 60);
+    }
+    setEditingBreak(false);
   }
 
   const handleComplete = useCallback(() => {
@@ -198,7 +207,6 @@ export function TimerScreen() {
   }, [timerWorkMinutes, setFiveMinMode]);
 
   const ringColor = mode === 'work' ? colors.primary : colors.success;
-  const modeLabel = mode === 'work' ? 'フォーカス' : 'ブレイク';
 
   // Arc shows ELAPSED time: grows from left→top→right as time passes
   // ratio = remaining fraction (1 at start → 0 at end)
@@ -215,14 +223,9 @@ export function TimerScreen() {
   return (
     <SafeAreaView style={styles.safe}>
       <View style={styles.header}>
-        <View style={styles.headerRule} />
-        <View style={styles.headerContent}>
-          <Text style={styles.modeTag}>{modeLabel}</Text>
-        </View>
         {timerTask && (
           <Text style={styles.taskName} numberOfLines={2}>{timerTask.title}</Text>
         )}
-        <View style={styles.headerRule} />
       </View>
 
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
@@ -251,7 +254,30 @@ export function TimerScreen() {
                 <Text style={styles.durationChipText}>作業 {timerWorkMinutes}分</Text>
               </Pressable>
             )}
-            <Text style={styles.durationBreak}>+ 休憩 {getBreakMinutes(timerWorkMinutes)}分</Text>
+            <Text style={styles.durationPlus}>+</Text>
+            {editingBreak ? (
+              <TextInput
+                style={styles.durationInput}
+                value={breakInput}
+                onChangeText={(v) => setBreakInput(v.replace(/[^0-9]/g, ''))}
+                onSubmitEditing={commitBreakInput}
+                onBlur={commitBreakInput}
+                keyboardType="number-pad"
+                maxLength={2}
+                returnKeyType="done"
+                autoFocus
+              />
+            ) : (
+              <Pressable
+                style={({ pressed }) => [styles.durationBreakChip, pressed && { opacity: 0.7 }]}
+                onPress={() => {
+                  setBreakInput(String(timerBreakMinutes));
+                  setEditingBreak(true);
+                }}
+              >
+                <Text style={styles.durationBreakChipText}>休憩 {timerBreakMinutes}分</Text>
+              </Pressable>
+            )}
           </View>
         )}
 
@@ -361,26 +387,25 @@ export function TimerScreen() {
 
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: colors.background },
-  header: { paddingHorizontal: spacing.md, paddingTop: spacing.md, paddingBottom: spacing.sm, gap: spacing.sm },
-  headerRule: { height: 1, backgroundColor: colors.ink },
-  headerContent: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'baseline', paddingVertical: spacing.xs },
+  header: { backgroundColor: colors.primary, paddingHorizontal: spacing.md, paddingTop: spacing.md, paddingBottom: spacing.md, minHeight: 48, justifyContent: 'center' },
   title: { fontSize: fontSize.xxxl, fontWeight: fontWeight.black, color: colors.ink, letterSpacing: -2, lineHeight: 46 },
-  modeTag: { fontSize: fontSize.xs, fontWeight: fontWeight.bold, color: colors.primary, letterSpacing: 3, textTransform: 'uppercase' },
-  content: { paddingHorizontal: spacing.md, paddingTop: spacing.lg, gap: spacing.xl, alignItems: 'center', paddingBottom: spacing.xxl },
+  content: { paddingHorizontal: spacing.md, paddingTop: spacing.lg, gap: spacing.xxl, alignItems: 'center', paddingBottom: spacing.xxl },
   durationRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, alignSelf: 'flex-start' },
   durationChip: { paddingHorizontal: spacing.md, paddingVertical: spacing.sm, borderRadius: radius.md, borderWidth: 1.5, borderColor: colors.primary, backgroundColor: colors.primaryLight },
   durationChipText: { fontSize: fontSize.sm, fontWeight: fontWeight.bold, color: colors.primary, letterSpacing: 0.5 },
-  durationInput: { minWidth: 96, fontSize: fontSize.sm, fontWeight: fontWeight.bold, color: colors.primary, backgroundColor: colors.surfaceAlt, borderRadius: radius.md, borderWidth: 1.5, borderColor: colors.primary, paddingHorizontal: spacing.md, paddingVertical: spacing.sm },
-  durationBreak: { fontSize: fontSize.sm, fontWeight: fontWeight.bold, color: colors.textSub, letterSpacing: 0.5 },
+  durationPlus: { fontSize: fontSize.sm, fontWeight: fontWeight.bold, color: colors.textSub },
+  durationBreakChip: { paddingHorizontal: spacing.md, paddingVertical: spacing.sm, borderRadius: radius.md, borderWidth: 1.5, borderColor: colors.success, backgroundColor: colors.successLight },
+  durationBreakChipText: { fontSize: fontSize.sm, fontWeight: fontWeight.bold, color: colors.success, letterSpacing: 0.5 },
+  durationInput: { minWidth: 80, fontSize: fontSize.sm, fontWeight: fontWeight.bold, color: colors.primary, backgroundColor: colors.surfaceAlt, borderRadius: radius.md, borderWidth: 1.5, borderColor: colors.primary, paddingHorizontal: spacing.md, paddingVertical: spacing.sm },
   arcContainer: { alignItems: 'center', width: '100%' },
-  timeRow: { alignItems: 'center', marginTop: -spacing.lg },
-  mainBtn: { width: 64, height: 64, borderRadius: 32, backgroundColor: colors.primaryLight, borderWidth: 1.5, borderColor: colors.primary, alignItems: 'center', justifyContent: 'center' },
-  taskActions: { width: '100%', gap: spacing.sm, marginTop: spacing.xs },
-  completeBtn: { alignItems: 'center', paddingVertical: 24, borderRadius: radius.lg, backgroundColor: colors.primary },
+  timeRow: { alignItems: 'center', marginTop: -spacing.xl },
+  mainBtn: { width: 64, height: 64, borderRadius: 32, backgroundColor: colors.primaryLight, borderWidth: 1.5, borderColor: colors.primary, alignItems: 'center', justifyContent: 'center', marginTop: -spacing.lg, marginHorizontal: 8, ...shadow.soft },
+  taskActions: { width: '100%', gap: spacing.md, marginTop: spacing.xs },
+  completeBtn: { alignItems: 'center', paddingVertical: 24, marginHorizontal: 8, borderRadius: radius.xl, backgroundColor: colors.primary, ...shadow.card },
   completeBtnText: { fontSize: fontSize.lg, fontWeight: fontWeight.black, color: colors.surface, letterSpacing: 1 },
-  deferBtn: { width: '100%', alignItems: 'center', paddingVertical: 16, borderRadius: radius.md, borderWidth: 1.5, borderColor: colors.border, backgroundColor: colors.surfaceAlt, marginTop: spacing.lg },
+  deferBtn: { alignItems: 'center', paddingVertical: 16, marginHorizontal: 8, borderRadius: radius.xl, borderWidth: 1.5, borderColor: colors.border, backgroundColor: colors.surfaceAlt, marginTop: spacing.md, ...shadow.soft },
   deferBtnText: { fontSize: fontSize.sm, fontWeight: fontWeight.bold, letterSpacing: 1, color: colors.textSub },
-  taskName: { fontSize: fontSize.md, fontWeight: fontWeight.black, color: colors.ink, paddingVertical: spacing.xs, letterSpacing: -0.3 },
+  taskName: { fontSize: fontSize.md, fontWeight: fontWeight.black, color: colors.surface, textAlign: 'center', letterSpacing: -0.3 },
   modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.45)', alignItems: 'center', justifyContent: 'center', paddingHorizontal: spacing.xl },
   modalCard: { width: '100%', maxWidth: 360, backgroundColor: colors.surface, borderRadius: radius.lg, padding: spacing.lg, gap: spacing.sm },
   modalTitle: { fontSize: fontSize.lg, fontWeight: fontWeight.black, color: colors.ink, textAlign: 'center', marginBottom: spacing.sm },

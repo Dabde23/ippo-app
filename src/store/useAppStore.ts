@@ -40,6 +40,7 @@ interface AppState {
   hasCompletedOnboarding: boolean;
   timerTaskId: string | null;
   timerWorkMinutes: number;
+  timerBreakMinutes: number;
   // リマインダー「次に回す」の FIFO 提示キュー（taskId を来た順に保持）。永続化しない。
   reminderQueue: string[];
   // 「5分だけ」モード（TimerScreen へ伝達、非永続）。
@@ -66,6 +67,7 @@ interface AppState {
   routineTasks: () => Task[];
   setTimerTask: (id: string | null) => void;
   setTimerWorkMinutes: (minutes: number) => void;
+  setTimerBreakMinutes: (minutes: number) => void;
   // ── リマインダー通知アクション系 ──
   // 指定 taskId が「JST の今日すでに完了済み」か。単発タスク=そのまま completed か、
   // ルーティンテンプレ=当日インスタンスが completed かを見る（完了済み抑制の判定）。
@@ -87,6 +89,7 @@ export const useAppStore = create<AppState>()(
       hasCompletedOnboarding: false,
       timerTaskId: null,
       timerWorkMinutes: 25,
+      timerBreakMinutes: 5,
       reminderQueue: [],
       fiveMinMode: false,
 
@@ -247,6 +250,8 @@ export const useAppStore = create<AppState>()(
 
       setTimerWorkMinutes: (minutes) => set({ timerWorkMinutes: minutes }),
 
+      setTimerBreakMinutes: (minutes) => set({ timerBreakMinutes: minutes }),
+
       availableTaskCount: () => {
         const t = today();
         return get().tasks.filter((task) => task.isRoutine !== true && !task.completed && task.skippedDate !== t && task.deferredDate !== t).length;
@@ -327,6 +332,7 @@ export const useAppStore = create<AppState>()(
         reminderMessage: state.reminderMessage,
         hasCompletedOnboarding: state.hasCompletedOnboarding,
         timerWorkMinutes: state.timerWorkMinutes,
+        timerBreakMinutes: state.timerBreakMinutes,
       }),
       onRehydrateStorage: () => (state) => {
         if (!state) return;

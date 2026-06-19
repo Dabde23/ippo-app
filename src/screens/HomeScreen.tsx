@@ -214,13 +214,14 @@ export function HomeScreen() {
 
   return (
     <SafeAreaView style={styles.safe}>
-      {/* ── TOP BAR（タスク一覧入口・常時表示） ── */}
+      {/* ── TOP BAR（日付 + タスク一覧入口・常時表示） ── */}
       <View style={styles.topBar}>
+        <Text style={styles.topBarDate}>{todayStr}</Text>
         <Pressable
           style={({ pressed }) => [styles.listIconBtn, pressed && { opacity: 0.5 }]}
           onPress={() => setTaskListPanelVisible(true)}
         >
-          <Ionicons name="list" size={28} color={colors.ink} />
+          <Ionicons name="list" size={28} color={colors.surface} />
         </Pressable>
       </View>
 
@@ -363,10 +364,18 @@ const styles = StyleSheet.create({
   // ── Top bar ──
   topBar: {
     flexDirection: 'row',
-    justifyContent: 'flex-end',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    backgroundColor: colors.primary,
     paddingHorizontal: spacing.md,
     paddingTop: spacing.xs,
     paddingBottom: spacing.xs,
+  },
+  topBarDate: {
+    fontSize: fontSize.md,
+    fontWeight: fontWeight.bold,
+    color: colors.surface,
+    letterSpacing: 1,
   },
   listIconBtn: {
     padding: spacing.sm,
@@ -384,7 +393,7 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     paddingHorizontal: spacing.md,
-    paddingTop: spacing.xl,
+    paddingTop: spacing.xxl,
     flexGrow: 1,
   },
   sectionTag: {
@@ -421,21 +430,23 @@ const styles = StyleSheet.create({
   // ── Action buttons ──
   actionRow: {
     marginBottom: spacing.xl,
-    gap: spacing.sm,
+    gap: spacing.md,
   },
   subActionRow: {
     flexDirection: 'row',
-    gap: spacing.sm,
+    gap: spacing.md,
   },
   subBtn: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
     paddingVertical: spacing.md,
-    borderRadius: radius.md,
+    marginHorizontal: 8,
+    borderRadius: radius.xl,
     backgroundColor: colors.surfaceAlt,
     borderWidth: 1.5,
     borderColor: colors.border,
+    ...shadow.soft,
   },
   subBtnText: {
     fontSize: fontSize.sm,
@@ -447,8 +458,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     paddingVertical: 28,
-    borderRadius: radius.lg,
+    marginHorizontal: 8,
+    borderRadius: radius.xl,
     backgroundColor: colors.primary,
+    ...shadow.card,
   },
   doneBtnText: {
     fontSize: fontSize.lg,
@@ -487,15 +500,21 @@ const styles = StyleSheet.create({
     paddingBottom: spacing.lg,
     paddingTop: spacing.sm,
     borderTopWidth: 1,
-    borderTopColor: colors.ink,
+    borderTopColor: colors.border,
     backgroundColor: colors.background,
+    overflow: 'visible',
   },
   fab: {
-    backgroundColor: colors.ink,
-    borderRadius: radius.md,
+    backgroundColor: colors.primary,
+    borderRadius: radius.xl,
     alignItems: 'center',
     justifyContent: 'center',
     paddingVertical: 15,
+    marginHorizontal: 8,
+    // fab高さ(=paddingVertical 15*2 + テキスト約22 ≒ 52)の半分だけ上にはみ出し、
+    // bottomBar の上ボーダーをファブ垂直中央が貫くよう配置。
+    marginTop: -26,
+    ...shadow.card,
   },
   fabText: {
     fontSize: fontSize.md,
