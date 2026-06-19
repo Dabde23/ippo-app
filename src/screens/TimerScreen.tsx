@@ -222,13 +222,17 @@ export function TimerScreen() {
 
   return (
     <SafeAreaView style={styles.safe}>
-      <View style={styles.header}>
-        {timerTask && (
-          <Text style={styles.taskName} numberOfLines={2}>{timerTask.title}</Text>
-        )}
-      </View>
-
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+        {/* Task card */}
+        {timerTask && (
+          <View style={styles.timerTaskCard}>
+            <View style={[styles.timerTaskCardBar, { backgroundColor: ringColor }]} />
+            <View style={styles.timerTaskCardBody}>
+              <Text style={styles.timerTaskCardTitle} numberOfLines={2}>{timerTask.title}</Text>
+            </View>
+          </View>
+        )}
+
         {!isRunning && (
           <View style={styles.durationRow}>
             {editingWork ? (
@@ -385,9 +389,29 @@ export function TimerScreen() {
 
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: colors.background },
-  header: { backgroundColor: colors.primary, paddingHorizontal: spacing.md, paddingTop: spacing.md, paddingBottom: spacing.md, minHeight: 48, justifyContent: 'center' },
-  title: { fontSize: fontSize.xxxl, fontWeight: fontWeight.black, color: colors.ink, letterSpacing: -2, lineHeight: 46 },
   content: { paddingHorizontal: spacing.md, paddingTop: spacing.lg, gap: spacing.xxl, alignItems: 'center', paddingBottom: spacing.xxl },
+  timerTaskCard: {
+    width: '100%',
+    backgroundColor: colors.surface,
+    borderRadius: radius.lg,
+    overflow: 'hidden',
+    ...shadow.card,
+  },
+  timerTaskCardBar: {
+    height: 4,
+  },
+  timerTaskCardBody: {
+    padding: spacing.xl,
+    minHeight: 76 + spacing.xl * 2,
+  },
+  timerTaskCardTitle: {
+    fontSize: 24,
+    fontWeight: fontWeight.black,
+    color: colors.ink,
+    lineHeight: 38,
+    letterSpacing: -0.5,
+    minHeight: 76,
+  },
   durationRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, alignSelf: 'flex-start' },
   durationChip: { paddingHorizontal: spacing.md, paddingVertical: spacing.sm, borderRadius: radius.md, borderWidth: 1.5, borderColor: colors.primary, backgroundColor: colors.primaryLight },
   durationChipText: { fontSize: fontSize.sm, fontWeight: fontWeight.bold, color: colors.primary, letterSpacing: 0.5 },
@@ -412,7 +436,6 @@ const styles = StyleSheet.create({
   completeBtnText: { fontSize: fontSize.lg, fontWeight: fontWeight.black, color: colors.surface, letterSpacing: 1 },
   deferBtn: { alignItems: 'center', paddingVertical: 16, marginHorizontal: 8, borderRadius: radius.xl, borderWidth: 1.5, borderColor: colors.border, backgroundColor: colors.surfaceAlt, marginTop: spacing.md, ...shadow.soft },
   deferBtnText: { fontSize: fontSize.sm, fontWeight: fontWeight.bold, letterSpacing: 1, color: colors.textSub },
-  taskName: { fontSize: fontSize.md, fontWeight: fontWeight.black, color: colors.surface, textAlign: 'center', letterSpacing: -0.3 },
   modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.45)', alignItems: 'center', justifyContent: 'center', paddingHorizontal: spacing.xl },
   modalCard: { width: '100%', maxWidth: 360, backgroundColor: colors.surface, borderRadius: radius.lg, padding: spacing.lg, gap: spacing.sm },
   modalTitle: { fontSize: fontSize.lg, fontWeight: fontWeight.black, color: colors.ink, textAlign: 'center', marginBottom: spacing.sm },

@@ -373,8 +373,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: colors.primary,
     paddingHorizontal: spacing.md,
-    paddingTop: spacing.xs,
-    paddingBottom: spacing.xs,
+    paddingTop: spacing.sm,
+    paddingBottom: spacing.sm,
   },
   topBarDate: {
     fontSize: fontSize.md,
@@ -431,11 +431,12 @@ const styles = StyleSheet.create({
     color: colors.ink,
     lineHeight: 38,
     letterSpacing: -0.5,
+    minHeight: 76,
   },
   // ── Action buttons ──
   actionRow: {
     marginBottom: spacing.xl,
-    gap: spacing.md,
+    gap: spacing.lg,
   },
   subActionRow: {
     flexDirection: 'row',
