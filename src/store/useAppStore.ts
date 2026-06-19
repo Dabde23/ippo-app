@@ -42,8 +42,6 @@ interface AppState {
   timerWorkMinutes: number;
   // リマインダー「次に回す」の FIFO 提示キュー（taskId を来た順に保持）。永続化しない。
   reminderQueue: string[];
-  // 単発タスク完了時の Undo 用退避（非永続）。
-  pendingUndoTask: Task | null;
   // 「5分だけ」モード（TimerScreen へ伝達、非永続）。
   fiveMinMode: boolean;
 
@@ -51,8 +49,6 @@ interface AppState {
   completeTask: (id: string) => void;
   skipTask: (id: string) => void;
   deferToNextDay: (id: string) => void;
-  restoreUndoTask: () => void;
-  clearUndoTask: () => void;
   setFiveMinMode: (v: boolean) => void;
   editTask: (id: string, title: string) => void;
   deleteTask: (id: string) => void;
@@ -92,7 +88,6 @@ export const useAppStore = create<AppState>()(
       timerTaskId: null,
       timerWorkMinutes: 25,
       reminderQueue: [],
-      pendingUndoTask: null,
       fiveMinMode: false,
 
       addTask: (title, isRoutine = false) => {
@@ -124,11 +119,8 @@ export const useAppStore = create<AppState>()(
             return { tasks };
           }
 
-          // 単発タスク: store から削除し Undo 用に退避。
-          return {
-            tasks: state.tasks.filter((t) => t.id !== id),
-            pendingUndoTask: task,
-          };
+          // 単発タスク: store から削除。
+          return { tasks: state.tasks.filter((t) => t.id !== id) };
         });
       },
 
@@ -147,18 +139,6 @@ export const useAppStore = create<AppState>()(
           ),
         }));
       },
-
-      restoreUndoTask: () => {
-        set((state) => {
-          if (!state.pendingUndoTask) return state;
-          return {
-            tasks: [state.pendingUndoTask, ...state.tasks],
-            pendingUndoTask: null,
-          };
-        });
-      },
-
-      clearUndoTask: () => set({ pendingUndoTask: null }),
 
       setFiveMinMode: (v) => set({ fiveMinMode: v }),
 

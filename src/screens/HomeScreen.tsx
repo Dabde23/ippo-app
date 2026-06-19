@@ -28,8 +28,6 @@ export function HomeScreen() {
   const deferToNextDay = useAppStore((s) => s.deferToNextDay);
   const setTimerTask = useAppStore((s) => s.setTimerTask);
   const availableTaskCount = useAppStore((s) => s.availableTaskCount);
-  const pendingUndoTask = useAppStore((s) => s.pendingUndoTask);
-  const restoreUndoTask = useAppStore((s) => s.restoreUndoTask);
   const navigation = useNavigation<any>();
 
   const [currentTaskId, setCurrentTaskId] = useState<string | null>(null);
@@ -184,15 +182,6 @@ export function HomeScreen() {
     navigation.navigate('Timer');
   }, [currentTask, setTimerTask, navigation]);
 
-  // Undo トースト: pendingUndoTask が立っている間表示し、8秒で自動クリア。
-  useEffect(() => {
-    if (!pendingUndoTask) return;
-    const timer = setTimeout(() => {
-      useAppStore.getState().clearUndoTask();
-    }, 8000);
-    return () => clearTimeout(timer);
-  }, [pendingUndoTask]);
-
   function handleStartFromList(taskId: string) {
     setCurrentTaskId(taskId);
     setTaskListPanelVisible(false);
@@ -226,23 +215,15 @@ export function HomeScreen() {
   return (
     <SafeAreaView style={styles.safe}>
 
-      {/* ── UNDO TOAST（非ブロッキング・上部オーバーレイ） ── */}
-      {pendingUndoTask && (
-        <View style={styles.toastWrap} pointerEvents="box-none">
-          <View style={styles.toast}>
-            <Text style={styles.toastText} numberOfLines={1}>
-              「{pendingUndoTask.title}」は完了しました
-            </Text>
-            <Pressable
-              style={({ pressed }) => [styles.toastBtn, pressed && { opacity: 0.6 }]}
-              onPress={() => restoreUndoTask()}
-              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-            >
-              <Text style={styles.toastBtnText}>元に戻す</Text>
-            </Pressable>
-          </View>
-        </View>
-      )}
+      {/* ── TOP BAR（タスク一覧入口・常時表示） ── */}
+      <View style={styles.topBar}>
+        <Pressable
+          style={({ pressed }) => [styles.listIconBtn, pressed && { opacity: 0.5 }]}
+          onPress={() => setTaskListPanelVisible(true)}
+        >
+          <Ionicons name="list" size={22} color={colors.ink} />
+        </Pressable>
+      </View>
 
       {/* ── SCROLL CONTENT ── */}
       <ScrollView
@@ -303,16 +284,6 @@ export function HomeScreen() {
             <Text style={styles.emptyHint}>残りは明日また表示されます</Text>
           </View>
         ) : null}
-
-        {/* View all */}
-        {(available > 0 || skippedTasks.length > 0 || deferredTasks.length > 0) && (
-          <Pressable
-            style={({ pressed }) => [styles.viewAllBtn, pressed && { opacity: 0.5 }]}
-            onPress={() => setTaskListPanelVisible(true)}
-          >
-            <Text style={styles.viewAllText}>全タスクを見る</Text>
-          </Pressable>
-        )}
 
         <View style={{ height: spacing.xxl }} />
       </ScrollView>
@@ -390,6 +361,18 @@ const styles = StyleSheet.create({
     backgroundColor: colors.background,
   },
 
+  // ── Top bar ──
+  topBar: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    paddingHorizontal: spacing.md,
+    paddingTop: spacing.xs,
+    paddingBottom: spacing.xs,
+  },
+  listIconBtn: {
+    padding: spacing.sm,
+  },
+
   // ── Divider ──
   headerRule: {
     height: 1,
@@ -402,7 +385,7 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     paddingHorizontal: spacing.md,
-    paddingTop: spacing.lg,
+    paddingTop: spacing.xl,
     flexGrow: 1,
   },
   sectionTag: {
@@ -499,19 +482,6 @@ const styles = StyleSheet.create({
     lineHeight: 20,
   },
 
-  // ── View all ──
-  viewAllBtn: {
-    paddingVertical: spacing.sm,
-    marginBottom: spacing.md,
-  },
-  viewAllText: {
-    fontSize: fontSize.sm,
-    color: colors.textSub,
-    fontWeight: fontWeight.bold,
-    letterSpacing: 0.5,
-    textDecorationLine: 'underline',
-  },
-
   // ── Bottom bar ──
   bottomBar: {
     paddingHorizontal: spacing.md,
@@ -590,42 +560,5 @@ const styles = StyleSheet.create({
     fontWeight: fontWeight.black,
     fontSize: fontSize.md,
     letterSpacing: 1,
-  },
-  // ── Undo toast ──
-  toastWrap: {
-    position: 'absolute',
-    top: spacing.md,
-    left: spacing.md,
-    right: spacing.md,
-    zIndex: 1000,
-    alignItems: 'center',
-  },
-  toast: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: spacing.md,
-    width: '100%',
-    backgroundColor: colors.ink,
-    borderRadius: radius.md,
-    paddingVertical: spacing.md,
-    paddingHorizontal: spacing.lg,
-    ...shadow.card,
-  },
-  toastText: {
-    flex: 1,
-    fontSize: fontSize.sm,
-    color: colors.surface,
-    fontWeight: fontWeight.semibold,
-  },
-  toastBtn: {
-    paddingVertical: spacing.xs,
-    paddingHorizontal: spacing.sm,
-  },
-  toastBtnText: {
-    fontSize: fontSize.sm,
-    color: colors.primary,
-    fontWeight: fontWeight.black,
-    letterSpacing: 0.5,
   },
 });

@@ -156,7 +156,7 @@ export function TimerScreen() {
     cancelTimerEndNotification();
     if (timerTask.taskReminderTime) cancelTaskReminder(timerTask.id);
     if (Platform.OS !== 'web') {
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
     }
     completeTask(timerTask.id);
     setIsRunning(false);
@@ -210,18 +210,16 @@ export function TimerScreen() {
 
   return (
     <SafeAreaView style={styles.safe}>
-      {!isRunning && (
-        <View style={styles.header}>
-          <View style={styles.headerRule} />
-          <View style={styles.headerContent}>
-            <Text style={styles.modeTag}>{modeLabel}</Text>
-          </View>
-          {timerTask && (
-            <Text style={styles.taskName} numberOfLines={2}>{timerTask.title}</Text>
-          )}
-          <View style={styles.headerRule} />
+      <View style={styles.header}>
+        <View style={styles.headerRule} />
+        <View style={styles.headerContent}>
+          <Text style={styles.modeTag}>{modeLabel}</Text>
         </View>
-      )}
+        {timerTask && (
+          <Text style={styles.taskName} numberOfLines={2}>{timerTask.title}</Text>
+        )}
+        <View style={styles.headerRule} />
+      </View>
 
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         {!isRunning && (
