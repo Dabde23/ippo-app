@@ -401,7 +401,7 @@ const styles = StyleSheet.create({
   },
   timeOverlay: {
     position: 'absolute',
-    top: 30,
+    top: 50,
     left: 0,
     right: 0,
     alignItems: 'center',

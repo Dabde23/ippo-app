@@ -15,6 +15,11 @@ import { TaskListPanel } from '../components/TaskListPanel';
 import { useAppStore, Task, today } from '../store/useAppStore';
 import { colors, spacing, radius, fontSize, fontWeight, shadow } from '../theme';
 
+function formatDateJP(dateStr: string): string {
+  const [year, month, day] = dateStr.split('-').map(Number);
+  return `${year}年${month}月${day}日`;
+}
+
 function pickRandom<T extends { id: string }>(arr: T[], excludeId?: string): T | null {
   const pool = excludeId ? arr.filter((t) => t.id !== excludeId) : arr;
   if (pool.length === 0) return null;
@@ -216,7 +221,7 @@ export function HomeScreen() {
     <SafeAreaView style={styles.safe}>
       {/* ── TOP BAR（日付 + タスク一覧入口・常時表示） ── */}
       <View style={styles.topBar}>
-        <Text style={styles.topBarDate}>{todayStr}</Text>
+        <Text style={styles.topBarDate}>{formatDateJP(todayStr)}</Text>
         <Pressable
           style={({ pressed }) => [styles.listIconBtn, pressed && { opacity: 0.5 }]}
           onPress={() => setTaskListPanelVisible(true)}
@@ -235,7 +240,7 @@ export function HomeScreen() {
         {currentTask ? (
           <>
             {/* Section label */}
-            <Text style={styles.sectionTag}>今日のフォーカス</Text>
+            <Text style={styles.sectionTag}>今やること</Text>
 
             {/* Focus card */}
             <View style={styles.focusCard}>
@@ -255,10 +260,10 @@ export function HomeScreen() {
               </Pressable>
               <View style={styles.subActionRow}>
                 <Pressable
-                  style={({ pressed }) => [styles.subBtn, pressed && { opacity: 0.65 }]}
+                  style={({ pressed }) => [styles.subBtnFive, pressed && { opacity: 0.65 }]}
                   onPress={handleFiveMin}
                 >
-                  <Text style={styles.subBtnText}>5分だけ</Text>
+                  <Text style={styles.subBtnFiveText}>5分だけ</Text>
                 </Pressable>
                 <Pressable
                   style={({ pressed }) => [styles.subBtn, pressed && { opacity: 0.65 }]}
@@ -451,6 +456,24 @@ const styles = StyleSheet.create({
   subBtnText: {
     fontSize: fontSize.sm,
     color: colors.textSub,
+    fontWeight: fontWeight.bold,
+    letterSpacing: 0.5,
+  },
+  subBtnFive: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: spacing.md,
+    marginHorizontal: 8,
+    borderRadius: radius.xl,
+    backgroundColor: colors.primaryLight,
+    borderWidth: 1.5,
+    borderColor: colors.primary,
+    ...shadow.soft,
+  },
+  subBtnFiveText: {
+    fontSize: fontSize.sm,
+    color: colors.primary,
     fontWeight: fontWeight.bold,
     letterSpacing: 0.5,
   },
