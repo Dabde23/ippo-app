@@ -61,8 +61,7 @@ export default {
         {
           backgroundColor: '#F7F3EE',
           image: './assets/splash-icon.png',
-          imageWidth: 200,
-          resizeMode: 'contain',
+          resizeMode: 'cover',
         },
       ],
     ],
