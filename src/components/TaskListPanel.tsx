@@ -3,6 +3,7 @@ import {
   View, StyleSheet, Pressable, ScrollView,
   Alert, Platform, Animated, useWindowDimensions, Modal,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { Text } from './Text';
 import { TaskCard } from './TaskCard';
@@ -38,6 +39,7 @@ interface Props {
 export function TaskListPanel({ onClose, onStartTask }: Props) {
   const { width } = useWindowDimensions();
   const panelWidth = Math.round(width * PANEL_RATIO);
+  const insets = useSafeAreaInsets();
 
   const tasks = useAppStore((s) => s.tasks);
   const todayStr = today();
@@ -354,7 +356,7 @@ export function TaskListPanel({ onClose, onStartTask }: Props) {
     return (
       <View style={styles.rootFixed}>
         <Pressable style={[StyleSheet.absoluteFill, styles.overlayWeb]} onPress={handleClose} />
-        <View style={[styles.panel, { width: panelWidth }]}>
+        <View style={[styles.panel, { width: panelWidth, paddingTop: insets.top || 24 }]}>
           {panelContent}
         </View>
       </View>
@@ -366,7 +368,7 @@ export function TaskListPanel({ onClose, onStartTask }: Props) {
       <Animated.View style={[styles.overlay, { opacity: overlayOpacity }]}>
         <Pressable style={StyleSheet.absoluteFill} onPress={handleClose} />
       </Animated.View>
-      <Animated.View style={[styles.panel, { width: panelWidth, transform: [{ translateX }] }]}>
+      <Animated.View style={[styles.panel, { width: panelWidth, paddingTop: insets.top || 24, transform: [{ translateX }] }]}>
         {panelContent}
       </Animated.View>
     </View>
@@ -398,7 +400,6 @@ const styles = StyleSheet.create({
     backgroundColor: colors.background,
     borderLeftWidth: 1.5,
     borderLeftColor: colors.ink,
-    paddingTop: Platform.OS === 'ios' ? 54 : 24,
   },
   header: {
     paddingHorizontal: spacing.md,
