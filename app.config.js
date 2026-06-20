@@ -16,6 +16,9 @@ export default {
     ios: {
       bundleIdentifier: IS_DEV ? 'com.dabde.ippoapp.dev' : 'com.dabde.ippoapp',
       supportsTablet: true,
+      infoPlist: {
+        ITSAppUsesNonExemptEncryption: false,
+      },
       splash: {
         image: './assets/splash-icon.png',
         resizeMode: 'cover',
