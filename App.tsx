@@ -19,7 +19,6 @@ export default function App() {
   }, []);
 
   useEffect(() => {
-    if (Platform.OS !== 'web') return;
     const { reminders, reminderMessage, tasks } = useAppStore.getState();
     scheduleReminders(reminders, reminderMessage);
     for (const task of tasks) {
