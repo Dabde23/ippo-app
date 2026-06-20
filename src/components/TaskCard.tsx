@@ -9,7 +9,7 @@ import {
   cancelTaskReminder,
 } from '../services/NotificationService';
 import { colors, spacing, radius, fontSize, fontWeight } from '../theme';
-import { TIME_OPTIONS } from '../constants/reminder';
+import { TimeWheelPicker } from './TimeWheelPicker';
 
 interface Props {
   task: Task;
@@ -25,6 +25,7 @@ export function TaskCard({ task, onStart }: Props) {
 
   const [sheetVisible, setSheetVisible] = useState(false);
   const [timePickerVisible, setTimePickerVisible] = useState(false);
+  const [pickerTime, setPickerTime] = useState('09:00');
   const [editVisible, setEditVisible] = useState(false);
   const [editTitle, setEditTitle] = useState(task.title);
 
@@ -55,10 +56,12 @@ export function TaskCard({ task, onStart }: Props) {
     }
     // 未設定 → 時刻ピッカー
     setSheetVisible(false);
+    setPickerTime('09:00');
     setTimePickerVisible(true);
   }
 
-  async function handleTimeSelect(time: string) {
+  async function handleTimeConfirm() {
+    const time = pickerTime;
     setTimePickerVisible(false);
     const granted = await requestNotificationPermission();
     if (!granted) {
@@ -236,15 +239,15 @@ export function TaskCard({ task, onStart }: Props) {
           <Pressable style={styles.timeSheet} onPress={() => {}}>
             <Text style={styles.timeSheetLabel}>リマインダー時刻</Text>
             <View style={styles.timeRule} />
-            {TIME_OPTIONS.map((t) => (
-              <Pressable
-                key={t}
-                style={({ pressed }) => [styles.timeOption, pressed && { opacity: 0.6 }]}
-                onPress={() => handleTimeSelect(t)}
-              >
-                <Text style={styles.timeOptionText}>{t}</Text>
-              </Pressable>
-            ))}
+            {timePickerVisible && (
+              <TimeWheelPicker value={pickerTime} onChange={setPickerTime} />
+            )}
+            <Pressable
+              style={({ pressed }) => [styles.timeConfirmBtn, pressed && { opacity: 0.7 }]}
+              onPress={handleTimeConfirm}
+            >
+              <Text style={styles.timeConfirmText}>決定</Text>
+            </Pressable>
           </Pressable>
         </Pressable>
       </Modal>
@@ -446,13 +449,19 @@ const styles = StyleSheet.create({
     marginBottom: spacing.xs,
   },
   timeRule: { height: 1, backgroundColor: colors.ink },
-  timeOption: {
-    paddingVertical: spacing.sm,
-    paddingHorizontal: spacing.md,
+  timeConfirmBtn: {
+    backgroundColor: colors.primary,
     borderRadius: radius.md,
+    paddingVertical: 12,
     alignItems: 'center',
+    marginTop: spacing.sm,
   },
-  timeOptionText: { fontSize: fontSize.md, color: colors.textSub },
+  timeConfirmText: {
+    color: colors.surface,
+    fontWeight: fontWeight.bold,
+    fontSize: fontSize.sm,
+    letterSpacing: 1,
+  },
   // --- 編集モーダル ---
   editOverlay: {
     flex: 1, justifyContent: 'center', alignItems: 'center',

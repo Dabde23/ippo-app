@@ -12,7 +12,8 @@ import {
   scheduleReminders,
 } from '../services/NotificationService';
 import { colors, spacing, radius, fontSize, fontWeight } from '../theme';
-import { TIME_OPTIONS, DAY_LABELS } from '../constants/reminder';
+import { DAY_LABELS } from '../constants/reminder';
+import { TimeWheelPicker } from './TimeWheelPicker';
 
 const PANEL_RATIO = 0.85;
 const IS_WEB = Platform.OS === 'web';
@@ -290,26 +291,13 @@ export function TaskListPanel({ onClose, onStartTask }: Props) {
             <Text style={styles.timeSheetLabel}>通知設定</Text>
             <View style={styles.rule} />
 
-            <ScrollView style={styles.timeList} showsVerticalScrollIndicator={false}>
-              {TIME_OPTIONS.map((t) => {
-                const active = pickerTime === t;
-                return (
-                  <Pressable
-                    key={t}
-                    style={({ pressed }) => [
-                      styles.timeOption,
-                      active && styles.timeOptionActive,
-                      pressed && { opacity: 0.6 },
-                    ]}
-                    onPress={() => setPickerTime(t)}
-                  >
-                    <Text style={[styles.timeOptionText, active && styles.timeOptionTextActive]}>
-                      {t}
-                    </Text>
-                  </Pressable>
-                );
-              })}
-            </ScrollView>
+            {pickerRoutineId !== null && (
+              <TimeWheelPicker
+                key={pickerRoutineId}
+                value={pickerTime}
+                onChange={setPickerTime}
+              />
+            )}
 
             <View style={styles.rule} />
 

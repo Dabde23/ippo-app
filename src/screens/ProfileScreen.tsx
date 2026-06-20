@@ -13,7 +13,8 @@ import {
   openExactAlarmSettings,
 } from '../services/NotificationService';
 import { colors, spacing, radius, fontSize, fontWeight } from '../theme';
-import { TIME_OPTIONS, DAY_LABELS } from '../constants/reminder';
+import { DAY_LABELS } from '../constants/reminder';
+import { TimeWheelPicker } from '../components/TimeWheelPicker';
 
 const FORMSPREE_URL = 'https://formspree.io/f/xqejvywv';
 
@@ -25,6 +26,7 @@ export function ProfileScreen() {
 
   const [timePickerVisible, setTimePickerVisible] = useState(false);
   const [editingReminderId, setEditingReminderId] = useState<string | null>(null);
+  const [pickerTime, setPickerTime] = useState('09:00');
 
   // フィードバック state
   const [feedbackVisible, setFeedbackVisible] = useState(false);
@@ -63,14 +65,16 @@ export function ProfileScreen() {
   }
 
   function openTimePicker(reminderId: string) {
+    const current = reminders.find((r) => r.id === reminderId)?.time ?? '09:00';
+    setPickerTime(current);
     setEditingReminderId(reminderId);
     setTimePickerVisible(true);
   }
 
-  async function handleTimeSelect(time: string) {
+  async function handleTimeConfirm() {
     setTimePickerVisible(false);
     if (editingReminderId) {
-      updateReminder(editingReminderId, time);
+      updateReminder(editingReminderId, pickerTime);
       setEditingReminderId(null);
       await reschedule();
     }
@@ -277,26 +281,23 @@ export function ProfileScreen() {
           style={styles.timeOverlay}
           onPress={() => { setTimePickerVisible(false); setEditingReminderId(null); }}
         >
-          <View style={styles.timeSheet}>
+          <Pressable style={styles.timeSheet} onPress={() => {}}>
             <Text style={styles.timeSheetLabel}>時刻を選択</Text>
             <View style={styles.rule} />
-            {TIME_OPTIONS.map((t) => {
-              const current = reminders.find((r) => r.id === editingReminderId)?.time;
-              return (
-                <Pressable
-                  key={t}
-                  style={({ pressed }) => [
-                    styles.timeOption,
-                    current === t && styles.timeOptionActive,
-                    pressed && { opacity: 0.6 },
-                  ]}
-                  onPress={() => handleTimeSelect(t)}
-                >
-                  <Text style={[styles.timeOptionText, current === t && styles.timeOptionTextActive]}>{t}</Text>
-                </Pressable>
-              );
-            })}
-          </View>
+            {timePickerVisible && (
+              <TimeWheelPicker
+                key={editingReminderId ?? 'none'}
+                value={pickerTime}
+                onChange={setPickerTime}
+              />
+            )}
+            <Pressable
+              style={({ pressed }) => [styles.timeConfirmBtn, pressed && { opacity: 0.7 }]}
+              onPress={handleTimeConfirm}
+            >
+              <Text style={styles.timeConfirmText}>決定</Text>
+            </Pressable>
+          </Pressable>
         </Pressable>
       </Modal>
     </SafeAreaView>
@@ -551,8 +552,17 @@ const styles = StyleSheet.create({
     fontSize: fontSize.xs, fontWeight: fontWeight.bold,
     color: colors.primary, letterSpacing: 2.5, marginBottom: spacing.xs,
   },
-  timeOption: { paddingVertical: spacing.sm, paddingHorizontal: spacing.md, borderRadius: radius.md, alignItems: 'center' },
-  timeOptionActive: { backgroundColor: colors.primaryLight },
-  timeOptionText: { fontSize: fontSize.md, color: colors.textSub },
-  timeOptionTextActive: { color: colors.primary, fontWeight: fontWeight.bold },
+  timeConfirmBtn: {
+    backgroundColor: colors.primary,
+    borderRadius: radius.md,
+    paddingVertical: 12,
+    alignItems: 'center',
+    marginTop: spacing.sm,
+  },
+  timeConfirmText: {
+    color: colors.surface,
+    fontWeight: fontWeight.bold,
+    fontSize: fontSize.sm,
+    letterSpacing: 1,
+  },
 });
