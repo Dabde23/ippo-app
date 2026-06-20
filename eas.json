@@ -34,6 +34,11 @@
         "appleTeamId": "642PG4M63T"
       }
     },
-    "production": {}
+    "production": {
+      "ios": {
+        "appleTeamId": "642PG4M63T",
+        "ascAppId": "6780812318"
+      }
+    }
   }
 }
