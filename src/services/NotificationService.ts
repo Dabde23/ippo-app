@@ -183,8 +183,9 @@ export async function scheduleReminders(reminders: Reminder[], message: string):
     const content: Notifications.NotificationContentInput = {
       title: NOTIF_TITLE,
       body: reminder.name.trim() || message,
-      categoryIdentifier: REMINDER_CATEGORY,
-      ...(reminder.routineTaskId ? { data: { taskId: reminder.routineTaskId } } : {}),
+      ...(reminder.routineTaskId
+        ? { categoryIdentifier: REMINDER_CATEGORY, data: { taskId: reminder.routineTaskId } }
+        : {}),
       ...(Platform.OS === 'android' ? { channelId: NOTIF_CHANNEL_ID } : {}),
     };
     for (const day of reminder.days) {
