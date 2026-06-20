@@ -3,13 +3,18 @@ import { Platform, Linking } from 'react-native';
 import type { Reminder } from '../store/useAppStore';
 
 if (Platform.OS !== 'web') {
+  // Expo SDK v56: `shouldShowAlert` は deprecated。`shouldShowBanner` /
+  // `shouldShowList` を指定する（docs/v56.0.0/sdk/notifications）。
+  // この handler が「フォアグラウンド中に通知を表示するか」を決定するため、
+  // banner/list を true にしないとアプリ表示中に通知が出ない。
+  // priority(MAX) は Android のヘッドアップ表示（前面ポップアップ）に必要。
   Notifications.setNotificationHandler({
     handleNotification: async () => ({
-      shouldShowAlert: true,
       shouldPlaySound: true,
       shouldSetBadge: false,
       shouldShowBanner: true,
       shouldShowList: true,
+      priority: Notifications.AndroidNotificationPriority.MAX,
     }),
   });
 }
@@ -26,18 +31,25 @@ const NOTIF_CHANNEL_ID = 'reminders';
 // アプリ起動時に一度だけ呼び、リマインダー通知のアクションボタンを登録する。
 // プラットフォーム差: Android はボタン常時表示。iOS は権限付与後＆展開時に出る場合あり。
 // web はカテゴリ非対応のため何もしない。
+// Android 通知チャンネルを冪等に生成する。
+// channelId を指定した通知より「前」にチャンネルが存在しないと、
+// 通知が既定チャンネル（importance 低）へ落ちてヘッドアップ表示されない。
+// そのため各 schedule 関数の冒頭でも呼び、登録タイミングの取りこぼしを防ぐ。
+export async function ensureAndroidChannel(): Promise<void> {
+  if (Platform.OS !== 'android') return;
+  await Notifications.setNotificationChannelAsync(NOTIF_CHANNEL_ID, {
+    name: 'リマインダー',
+    importance: Notifications.AndroidImportance.HIGH,
+  }).catch(() => {});
+}
+
 let categoryRegistered = false;
 export async function registerNotificationCategories(): Promise<void> {
   if (Platform.OS === 'web') return;
   if (categoryRegistered) return;
   categoryRegistered = true;
-  // Android: 通知チャンネルを明示生成（ヘッドアップ表示の品質向上。遅延とは無関係）
-  if (Platform.OS === 'android') {
-    await Notifications.setNotificationChannelAsync(NOTIF_CHANNEL_ID, {
-      name: 'リマインダー',
-      importance: Notifications.AndroidImportance.HIGH,
-    }).catch(() => {});
-  }
+  // Android: 通知チャンネルを明示生成（ヘッドアップ表示の品質向上）
+  await ensureAndroidChannel();
   await Notifications.setNotificationCategoryAsync(REMINDER_CATEGORY, [
     {
       identifier: ACTION_START,
@@ -160,7 +172,8 @@ export async function scheduleReminders(reminders: Reminder[], message: string):
     return;
   }
 
-  // ネイティブ: 既存の reminder-* 通知をすべてキャンセルしてから再登録
+  // ネイティブ: チャンネルを確実に用意してから、既存 reminder-* を再登録
+  await ensureAndroidChannel();
   await cancelAllReminders();
 
   for (const reminder of reminders) {
@@ -243,6 +256,7 @@ export async function scheduleTaskReminder(
 
   // ネイティブ: ルーティンは DAILY、単発タスクは DATE（次の該当時刻に1回）
   // content には taskId と アクションボタン用カテゴリを必ず付与（応答ハンドリングがデータ駆動で動く）。
+  await ensureAndroidChannel();
   const content: Notifications.NotificationContentInput = {
     title: NOTIF_TITLE,
     body: title,
@@ -304,10 +318,17 @@ export async function scheduleTimerEndNotification(seconds: number, body: string
     webTimers.set(TIMER_END_KEY, timer);
     return;
   }
+  await ensureAndroidChannel();
   await Notifications.cancelScheduledNotificationAsync(TIMER_END_KEY).catch(() => {});
   await Notifications.scheduleNotificationAsync({
     identifier: TIMER_END_KEY,
-    content: { title: NOTIF_TITLE, body },
+    // Android: channelId を付けないと既定チャンネル（importance 低）へ落ち、
+    // フォアグラウンドでヘッドアップ表示されない。リマインダーと同じ HIGH チャンネルを使う。
+    content: {
+      title: NOTIF_TITLE,
+      body,
+      ...(Platform.OS === 'android' ? { channelId: NOTIF_CHANNEL_ID } : {}),
+    },
     trigger: {
       type: Notifications.SchedulableTriggerInputTypes.TIME_INTERVAL,
       seconds,
