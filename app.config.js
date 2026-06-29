@@ -16,6 +16,9 @@ export default {
     ios: {
       bundleIdentifier: IS_DEV ? 'com.dabde.ippoapp.dev' : 'com.dabde.ippoapp',
       supportsTablet: true,
+      infoPlist: {
+        ITSAppUsesNonExemptEncryption: false,
+      },
       splash: {
         image: './assets/splash-icon.png',
         resizeMode: 'cover',
@@ -33,8 +36,9 @@ export default {
       },
       predictiveBackGestureEnabled: false,
       splash: {
-        image: './assets/splash-icon.png',
-        resizeMode: 'cover',
+        image: './assets/android-icon-foreground.png',
+        imageWidth: 200,
+        resizeMode: 'contain',
         backgroundColor: '#F7F3EE',
       },
     },
@@ -58,8 +62,13 @@ export default {
         {
           backgroundColor: '#F7F3EE',
           image: './assets/splash-icon.png',
-          imageWidth: 200,
-          resizeMode: 'contain',
+          resizeMode: 'cover',
+          android: {
+            image: './assets/android-icon-foreground.png',
+            imageWidth: 200,
+            resizeMode: 'contain',
+            backgroundColor: '#F7F3EE',
+          },
         },
       ],
     ],

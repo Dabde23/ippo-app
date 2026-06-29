@@ -17,18 +17,7 @@ export const colors = {
   textSub: '#6B5F4A',       // warm brown-gray
   textMuted: '#9A8E7A',
   textDisabled: '#C0B8A8',
-  xpGold: '#C4603A',        // use terracotta for XP
-  badge: '#6B4A8C',
 };
-
-// 気分・集中度の5段階カラー（1=低 → 5=高）
-export const moodColors = {
-  1: '#F87171', // 淡い赤
-  2: '#FDBA74', // 淡い橙
-  3: '#FDE047', // 淡い黄
-  4: '#A3E635', // 黄緑（yellow-green）
-  5: '#34D399', // エメラルドグリーン（青緑寄り、4との色相差確保）
-} as const;
 
 export const spacing = {
   xs: 4,
@@ -66,18 +55,6 @@ export const fontWeight = {
   bold: '700' as const,
   black: '900' as const,
 };
-
-// 背景色に対して読みやすい文字色（白 or 濃色）を返す
-// sRGB 相対輝度（簡易）を使って明度を判定
-// 閾値 0.6: moodColors の全レベル（1=#F87171〜5=#34D399）が濃色側に倒れる
-export function contrastTextColor(hexBg: string): string {
-  const hex = hexBg.replace('#', '');
-  const r = parseInt(hex.slice(0, 2), 16);
-  const g = parseInt(hex.slice(2, 4), 16);
-  const b = parseInt(hex.slice(4, 6), 16);
-  const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
-  return luminance > 0.6 ? colors.ink : '#FFFFFF'; // 明るい背景には濃色
-}
 
 export const shadow = {
   card: {

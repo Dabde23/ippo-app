@@ -1,14 +1,12 @@
 import React, { useState, useRef } from 'react';
 import {
   View, StyleSheet, Pressable,
-  ScrollView, Dimensions,
+  ScrollView, useWindowDimensions,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Text } from '../components/Text';
 import { useAppStore } from '../store/useAppStore';
 import { colors, spacing, radius, fontSize, fontWeight } from '../theme';
-
-const { width } = Dimensions.get('window');
 
 const SLIDES = [
   {
@@ -37,6 +35,7 @@ const SLIDES = [
 ];
 
 export function OnboardingScreen() {
+  const { width } = useWindowDimensions();
   const completeOnboarding = useAppStore((s) => s.completeOnboarding);
   const [currentIndex, setCurrentIndex] = useState(0);
   const scrollRef = useRef<ScrollView>(null);

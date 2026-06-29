@@ -1,6 +1,10 @@
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { dateOfJST, today } from '../utils/date';
+
+// 日付の JST 統一ユーティリティを再エクスポート（既存の import 互換のため）。
+export { today, dateOfJST } from '../utils/date';
 
 export type Priority = 'high' | 'normal' | 'low'; // kept for backwards compat
 
@@ -9,9 +13,11 @@ export interface Task {
   title: string;
   priority?: Priority; // legacy field, no longer used
   completed: boolean;
-  xpAwarded: boolean;
   createdAt: string;
   skippedDate: string | null;
+  // 3状態モデル: null=提示候補 / today()=翌日に再提示（今日非表示）。
+  // skippedDate と排他（同時に today にしない）。
+  deferredDate: string | null;
   isRoutine: boolean;
   routineCreatedAt: string; // 登録日 YYYY-MM-DD ('' for non-routine tasks)
   routineSourceId?: string; // daily instance -> id of the routine template it came from
@@ -27,89 +33,29 @@ export interface Reminder {
   routineTaskId?: string; // ルーティンテンプレートと連動する場合のID
 }
 
-export interface Badge {
-  id: string;
-  name: string;
-  emoji: string;
-  earnedAt: string;
-}
-
-export type TrackingLevel = 1 | 2 | 3 | 4 | 5;
-
-export interface MoodEntry {
-  id: string;
-  timestamp: string; // ISO8601
-  level: TrackingLevel;
-  memo?: string;
-}
-
-export interface FocusEntry {
-  id: string;
-  timestamp: string; // ISO8601
-  level: TrackingLevel;
-  taskId: string;
-  taskTitle: string;
-  memo?: string;
-}
-
-// timestamp(ISO8601) -> ローカル日付 YYYY-MM-DD
-function localDateOf(timestamp: string): string {
-  const d = new Date(timestamp);
-  const y = d.getFullYear();
-  const m = String(d.getMonth() + 1).padStart(2, '0');
-  const day = String(d.getDate()).padStart(2, '0');
-  return `${y}-${m}-${day}`;
-}
-
-export const PREMIUM_PRICE_JPY = 500;
-export const CANCEL_NOTICE_DAYS = 5;
-export const XP_PER_TASK = 10;
-
-export const BADGE_THRESHOLDS = [100, 300, 600, 1000, 1500];
-
-const BADGES: Omit<Badge, 'earnedAt'>[] = [
-  { id: 'first-step',      name: 'はじめの一歩',    emoji: '🌱' },
-  { id: 'getting-started', name: 'スタートダッシュ', emoji: '🚀' },
-  { id: 'focused',         name: '集中の達人',       emoji: '🎯' },
-  { id: 'consistent',      name: '継続の力',         emoji: '💪' },
-  { id: 'achiever',        name: 'アチーバー',       emoji: '🏆' },
-];
-
-export function today(): string {
-  // ローカルタイムゾーン基準の日付を返す（localDateOf と整合）。
-  // UTC 基準だと日付境界が JST 9:00 になり、日次リセットがずれるため。
-  return localDateOf(new Date().toISOString());
-}
-
-function earnedBadgeCount(xp: number): number {
-  return BADGE_THRESHOLDS.filter((t) => xp >= t).length;
-}
-
 interface AppState {
   tasks: Task[];
-  xp: number;
-  badges: Badge[];
-  isPremium: boolean;
-  pendingBadge: Badge | null;
   reminders: Reminder[];
   reminderMessage: string;
   hasCompletedOnboarding: boolean;
   timerTaskId: string | null;
   timerWorkMinutes: number;
-  moodEntries: MoodEntry[];
-  focusEntries: FocusEntry[];
-  focusPromptEnabled: boolean;
+  timerBreakMinutes: number;
+  // リマインダー「次に回す」の FIFO 提示キュー（taskId を来た順に保持）。永続化しない。
+  reminderQueue: string[];
+  // 「5分だけ」モード（TimerScreen へ伝達、非永続）。
+  fiveMinMode: boolean;
 
   addTask: (title: string, isRoutine?: boolean) => string;
   completeTask: (id: string) => void;
   skipTask: (id: string) => void;
+  deferToNextDay: (id: string) => void;
+  setFiveMinMode: (v: boolean) => void;
   editTask: (id: string, title: string) => void;
   deleteTask: (id: string) => void;
   deleteRoutine: (id: string) => void;
   clearCompletedTasks: () => void;
   syncRoutineTasks: () => void;
-  dismissBadge: () => void;
-  togglePremium: () => void;
   addReminder: (time: string, days?: number[], name?: string, routineTaskId?: string) => string;
   removeReminder: (id: string) => void;
   updateReminder: (id: string, time?: string, days?: number[], name?: string) => void;
@@ -121,40 +67,41 @@ interface AppState {
   routineTasks: () => Task[];
   setTimerTask: (id: string | null) => void;
   setTimerWorkMinutes: (minutes: number) => void;
-  addMoodEntry: (level: TrackingLevel, memo?: string) => void;
-  addFocusEntry: (level: TrackingLevel, taskId: string, taskTitle: string, memo?: string) => void;
-  toggleFocusPrompt: () => void;
-  getMoodEntriesForDate: (date: string) => MoodEntry[];
-  getMoodAverageForDate: (date: string) => number | null;
-  getFocusEntriesForDate: (date: string) => FocusEntry[];
+  setTimerBreakMinutes: (minutes: number) => void;
+  // ── リマインダー通知アクション系 ──
+  // 指定 taskId が「JST の今日すでに完了済み」か。単発タスク=そのまま completed か、
+  // ルーティンテンプレ=当日インスタンスが completed かを見る（完了済み抑制の判定）。
+  isReminderTaskDoneToday: (taskId: string) => boolean;
+  // 「次に回す」: FIFO キュー末尾へ taskId を追加（重複は末尾に寄せ直さず無視）。
+  enqueueReminder: (taskId: string) => void;
+  // キューから「いま有効な（当日プールに居て未完了の）」先頭 taskId を取り出す。
+  // 無効な taskId は捨てながら走査し、無ければ null。
+  dequeueValidReminder: () => string | null;
+  clearReminderQueue: () => void;
 }
 
 export const useAppStore = create<AppState>()(
   persist(
     (set, get) => ({
       tasks: [],
-      xp: 0,
-      badges: [],
-      isPremium: true,
-      pendingBadge: null,
       reminders: [],
       reminderMessage: '今日のタスクを確認しよう！ひとつだけでも大丈夫。',
       hasCompletedOnboarding: false,
       timerTaskId: null,
       timerWorkMinutes: 25,
-      moodEntries: [],
-      focusEntries: [],
-      focusPromptEnabled: true,
+      timerBreakMinutes: 5,
+      reminderQueue: [],
+      fiveMinMode: false,
 
       addTask: (title, isRoutine = false) => {
         const t = today();
         const task: Task = {
-          id: Date.now().toString(),
+          id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
           title,
           completed: false,
-          xpAwarded: false,
           createdAt: t,
           skippedDate: null,
+          deferredDate: null,
           isRoutine,
           routineCreatedAt: isRoutine ? t : '',
         };
@@ -165,36 +112,38 @@ export const useAppStore = create<AppState>()(
       completeTask: (id) => {
         set((state) => {
           const task = state.tasks.find((t) => t.id === id);
-          if (!task || task.completed) return state;
+          if (!task) return state;
 
-          const earned = XP_PER_TASK;
-          const tasks = state.tasks.map((t) =>
-            t.id === id ? { ...t, completed: true, xpAwarded: true } : t
-          );
-
-          const newXp = state.xp + earned;
-          const prevCount = earnedBadgeCount(state.xp);
-          const newCount = earnedBadgeCount(newXp);
-          let pendingBadge: Badge | null = null;
-          let badges = state.badges;
-          if (newCount > prevCount && newCount <= BADGES.length) {
-            const template = BADGES[newCount - 1];
-            const newBadge: Badge = { ...template, earnedAt: today() };
-            badges = [...state.badges, newBadge];
-            pendingBadge = newBadge;
+          // ルーティンインスタンス: 完了にせず翌日へ defer（翌日 sync で削除→新規 spawn）。
+          if (task.routineSourceId) {
+            const tasks = state.tasks.map((t) =>
+              t.id === id ? { ...t, deferredDate: today(), skippedDate: null } : t
+            );
+            return { tasks };
           }
 
-          return { tasks, xp: newXp, badges, pendingBadge };
+          // 単発タスク: store から削除。
+          return { tasks: state.tasks.filter((t) => t.id !== id) };
         });
       },
 
       skipTask: (id) => {
         set((state) => ({
           tasks: state.tasks.map((t) =>
-            t.id === id ? { ...t, skippedDate: today() } : t
+            t.id === id ? { ...t, skippedDate: today(), deferredDate: null } : t
           ),
         }));
       },
+
+      deferToNextDay: (id) => {
+        set((state) => ({
+          tasks: state.tasks.map((t) =>
+            t.id === id ? { ...t, deferredDate: today(), skippedDate: null } : t
+          ),
+        }));
+      },
+
+      setFiveMinMode: (v) => set({ fiveMinMode: v }),
 
       editTask: (id, title) => {
         set((state) => ({
@@ -219,13 +168,23 @@ export const useAppStore = create<AppState>()(
 
       // Spawn a daily instance for each routine template that hasn't been
       // added for the current day yet. Idempotent: safe to call repeatedly.
+      // Also purges stale routine instances (completed or skipped, not today).
       syncRoutineTasks: () => {
         set((state) => {
           const t = today();
-          const templates = state.tasks.filter((task) => task.isRoutine === true);
+
+          // M-4: 古いルーティンインスタンスを削除。
+          // 条件: routineSourceId を持つ（インスタンス）AND（完了済み OR スキップ済み）AND 今日以前
+          const purged = state.tasks.filter((task) => {
+            if (!task.routineSourceId) return true; // テンプレート・単発タスクは保持
+            if (task.routineSpawnDate === t) return true; // 今日のインスタンスは保持
+            return !(task.completed || task.skippedDate !== null || task.deferredDate !== null);
+          });
+
+          const templates = purged.filter((task) => task.isRoutine === true);
           const newInstances: Task[] = [];
           for (const tpl of templates) {
-            const alreadySpawned = state.tasks.some(
+            const alreadySpawned = purged.some(
               (task) => task.routineSourceId === tpl.id && task.routineSpawnDate === t
             );
             if (alreadySpawned) continue;
@@ -233,23 +192,19 @@ export const useAppStore = create<AppState>()(
               id: `${tpl.id}-${t}`,
               title: tpl.title,
               completed: false,
-              xpAwarded: false,
               createdAt: t,
               skippedDate: null,
+              deferredDate: null,
               isRoutine: false,
               routineCreatedAt: '',
               routineSourceId: tpl.id,
               routineSpawnDate: t,
             });
           }
-          if (newInstances.length === 0) return state;
-          return { tasks: [...newInstances, ...state.tasks] };
+          if (newInstances.length === 0 && purged.length === state.tasks.length) return state;
+          return { tasks: [...newInstances, ...purged] };
         });
       },
-
-      dismissBadge: () => set({ pendingBadge: null }),
-
-      togglePremium: () => set((s) => ({ isPremium: !s.isPremium })),
 
       addReminder: (time, days = [1, 2, 3, 4, 5], name = '', routineTaskId = undefined) => {
         const id = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
@@ -295,9 +250,11 @@ export const useAppStore = create<AppState>()(
 
       setTimerWorkMinutes: (minutes) => set({ timerWorkMinutes: minutes }),
 
+      setTimerBreakMinutes: (minutes) => set({ timerBreakMinutes: minutes }),
+
       availableTaskCount: () => {
         const t = today();
-        return get().tasks.filter((task) => task.isRoutine !== true && !task.completed && task.skippedDate !== t).length;
+        return get().tasks.filter((task) => task.isRoutine !== true && !task.completed && task.skippedDate !== t && task.deferredDate !== t).length;
       },
 
       completedTaskCount: () => {
@@ -308,60 +265,74 @@ export const useAppStore = create<AppState>()(
         return get().tasks.filter((task) => task.isRoutine === true);
       },
 
-      addMoodEntry: (level, memo) => {
-        const entry: MoodEntry = {
-          id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
-          timestamp: new Date().toISOString(),
-          level,
-          ...(memo && memo.trim() ? { memo: memo.trim() } : {}),
+      isReminderTaskDoneToday: (taskId) => {
+        const t = today();
+        const tasks = get().tasks;
+        const target = tasks.find((task) => task.id === taskId);
+        if (!target) return false;
+        if (target.isRoutine === true) {
+          // ルーティンテンプレ: 当日インスタンスが完了済みなら抑制
+          const instance = tasks.find(
+            (task) => task.routineSourceId === taskId && task.routineSpawnDate === t
+          );
+          // 完了（=defer 済み）または当日 defer のインスタンスを「今日完了済み」とみなす
+          return !!instance && (instance.completed || instance.deferredDate === t);
+        }
+        // 単発タスク or 当日インスタンス: 完了済み or 当日 defer なら抑制
+        return target.completed === true || target.deferredDate === t;
+      },
+
+      enqueueReminder: (taskId) => {
+        set((s) =>
+          s.reminderQueue.includes(taskId)
+            ? s
+            : { reminderQueue: [...s.reminderQueue, taskId] }
+        );
+      },
+
+      dequeueValidReminder: () => {
+        const queue = get().reminderQueue;
+        if (queue.length === 0) return null;
+        const t = today();
+        const tasks = get().tasks;
+        const isValid = (id: string): boolean => {
+          const task = tasks.find((x) => x.id === id);
+          // 当日プールに居て・未完了・当日スキップ降格されていない単発タスクのみ提示対象
+          return (
+            !!task &&
+            task.isRoutine !== true &&
+            !task.completed &&
+            task.skippedDate !== t &&
+            task.deferredDate !== t
+          );
         };
-        set((s) => ({ moodEntries: [...s.moodEntries, entry] }));
+        let pickedIndex = -1;
+        for (let i = 0; i < queue.length; i++) {
+          if (isValid(queue[i])) { pickedIndex = i; break; }
+        }
+        if (pickedIndex === -1) {
+          // 有効なものが無い → キューを空にして null
+          set({ reminderQueue: [] });
+          return null;
+        }
+        const picked = queue[pickedIndex];
+        // 先頭から picked までの無効分も合わせて捨てる（FIFO・古い無効を残さない）
+        set({ reminderQueue: queue.slice(pickedIndex + 1) });
+        return picked;
       },
 
-      addFocusEntry: (level, taskId, taskTitle, memo) => {
-        const entry: FocusEntry = {
-          id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
-          timestamp: new Date().toISOString(),
-          level,
-          taskId,
-          taskTitle,
-          ...(memo && memo.trim() ? { memo: memo.trim() } : {}),
-        };
-        set((s) => ({ focusEntries: [...s.focusEntries, entry] }));
-      },
-
-      toggleFocusPrompt: () => set((s) => ({ focusPromptEnabled: !s.focusPromptEnabled })),
-
-      getMoodEntriesForDate: (date) => {
-        return get().moodEntries.filter((e) => localDateOf(e.timestamp) === date);
-      },
-
-      getMoodAverageForDate: (date) => {
-        const entries = get().moodEntries.filter((e) => localDateOf(e.timestamp) === date);
-        if (entries.length === 0) return null;
-        const sum = entries.reduce((acc, e) => acc + e.level, 0);
-        return Math.round(sum / entries.length);
-      },
-
-      getFocusEntriesForDate: (date) => {
-        return get().focusEntries.filter((e) => localDateOf(e.timestamp) === date);
-      },
+      clearReminderQueue: () => set({ reminderQueue: [] }),
     }),
     {
       name: 'adhd-app-storage',
       storage: createJSONStorage(() => AsyncStorage),
       partialize: (state) => ({
         tasks: state.tasks,
-        xp: state.xp,
-        badges: state.badges,
-        isPremium: state.isPremium,
         reminders: state.reminders,
         reminderMessage: state.reminderMessage,
         hasCompletedOnboarding: state.hasCompletedOnboarding,
         timerWorkMinutes: state.timerWorkMinutes,
-        moodEntries: state.moodEntries,
-        focusEntries: state.focusEntries,
-        focusPromptEnabled: state.focusPromptEnabled,
+        timerBreakMinutes: state.timerBreakMinutes,
       }),
       onRehydrateStorage: () => (state) => {
         if (!state) return;
@@ -389,15 +360,17 @@ export const useAppStore = create<AppState>()(
         state.reminders = state.reminders.map((r) =>
           typeof (r as any).name === 'string' ? r : { ...r, name: '' }
         );
-        // タスクやXPが存在するのにhasCompletedOnboardingがfalseの場合は
+        // 旧データに deferredDate が無い場合は null で補完（3状態モデル移行）
+        if (Array.isArray(state.tasks)) {
+          state.tasks = state.tasks.map((t) =>
+            (t as any).deferredDate === undefined ? { ...t, deferredDate: null } : t
+          );
+        }
+        // タスクが存在するのにhasCompletedOnboardingがfalseの場合は
         // migration起因のデータ破損と判断して復元する
-        if (!state.hasCompletedOnboarding && (state.tasks.length > 0 || state.xp > 0)) {
+        if (!state.hasCompletedOnboarding && state.tasks.length > 0) {
           state.hasCompletedOnboarding = true;
         }
-        // 状態トラッキング: 旧データに無いフィールドをデフォルト補完
-        if (!Array.isArray(state.moodEntries)) state.moodEntries = [];
-        if (!Array.isArray(state.focusEntries)) state.focusEntries = [];
-        if (typeof state.focusPromptEnabled !== 'boolean') state.focusPromptEnabled = true;
       },
     }
   )

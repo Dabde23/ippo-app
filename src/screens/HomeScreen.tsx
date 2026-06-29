@@ -2,29 +2,37 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   View, StyleSheet, Pressable, TextInput,
   Modal, ScrollView, Switch,
-  AppState, KeyboardAvoidingView, Platform,
+  AppState, KeyboardAvoidingView, Platform, Alert,
 } from 'react-native';
 import * as Notifications from 'expo-notifications';
+import { Ionicons } from '@expo/vector-icons';
+import { ACTION_START, ACTION_LATER } from '../services/NotificationService';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { Text } from '../components/Text';
-import { XPBar } from '../components/XPBar';
 import { TaskCard } from '../components/TaskCard';
 import { TaskListPanel } from '../components/TaskListPanel';
-import { MoodInput } from '../components/MoodInput';
-import { useAppStore, Task, today, XP_PER_TASK } from '../store/useAppStore';
+import { useAppStore, Task, today } from '../store/useAppStore';
 import { colors, spacing, radius, fontSize, fontWeight, shadow } from '../theme';
 
-function pickRandom<T>(arr: T[], excludeId?: string): T | null {
-  const pool = excludeId
-    ? (arr as unknown as Task[]).filter((t) => t.id !== excludeId) as unknown as T[]
-    : arr;
+function formatDateJP(dateStr: string): string {
+  const [year, month, day] = dateStr.split('-').map(Number);
+  return `${year}年${month}月${day}日`;
+}
+
+function pickRandom<T extends { id: string }>(arr: T[], excludeId?: string): T | null {
+  const pool = excludeId ? arr.filter((t) => t.id !== excludeId) : arr;
   if (pool.length === 0) return null;
   return pool[Math.floor(Math.random() * pool.length)];
 }
 
 export function HomeScreen() {
-  const { tasks, xp, addTask, skipTask, setTimerTask, availableTaskCount, completedTaskCount } = useAppStore();
+  const tasks = useAppStore((s) => s.tasks);
+  const addTask = useAppStore((s) => s.addTask);
+  const skipTask = useAppStore((s) => s.skipTask);
+  const deferToNextDay = useAppStore((s) => s.deferToNextDay);
+  const setTimerTask = useAppStore((s) => s.setTimerTask);
+  const availableTaskCount = useAppStore((s) => s.availableTaskCount);
   const navigation = useNavigation<any>();
 
   const [currentTaskId, setCurrentTaskId] = useState<string | null>(null);
@@ -37,9 +45,18 @@ export function HomeScreen() {
 
   const todayStr = today();
   const doableTasks = tasks.filter((t) => t.isRoutine !== true);
-  const availableTasks = doableTasks.filter((t) => !t.completed && t.skippedDate !== todayStr);
-  const skippedTasks = doableTasks.filter((t) => !t.completed && t.skippedDate === todayStr);
-  const completedTasks = doableTasks.filter((t) => t.completed);
+  // 提示候補: skippedDate ≠ today かつ deferredDate ≠ today
+  const availableTasks = doableTasks.filter(
+    (t) => !t.completed && t.skippedDate !== todayStr && t.deferredDate !== todayStr
+  );
+  // 後回し: skippedDate === today かつ deferredDate ≠ today
+  const skippedTasks = doableTasks.filter(
+    (t) => !t.completed && t.skippedDate === todayStr && t.deferredDate !== todayStr
+  );
+  // 翌日に再提示: deferredDate === today（表示しない・「全タスク」導線判定にのみ使用）
+  const deferredTasks = doableTasks.filter(
+    (t) => !t.completed && t.deferredDate === todayStr
+  );
   const proposalPool = availableTasks.length > 0 ? availableTasks : skippedTasks;
   const currentTask = proposalPool.find((t) => t.id === currentTaskId) ?? null;
 
@@ -58,16 +75,76 @@ export function HomeScreen() {
     return () => subscription.remove();
   }, []);
 
-  // 通知タップ → 該当タスクをフォーカスカードにセット
+  // 通知への応答ハンドリング（本体タップ / 「今すぐ開始」 / 「次に回す」）。
+  // - 完了済み抑制: その日（JST）すでに完了済みのタスクには何もしない（蒸し返さない）。
+  // - 本体タップ: アプリを開くだけ（提示は置換しない）。
+  // - 今すぐ開始: 提示タスクを置換。タイマー作動中なら確認を挟む（案A）。
+  // - 次に回す: FIFO キューへ予約（現作業は中断しない）。
   useEffect(() => {
     if (Platform.OS === 'web') return;
     const sub = Notifications.addNotificationResponseReceivedListener((response) => {
-      const identifier = response.notification.request.identifier;
-      const match = identifier.match(/^task-reminder-(.+)$/);
-      if (!match) return;
-      const taskId = match[1];
-      const task = useAppStore.getState().tasks.find((t) => t.id === taskId && !t.completed);
-      if (task) setCurrentTaskId(taskId);
+      const req = response.notification.request;
+      // taskId は通知データ優先、無ければ識別子からフォールバック抽出。
+      const dataTaskId = (req.content.data as any)?.taskId;
+      const match = req.identifier.match(/^task-reminder-(.+)$/);
+      const taskId: string | undefined = dataTaskId ?? (match ? match[1] : undefined);
+      if (!taskId) return; // タスク非紐づけの独立リマインダー → 開くだけ
+
+      const store = useAppStore.getState();
+      // 完了済み抑制（受信時）: 当日すでに完了済みなら提示置換もキュー追加もしない。
+      if (store.isReminderTaskDoneToday(taskId)) return;
+
+      // ルーティンテンプレ id の場合は当日インスタンスへ解決（インスタンスが提示対象）。
+      const t = today();
+      const tasks = store.tasks;
+      let targetId = taskId;
+      const direct = tasks.find((x) => x.id === taskId);
+      if (direct?.isRoutine) {
+        const instance = tasks.find(
+          (x) => x.routineSourceId === taskId && x.routineSpawnDate === t
+        );
+        if (!instance) return; // 当日インスタンスが無ければ対象なし
+        targetId = instance.id;
+      }
+      // 提示対象として有効か（未完了・当日プール）。
+      const target = tasks.find((x) => x.id === targetId);
+      if (!target || target.completed || target.isRoutine) return;
+
+      const action = response.actionIdentifier;
+
+      if (action === ACTION_LATER) {
+        store.enqueueReminder(targetId);
+        return;
+      }
+
+      // ACTION_START または 本体タップ（DEFAULT）。
+      // 本体タップは「開くだけ＝置換しない」が決定だが、提示が空のときは置換して着手導線を確保する。
+      const isStart = action === ACTION_START;
+      if (!isStart) {
+        // 本体タップ: 提示は置換しない（ただし現提示が無ければ初期提示として採用）
+        setCurrentTaskId((prev) => prev ?? targetId);
+        return;
+      }
+
+      // 「今すぐ開始」: タイマー作動中なら確認を挟む（案A）。
+      if (store.timerTaskId !== null) {
+        Alert.alert(
+          '作業を切り替えますか？',
+          '今の作業を中断して、こちらに切り替えますか？',
+          [
+            { text: 'そのまま続ける', style: 'cancel' },
+            {
+              text: '切り替える',
+              onPress: () => {
+                useAppStore.getState().setTimerTask(null);
+                setCurrentTaskId(targetId);
+              },
+            },
+          ]
+        );
+        return;
+      }
+      setCurrentTaskId(targetId);
     });
     return () => sub.remove();
   }, []);
@@ -75,24 +152,40 @@ export function HomeScreen() {
   useEffect(() => {
     if (proposalPool.length === 0) { setCurrentTaskId(null); return; }
     if (currentTaskId && proposalPool.find((t) => t.id === currentTaskId)) return;
+    // 「次に回す」予約があればFIFOで優先提示。無効分は捨てられる。無ければランダム。
+    const queued = useAppStore.getState().dequeueValidReminder();
+    if (queued && proposalPool.find((t) => t.id === queued)) {
+      setCurrentTaskId(queued);
+      return;
+    }
     const picked = pickRandom(proposalPool);
     setCurrentTaskId(picked ? (picked as Task).id : null);
   }, [proposalPool.length, availableTasks.length]);
   // availableTasks.length の変化（available→0）でも再選択が走るよう deps に追加
 
-  const handleSkip = useCallback(() => {
+  // 「後回し」ボタン: 提示候補フェーズ→後回し(skipped)、後回しフェーズ→翌日(deferred)。
+  const handleDefer = useCallback(() => {
     if (!currentTask) return;
-    if (availableTasks.length > 0) {
-      // availableフェーズ: skipTask を呼んで次の available から選ぶ
+    if (availableTasks.find((t) => t.id === currentTask.id)) {
+      // 提示候補フェーズ: 後回し状態へ
       skipTask(currentTask.id);
       const next = pickRandom(availableTasks.filter((t) => t.id !== currentTask.id));
       setCurrentTaskId((next as Task | null)?.id ?? null);
     } else {
-      // skippedフェーズ: skipTask は呼ばず次の skipped から選ぶだけ
+      // 後回しフェーズ: 翌日に再提示へ
+      deferToNextDay(currentTask.id);
       const next = pickRandom(skippedTasks.filter((t) => t.id !== currentTask.id));
       setCurrentTaskId((next as Task | null)?.id ?? null);
     }
-  }, [currentTask, availableTasks, skippedTasks, skipTask]);
+  }, [currentTask, availableTasks, skippedTasks, skipTask, deferToNextDay]);
+
+  // 「5分だけ」ボタン: fiveMinMode を立ててタイマーへ。
+  const handleFiveMin = useCallback(() => {
+    if (!currentTask) return;
+    useAppStore.getState().setFiveMinMode(true);
+    setTimerTask(currentTask.id);
+    navigation.navigate('Timer');
+  }, [currentTask, setTimerTask, navigation]);
 
   function handleStartFromList(taskId: string) {
     setCurrentTaskId(taskId);
@@ -123,30 +216,18 @@ export function HomeScreen() {
   }
 
   const available = availableTaskCount();
-  const completed = completedTaskCount();
-  const dateStr = new Date().toLocaleDateString('ja-JP', { year: 'numeric', month: 'long', day: 'numeric', weekday: 'short' });
 
   return (
     <SafeAreaView style={styles.safe}>
-
-      {/* ── HEADER ── */}
-      <View style={styles.header}>
-        <View style={styles.headerRule} />
-        <View style={styles.headerContent}>
-          <View style={styles.headerLeft}>
-            <Text style={styles.dateLabel}>{dateStr}</Text>
-          </View>
-          <View style={styles.headerRight}>
-            {completed > 0 && (
-              <View style={styles.completedTag}>
-                <Text style={styles.completedTagNum}>{completed}</Text>
-                <Text style={styles.completedTagLabel}>完了</Text>
-              </View>
-            )}
-          </View>
-        </View>
-        <XPBar xp={xp} />
-        <View style={styles.headerRule} />
+      {/* ── TOP BAR（日付 + タスク一覧入口・常時表示） ── */}
+      <View style={styles.topBar}>
+        <Text style={styles.topBarDate}>{formatDateJP(todayStr)}</Text>
+        <Pressable
+          style={({ pressed }) => [styles.listIconBtn, pressed && { opacity: 0.5 }]}
+          onPress={() => setTaskListPanelVisible(true)}
+        >
+          <Ionicons name="list" size={28} color={colors.surface} />
+        </Pressable>
       </View>
 
       {/* ── SCROLL CONTENT ── */}
@@ -159,33 +240,38 @@ export function HomeScreen() {
         {currentTask ? (
           <>
             {/* Section label */}
-            <Text style={styles.sectionTag}>今日のフォーカス</Text>
+            <Text style={styles.sectionTag}>今やること</Text>
 
             {/* Focus card */}
             <View style={styles.focusCard}>
               <View style={[styles.focusCardBar, { backgroundColor: currentTask.routineSourceId ? colors.success : colors.primary }]} />
               <View style={styles.focusCardBody}>
                 <Text style={styles.focusTitle}>{currentTask.title}</Text>
-                <View style={styles.focusFooter}>
-                  <Text style={styles.focusXp}>+{XP_PER_TASK} XP</Text>
-                  <Pressable
-                    style={({ pressed }) => [styles.skipBtn, pressed && { opacity: 0.65 }]}
-                    onPress={handleSkip}
-                  >
-                    <Text style={styles.skipBtnText}>後に回す</Text>
-                  </Pressable>
-                </View>
               </View>
             </View>
 
-            {/* Action button */}
+            {/* Action buttons: はじめる（全幅） + [5分だけ][後回し] */}
             <View style={styles.actionRow}>
               <Pressable
                 style={({ pressed }) => [styles.doneBtn, pressed && { backgroundColor: colors.primaryDark }]}
                 onPress={() => { setTimerTask(currentTask!.id); navigation.navigate('Timer'); }}
               >
-                <Text style={styles.doneBtnText}>開始！</Text>
+                <Text style={styles.doneBtnText}>はじめる</Text>
               </Pressable>
+              <View style={styles.subActionRow}>
+                <Pressable
+                  style={({ pressed }) => [styles.subBtnFive, pressed && { opacity: 0.65 }]}
+                  onPress={handleFiveMin}
+                >
+                  <Text style={styles.subBtnFiveText}>5分だけ</Text>
+                </Pressable>
+                <Pressable
+                  style={({ pressed }) => [styles.subBtn, pressed && { opacity: 0.65 }]}
+                  onPress={handleDefer}
+                >
+                  <Text style={styles.subBtnText}>後回し</Text>
+                </Pressable>
+              </View>
             </View>
           </>
         ) : doableTasks.length === 0 ? (
@@ -204,23 +290,8 @@ export function HomeScreen() {
           </View>
         ) : null}
 
-        {/* View all */}
-        {(available > 0 || skippedTasks.length > 0) && (
-          <Pressable
-            style={({ pressed }) => [styles.viewAllBtn, pressed && { opacity: 0.5 }]}
-            onPress={() => setTaskListPanelVisible(true)}
-          >
-            <Text style={styles.viewAllText}>全タスクを見る</Text>
-          </Pressable>
-        )}
-
         <View style={{ height: spacing.xxl }} />
       </ScrollView>
-
-      {/* 気分記録ボタン（bottomBar直上・右寄せ） */}
-      <View style={styles.moodRow}>
-        <MoodInput />
-      </View>
 
       {/* ── BOTTOM BAR ── */}
       <View style={styles.bottomBar}>
@@ -295,64 +366,30 @@ const styles = StyleSheet.create({
     backgroundColor: colors.background,
   },
 
-  // ── Header ──
-  header: {
+  // ── Top bar ──
+  topBar: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    backgroundColor: colors.primary,
     paddingHorizontal: spacing.md,
-    paddingTop: spacing.md,
+    paddingTop: spacing.sm,
     paddingBottom: spacing.sm,
-    gap: spacing.sm,
   },
+  topBarDate: {
+    fontSize: fontSize.md,
+    fontWeight: fontWeight.bold,
+    color: colors.surface,
+    letterSpacing: 1,
+  },
+  listIconBtn: {
+    padding: spacing.sm,
+  },
+
+  // ── Divider ──
   headerRule: {
     height: 1,
     backgroundColor: colors.ink,
-  },
-  headerContent: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-end',
-    paddingVertical: spacing.xs,
-  },
-  headerLeft: {
-    gap: 2,
-  },
-  appName: {
-    fontSize: fontSize.xxxl,
-    fontWeight: fontWeight.black,
-    color: colors.ink,
-    letterSpacing: -2,
-    lineHeight: 46,
-  },
-  dateLabel: {
-    fontSize: fontSize.xs,
-    color: colors.textSub,
-    letterSpacing: 1,
-    textTransform: 'uppercase',
-  },
-  headerRight: {
-    flexDirection: 'row',
-    gap: spacing.sm,
-    alignItems: 'center',
-    paddingBottom: spacing.xs,
-  },
-  completedTag: {
-    flexDirection: 'row',
-    alignItems: 'baseline',
-    gap: 3,
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: radius.sm,
-    paddingHorizontal: spacing.sm,
-    paddingVertical: 3,
-  },
-  completedTagNum: {
-    fontSize: fontSize.md,
-    fontWeight: fontWeight.black,
-    color: colors.ink,
-  },
-  completedTagLabel: {
-    fontSize: fontSize.xs,
-    color: colors.textSub,
-    letterSpacing: 1,
   },
 
   // ── Scroll ──
@@ -361,7 +398,7 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     paddingHorizontal: spacing.md,
-    paddingTop: spacing.lg,
+    paddingTop: spacing.xxl,
     flexGrow: 1,
   },
   sectionTag: {
@@ -394,42 +431,50 @@ const styles = StyleSheet.create({
     color: colors.ink,
     lineHeight: 38,
     letterSpacing: -0.5,
+    minHeight: 76,
   },
-  focusFooter: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  focusXp: {
-    fontSize: fontSize.xs,
-    fontWeight: fontWeight.bold,
-    color: colors.primary,
-    letterSpacing: 1.5,
-    textTransform: 'uppercase',
-    borderWidth: 1,
-    borderColor: colors.primary,
-    paddingHorizontal: spacing.sm,
-    paddingVertical: 3,
-    borderRadius: radius.sm,
-  },
-
   // ── Action buttons ──
   actionRow: {
     marginBottom: spacing.xl,
+    gap: spacing.lg,
   },
-  skipBtn: {
+  subActionRow: {
+    flexDirection: 'row',
+    gap: spacing.md,
+  },
+  subBtn: {
+    flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.xs,
-    borderRadius: radius.sm,
+    paddingVertical: spacing.md,
+    marginHorizontal: 8,
+    borderRadius: radius.xl,
     backgroundColor: colors.surfaceAlt,
-    borderWidth: 1,
+    borderWidth: 1.5,
     borderColor: colors.border,
+    ...shadow.soft,
   },
-  skipBtnText: {
-    fontSize: fontSize.xs,
+  subBtnText: {
+    fontSize: fontSize.sm,
     color: colors.textSub,
+    fontWeight: fontWeight.bold,
+    letterSpacing: 0.5,
+  },
+  subBtnFive: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: spacing.md,
+    marginHorizontal: 8,
+    borderRadius: radius.xl,
+    backgroundColor: colors.background,
+    borderWidth: 1.5,
+    borderColor: colors.primary,
+    ...shadow.soft,
+  },
+  subBtnFiveText: {
+    fontSize: fontSize.sm,
+    color: colors.primary,
     fontWeight: fontWeight.bold,
     letterSpacing: 0.5,
   },
@@ -437,8 +482,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     paddingVertical: 28,
-    borderRadius: radius.lg,
+    marginHorizontal: 8,
+    borderRadius: radius.xl,
     backgroundColor: colors.primary,
+    ...shadow.card,
   },
   doneBtnText: {
     fontSize: fontSize.lg,
@@ -471,42 +518,23 @@ const styles = StyleSheet.create({
     lineHeight: 20,
   },
 
-  // ── View all ──
-  viewAllBtn: {
-    paddingVertical: spacing.sm,
-    marginBottom: spacing.md,
-  },
-  viewAllText: {
-    fontSize: fontSize.sm,
-    color: colors.textSub,
-    fontWeight: fontWeight.bold,
-    letterSpacing: 0.5,
-    textDecorationLine: 'underline',
-  },
-
   // ── Bottom bar ──
   bottomBar: {
     paddingHorizontal: spacing.md,
     paddingBottom: spacing.lg,
     paddingTop: spacing.sm,
-    borderTopWidth: 1,
-    borderTopColor: colors.ink,
     backgroundColor: colors.background,
-  },
-  moodRow: {
-    alignItems: 'flex-end',
-    paddingRight: spacing.md,
-    paddingBottom: spacing.lg,
-    backgroundColor: colors.background,
-    zIndex: 10,
     overflow: 'visible',
   },
   fab: {
-    backgroundColor: colors.ink,
-    borderRadius: radius.md,
+    backgroundColor: colors.primary,
+    borderRadius: radius.xl,
     alignItems: 'center',
     justifyContent: 'center',
     paddingVertical: 15,
+    marginHorizontal: 8,
+    marginTop: -26,
+    ...shadow.card,
   },
   fabText: {
     fontSize: fontSize.md,

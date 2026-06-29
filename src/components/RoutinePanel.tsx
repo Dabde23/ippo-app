@@ -3,6 +3,7 @@ import {
   View, StyleSheet, Pressable, ScrollView,
   Alert, Platform, Animated, useWindowDimensions, Modal,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { Text } from './Text';
 import { useAppStore, Task } from '../store/useAppStore';
@@ -11,11 +12,11 @@ import {
   scheduleReminders,
 } from '../services/NotificationService';
 import { colors, spacing, radius, fontSize, fontWeight } from '../theme';
+import { DAY_LABELS } from '../constants/reminder';
+import { TimeWheelPicker } from './TimeWheelPicker';
 
 const PANEL_RATIO = 0.85;
 const IS_WEB = Platform.OS === 'web';
-const TIME_OPTIONS = ['07:00','08:00','09:00','10:00','12:00','18:00','20:00','21:00','22:00'];
-const DAY_LABELS = ['月','火','水','木','金','土','日']; // index 0〜6 → 曜日番号 1〜7
 
 // 曜日配列 → サマリー文字列
 function daysSummary(days: number[]): string {
@@ -34,6 +35,7 @@ interface RoutinePanelProps {
 export function RoutinePanel({ onClose }: RoutinePanelProps) {
   const { width } = useWindowDimensions();
   const panelWidth = Math.round(width * PANEL_RATIO);
+  const insets = useSafeAreaInsets();
 
   const tasks = useAppStore((s) => s.tasks);
   const routines = tasks.filter((t) => t.isRoutine === true);
@@ -99,7 +101,7 @@ export function RoutinePanel({ onClose }: RoutinePanelProps) {
       setPickerTime(linkedReminder.time);
       setPickerDays(linkedReminder.days);
     } else {
-      // 新規モード: 07:00 / 平日
+      // 新規モード: 07:00 / 毎日
       setPickerTime('07:00');
       setPickerDays([1, 2, 3, 4, 5, 6, 7]);
     }
@@ -217,27 +219,14 @@ export function RoutinePanel({ onClose }: RoutinePanelProps) {
             <Text style={styles.timeSheetLabel}>通知設定</Text>
             <View style={styles.rule} />
 
-            {/* 時刻リスト */}
-            <ScrollView style={styles.timeList} showsVerticalScrollIndicator={false}>
-              {TIME_OPTIONS.map((t) => {
-                const active = pickerTime === t;
-                return (
-                  <Pressable
-                    key={t}
-                    style={({ pressed }) => [
-                      styles.timeOption,
-                      active && styles.timeOptionActive,
-                      pressed && { opacity: 0.6 },
-                    ]}
-                    onPress={() => setPickerTime(t)}
-                  >
-                    <Text style={[styles.timeOptionText, active && styles.timeOptionTextActive]}>
-                      {t}
-                    </Text>
-                  </Pressable>
-                );
-              })}
-            </ScrollView>
+            {/* 時刻ドラムロール */}
+            {pickerRoutineId !== null && (
+              <TimeWheelPicker
+                key={pickerRoutineId}
+                value={pickerTime}
+                onChange={setPickerTime}
+              />
+            )}
 
             <View style={styles.rule} />
 
@@ -302,7 +291,7 @@ export function RoutinePanel({ onClose }: RoutinePanelProps) {
           style={[StyleSheet.absoluteFill, styles.overlayWeb]}
           onPress={handleClose}
         />
-        <View style={[styles.panel, { width: panelWidth }]}>
+        <View style={[styles.panel, { width: panelWidth, paddingTop: insets.top || 24 }]}>
           {panelContent}
         </View>
       </View>
@@ -314,7 +303,7 @@ export function RoutinePanel({ onClose }: RoutinePanelProps) {
       <Animated.View style={[styles.overlay, { opacity: overlayOpacity }]}>
         <Pressable style={StyleSheet.absoluteFill} onPress={handleClose} />
       </Animated.View>
-      <Animated.View style={[styles.panel, { width: panelWidth, transform: [{ translateX }] }]}>
+      <Animated.View style={[styles.panel, { width: panelWidth, paddingTop: insets.top || 24, transform: [{ translateX }] }]}>
         {panelContent}
       </Animated.View>
     </View>
@@ -357,7 +346,6 @@ const styles = StyleSheet.create({
     backgroundColor: colors.background,
     borderLeftWidth: 1.5,
     borderLeftColor: colors.ink,
-    paddingTop: Platform.OS === 'ios' ? 54 : 24,
   },
   header: {
     paddingHorizontal: spacing.md,
