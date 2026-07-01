@@ -33,6 +33,7 @@ export function HomeScreen() {
   const deferToNextDay = useAppStore((s) => s.deferToNextDay);
   const setTimerTask = useAppStore((s) => s.setTimerTask);
   const availableTaskCount = useAppStore((s) => s.availableTaskCount);
+  const isProUnlocked = useAppStore((s) => s.isProUnlocked);
   const navigation = useNavigation<any>();
 
   const [currentTaskId, setCurrentTaskId] = useState<string | null>(null);
@@ -196,6 +197,19 @@ export function HomeScreen() {
     setAddInputVisible(true);
   }
 
+  // 「毎日繰り返す」トグル: Pro未解放ではオンにできず、Pro訴求を表示する。
+  function handleRoutineToggle(value: boolean) {
+    if (value && !isProUnlocked) {
+      if (Platform.OS === 'web') {
+        window.alert('ルーティンタスクはProで解放できます。設定タブからProを購入してください。');
+      } else {
+        Alert.alert('ルーティンタスクはPro機能です', 'Proで解放できます。設定タブからご購入いただけます。');
+      }
+      return;
+    }
+    setInputIsRoutine(value);
+  }
+
   function closeAddPopover() {
     setAddInputVisible(false);
     setInputTitle('');
@@ -329,10 +343,12 @@ export function HomeScreen() {
               maxLength={100}
             />
             <View style={styles.popoverToggleRow}>
-              <Text style={styles.popoverToggleLabel}>毎日繰り返す</Text>
+              <Text style={styles.popoverToggleLabel}>
+                毎日繰り返す{!isProUnlocked && <Text style={styles.popoverToggleProTag}> Pro</Text>}
+              </Text>
               <Switch
                 value={inputIsRoutine}
-                onValueChange={setInputIsRoutine}
+                onValueChange={handleRoutineToggle}
                 trackColor={{ false: colors.border, true: colors.success }}
                 thumbColor='#FFFFFF'
                 ios_backgroundColor={colors.border}
@@ -582,6 +598,11 @@ const styles = StyleSheet.create({
     color: colors.textMain,
     fontWeight: fontWeight.bold,
     letterSpacing: 0.5,
+  },
+  popoverToggleProTag: {
+    fontSize: fontSize.xs,
+    color: colors.primary,
+    fontWeight: fontWeight.bold,
   },
   popoverAddBtn: {
     backgroundColor: colors.primary,

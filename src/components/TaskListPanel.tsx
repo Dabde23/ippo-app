@@ -62,6 +62,7 @@ export function TaskListPanel({ onClose, onStartTask }: Props) {
   const removeReminder = useAppStore((s) => s.removeReminder);
   const updateReminder = useAppStore((s) => s.updateReminder);
   const reminders = useAppStore((s) => s.reminders);
+  const isProUnlocked = useAppStore((s) => s.isProUnlocked);
 
   const [segment, setSegment] = useState<Segment>('tasks');
 
@@ -112,8 +113,17 @@ export function TaskListPanel({ onClose, onStartTask }: Props) {
     ]);
   }
 
+  // 新規設定のみPro解放限定（解除は常に許可）。
   function handleReminderPress(task: Task) {
     const linkedReminder = reminders.find((r) => r.routineTaskId === task.id);
+    if (!linkedReminder && !isProUnlocked) {
+      if (Platform.OS === 'web') {
+        window.alert('リマインダーはProで解放できます。設定タブからご購入いただけます。');
+      } else {
+        Alert.alert('リマインダーはPro機能です', 'Proで解放できます。設定タブからご購入いただけます。');
+      }
+      return;
+    }
     if (linkedReminder) {
       setPickerTime(linkedReminder.time);
       setPickerDays(linkedReminder.days);

@@ -45,6 +45,7 @@ export function RoutinePanel({ onClose }: RoutinePanelProps) {
   const updateReminder = useAppStore((s) => s.updateReminder);
   const reminders = useAppStore((s) => s.reminders);
   const reminderMessage = useAppStore((s) => s.reminderMessage);
+  const isProUnlocked = useAppStore((s) => s.isProUnlocked);
   const [pickerRoutineId, setPickerRoutineId] = useState<string | null>(null);
   const [pickerTime, setPickerTime] = useState<string>('07:00');
   const [pickerDays, setPickerDays] = useState<number[]>([1, 2, 3, 4, 5, 6, 7]);
@@ -93,9 +94,18 @@ export function RoutinePanel({ onClose }: RoutinePanelProps) {
     ]);
   }
 
-  // ベルタップ → 通知設定モーダルを開く（新規 or 編集）
+  // ベルタップ → 通知設定モーダルを開く（新規 or 編集）。
+  // 新規設定のみPro解放限定（解除は常に許可）。
   function handleReminderPress(task: Task) {
     const linkedReminder = reminders.find((r) => r.routineTaskId === task.id);
+    if (!linkedReminder && !isProUnlocked) {
+      if (Platform.OS === 'web') {
+        window.alert('リマインダーはProで解放できます。設定タブからご購入いただけます。');
+      } else {
+        Alert.alert('リマインダーはPro機能です', 'Proで解放できます。設定タブからご購入いただけます。');
+      }
+      return;
+    }
     if (linkedReminder) {
       // 編集モード: 現在値を初期値に
       setPickerTime(linkedReminder.time);

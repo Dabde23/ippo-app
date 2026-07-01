@@ -18,8 +18,11 @@ export default function App() {
     registerNotificationCategories();
   }, []);
 
+  // リマインダー機能は Pro解放限定。未解放ユーザーには通知を一切スケジュールしない
+  // （旧データが残っていても実スケジュールは行わない）。
   useEffect(() => {
-    const { reminders, reminderMessage, tasks } = useAppStore.getState();
+    const { reminders, reminderMessage, tasks, isProUnlocked } = useAppStore.getState();
+    if (!isProUnlocked) return;
     scheduleReminders(reminders, reminderMessage);
     for (const task of tasks) {
       if (task.taskReminderTime && !task.completed) {

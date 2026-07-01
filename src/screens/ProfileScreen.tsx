@@ -160,6 +160,14 @@ export function ProfileScreen() {
         <Ionicons name="lock-closed" size={20} color={colors.textMuted} />
         <Text style={styles.reminderLockedText}>モバイルアプリ版のみ利用出来ます</Text>
       </View>
+    ) : !isProUnlocked ? (
+      // リマインダー機能全体がPro解放限定。触ろうとしたときに1回、Pro訴求へ誘導する。
+      <View style={styles.reminderLocked}>
+        <Ionicons name="lock-closed" size={20} color={colors.textMuted} />
+        <Text style={styles.reminderLockedText}>
+          リマインダーはProで解放できます。下の「Pro」セクションから購入できます。
+        </Text>
+      </View>
     ) : (
       <>
         {reminders.map((reminder) => (
