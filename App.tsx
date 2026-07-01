@@ -6,7 +6,13 @@ import { Platform } from 'react-native';
 import { Analytics } from '@vercel/analytics/react';
 import { AppNavigator } from './src/navigation/AppNavigator';
 import { useAppStore } from './src/store/useAppStore';
-import { scheduleReminders, scheduleTaskReminder, registerNotificationCategories } from './src/services/NotificationService';
+import {
+  scheduleReminders,
+  scheduleTaskReminder,
+  registerNotificationCategories,
+  cancelAllReminders,
+  cancelTaskReminder,
+} from './src/services/NotificationService';
 
 export default function App() {
   const [loaded] = useFonts({ BIZUDPGothic_400Regular, BIZUDPGothic_700Bold });
@@ -21,8 +27,36 @@ export default function App() {
   // リマインダー機能は Pro解放限定。未解放ユーザーには通知を一切スケジュールしない
   // （旧データが残っていても実スケジュールは行わない）。
   useEffect(() => {
-    const { reminders, reminderMessage, tasks, isProUnlocked } = useAppStore.getState();
-    if (!isProUnlocked) return;
+    if (Platform.OS === 'web') return;
+    const { reminders, reminderMessage, tasks, isProUnlocked, hasPendingPurchase } =
+      useAppStore.getState();
+
+    if (!isProUnlocked) {
+      // issue #5: 未解放ユーザーの端末に、過去（Pro解放中 or ゲート実装前）にスケジュール
+      // 済みの通知が OS 側へ残っていると届き続けてしまう。起動時に確実に消す。
+      // NotificationService の既存キャンセル関数のみを使う（新規キャンセル関数は作らない）。
+      // cancel系を Promise.all でまとめてから restorePro() を呼ぶことで、両者が並走せず
+      // 実行順序を明示する（可読性のための直列化。実害は元々なかった）。
+      void (async () => {
+        await Promise.all([
+          cancelAllReminders(),
+          ...tasks
+            .filter((task) => task.taskReminderTime)
+            .map((task) => cancelTaskReminder(task.id)),
+        ]);
+
+        // 前回pendingを経験したユーザーのみ、起動時にストア通信（restorePro）を行う。
+        // 未購入ユーザー（hasPendingPurchaseがfalse）は無条件のストア通信をスキップする。
+        // issue #1: 前回 pending だった購入が確定していれば、この起動タイミングで解放する。
+        // store の restorePro アクションは 'success' のとき isProUnlocked=true にしたうえで
+        // 通知スケジュールまで行う。確定済み購入が無ければ 'failed'/'pending' で何も起きない。
+        if (hasPendingPurchase) {
+          await useAppStore.getState().restorePro();
+        }
+      })();
+      return;
+    }
+
     scheduleReminders(reminders, reminderMessage);
     for (const task of tasks) {
       if (task.taskReminderTime && !task.completed) {

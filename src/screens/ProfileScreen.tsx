@@ -29,6 +29,7 @@ export function ProfileScreen() {
   const removeReminder = useAppStore((s) => s.removeReminder);
   const updateReminder = useAppStore((s) => s.updateReminder);
   const isProUnlocked = useAppStore((s) => s.isProUnlocked);
+  const hasPendingPurchase = useAppStore((s) => s.hasPendingPurchase);
   const unlockPro = useAppStore((s) => s.unlockPro);
   const restorePro = useAppStore((s) => s.restorePro);
 
@@ -131,10 +132,18 @@ export function ProfileScreen() {
     if (purchasing || restoring) return;
     setPurchasing(true);
     try {
-      const success = await unlockPro();
-      if (!success) {
+      const result = await unlockPro();
+      if (result === 'pending') {
+        // 保留中（Ask to Buy の承認待ち / Android の PENDING 決済等）。成功でも失敗でもない。
+        // 確定後に「購入を復元」で解放できることを案内する。
+        Alert.alert(
+          '購入処理中です',
+          '購入が保留中です（承認待ちや、確定に時間がかかる支払い方法の場合があります）。しばらくしてから「購入を復元」でご確認ください。'
+        );
+      } else if (result === 'failed') {
         Alert.alert('購入できませんでした', 'もう一度お試しください。');
       }
+      // 'success' 時は isProUnlocked が true になり UI が解放済み表示へ切り替わる。
     } finally {
       setPurchasing(false);
     }
@@ -144,8 +153,13 @@ export function ProfileScreen() {
     if (purchasing || restoring) return;
     setRestoring(true);
     try {
-      const restored = await restorePro();
-      if (!restored) {
+      const result = await restorePro();
+      if (result === 'pending') {
+        Alert.alert(
+          '購入処理中です',
+          '購入が保留中です。確定するまでもうしばらくお待ちください。'
+        );
+      } else if (result === 'failed') {
         Alert.alert('復元できる購入がありません', '過去にProを購入したアカウントでお試しください。');
       }
     } finally {
@@ -306,6 +320,11 @@ export function ProfileScreen() {
                   {restoring ? '確認中...' : '購入を復元'}
                 </Text>
               </Pressable>
+              {hasPendingPurchase && (
+                <Text style={styles.proPendingText}>
+                  購入処理中です。しばらくしてからご確認ください。
+                </Text>
+              )}
             </>
           )}
         </View>
@@ -591,6 +610,11 @@ const styles = StyleSheet.create({
     color: colors.textSub,
     fontWeight: fontWeight.semibold,
     textDecorationLine: 'underline',
+  },
+  proPendingText: {
+    fontSize: fontSize.xs,
+    color: colors.textMuted,
+    marginTop: spacing.xs,
   },
   proUnlockedRow: {
     flexDirection: 'row',

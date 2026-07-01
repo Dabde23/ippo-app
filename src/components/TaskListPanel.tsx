@@ -146,6 +146,16 @@ export function TaskListPanel({ onClose, onStartTask }: Props) {
     const routine = routines.find((r) => r.id === routineId);
     if (!routine) return;
     const linkedReminder = reminders.find((r) => r.routineTaskId === routineId);
+    // 編集（時刻・曜日の変更）も新規設定と同様 Pro機能。非Proは削除のみ許可し、保存はゲートする。
+    if (!isProUnlocked) {
+      setPickerRoutineId(null);
+      if (Platform.OS === 'web') {
+        window.alert('リマインダーの変更はProで解放できます。設定タブからご購入いただけます。');
+      } else {
+        Alert.alert('リマインダーの変更はPro機能です', 'Proで解放できます。設定タブからご購入いただけます。');
+      }
+      return;
+    }
     const granted = await requestNotificationPermission();
     if (!granted) return;
     if (linkedReminder) {
@@ -336,17 +346,22 @@ export function TaskListPanel({ onClose, onStartTask }: Props) {
               <Text style={styles.noDayWarning}>曜日を選択してください</Text>
             )}
 
-            <Pressable
-              style={({ pressed }) => [
-                styles.confirmBtn,
-                pickerDays.length === 0 && styles.confirmBtnDisabled,
-                pressed && { opacity: 0.7 },
-              ]}
-              onPress={handleConfirm}
-              disabled={pickerDays.length === 0}
-            >
-              <Text style={styles.confirmBtnText}>設定する</Text>
-            </Pressable>
+            {/* 設定する（変更の保存はPro機能。非Proは削除のみ可のため非表示） */}
+            {isProUnlocked ? (
+              <Pressable
+                style={({ pressed }) => [
+                  styles.confirmBtn,
+                  pickerDays.length === 0 && styles.confirmBtnDisabled,
+                  pressed && { opacity: 0.7 },
+                ]}
+                onPress={handleConfirm}
+                disabled={pickerDays.length === 0}
+              >
+                <Text style={styles.confirmBtnText}>設定する</Text>
+              </Pressable>
+            ) : (
+              <Text style={styles.proHint}>時刻・曜日の変更はProで解放できます。</Text>
+            )}
 
             {reminders.some((r) => r.routineTaskId === pickerRoutineId) && (
               <Pressable
@@ -641,6 +656,12 @@ const styles = StyleSheet.create({
     color: colors.surface,
     fontWeight: fontWeight.bold,
     fontSize: fontSize.sm,
+  },
+  proHint: {
+    fontSize: fontSize.xs,
+    color: colors.textMuted,
+    textAlign: 'center',
+    marginTop: spacing.sm,
   },
   removeBtn: {
     borderRadius: radius.md,
