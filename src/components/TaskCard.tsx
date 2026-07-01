@@ -22,6 +22,7 @@ export function TaskCard({ task, onStart }: Props) {
   const deleteRoutine = useAppStore((s) => s.deleteRoutine);
   const setTaskReminder = useAppStore((s) => s.setTaskReminder);
   const editTask = useAppStore((s) => s.editTask);
+  const isProUnlocked = useAppStore((s) => s.isProUnlocked);
 
   const [sheetVisible, setSheetVisible] = useState(false);
   const [timePickerVisible, setTimePickerVisible] = useState(false);
@@ -45,13 +46,22 @@ export function TaskCard({ task, onStart }: Props) {
     setSheetVisible(true);
   }
 
-  // ボトムシートから「リマインダー設定/編集」
+  // ボトムシートから「リマインダー設定/編集」。新規設定はPro解放限定（解除は常に可能）。
   async function handleReminderTap() {
     if (reminderSet) {
       // 設定済み → 解除
       setTaskReminder(task.id, null);
       await cancelTaskReminder(task.id);
       setSheetVisible(false);
+      return;
+    }
+    if (!isProUnlocked) {
+      setSheetVisible(false);
+      if (Platform.OS === 'web') {
+        window.alert('リマインダーはProで解放できます。設定タブからご購入いただけます。');
+      } else {
+        Alert.alert('リマインダーはPro機能です', 'Proで解放できます。設定タブからご購入いただけます。');
+      }
       return;
     }
     // 未設定 → 時刻ピッカー
@@ -205,7 +215,9 @@ export function TaskCard({ task, onStart }: Props) {
                   color={reminderSet ? colors.primary : colors.textSub}
                 />
                 <Text style={styles.sheetRowText}>
-                  {reminderSet ? `リマインダー解除（${task.taskReminderTime}）` : 'リマインダーを設定'}
+                  {reminderSet
+                    ? `リマインダー解除（${task.taskReminderTime}）`
+                    : isProUnlocked ? 'リマインダーを設定' : 'リマインダーを設定（Pro）'}
                 </Text>
               </Pressable>
             )}

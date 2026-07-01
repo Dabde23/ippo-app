@@ -45,6 +45,7 @@ export function RoutinePanel({ onClose }: RoutinePanelProps) {
   const updateReminder = useAppStore((s) => s.updateReminder);
   const reminders = useAppStore((s) => s.reminders);
   const reminderMessage = useAppStore((s) => s.reminderMessage);
+  const isProUnlocked = useAppStore((s) => s.isProUnlocked);
   const [pickerRoutineId, setPickerRoutineId] = useState<string | null>(null);
   const [pickerTime, setPickerTime] = useState<string>('07:00');
   const [pickerDays, setPickerDays] = useState<number[]>([1, 2, 3, 4, 5, 6, 7]);
@@ -93,9 +94,18 @@ export function RoutinePanel({ onClose }: RoutinePanelProps) {
     ]);
   }
 
-  // ベルタップ → 通知設定モーダルを開く（新規 or 編集）
+  // ベルタップ → 通知設定モーダルを開く（新規 or 編集）。
+  // 新規設定のみPro解放限定（解除は常に許可）。
   function handleReminderPress(task: Task) {
     const linkedReminder = reminders.find((r) => r.routineTaskId === task.id);
+    if (!linkedReminder && !isProUnlocked) {
+      if (Platform.OS === 'web') {
+        window.alert('リマインダーはProで解放できます。設定タブからご購入いただけます。');
+      } else {
+        Alert.alert('リマインダーはPro機能です', 'Proで解放できます。設定タブからご購入いただけます。');
+      }
+      return;
+    }
     if (linkedReminder) {
       // 編集モード: 現在値を初期値に
       setPickerTime(linkedReminder.time);
@@ -122,6 +132,17 @@ export function RoutinePanel({ onClose }: RoutinePanelProps) {
     const routine = routines.find((r) => r.id === routineId);
     if (!routine) return;
     const linkedReminder = reminders.find((r) => r.routineTaskId === routineId);
+    // 編集（時刻・曜日の変更）も新規設定と同様 Pro機能。非Proは削除のみ許可し、保存はゲートする。
+    // （モーダルを開くこと自体は解除のために許可しているが、編集の保存は解放が必要）
+    if (!isProUnlocked) {
+      setPickerRoutineId(null);
+      if (Platform.OS === 'web') {
+        window.alert('リマインダーの変更はProで解放できます。設定タブからご購入いただけます。');
+      } else {
+        Alert.alert('リマインダーの変更はPro機能です', 'Proで解放できます。設定タブからご購入いただけます。');
+      }
+      return;
+    }
     const granted = await requestNotificationPermission();
     if (!granted) return;
     if (linkedReminder) {
@@ -254,18 +275,22 @@ export function RoutinePanel({ onClose }: RoutinePanelProps) {
               <Text style={styles.noDayWarning}>曜日を選択してください</Text>
             )}
 
-            {/* 設定する */}
-            <Pressable
-              style={({ pressed }) => [
-                styles.confirmBtn,
-                pickerDays.length === 0 && styles.confirmBtnDisabled,
-                pressed && { opacity: 0.7 },
-              ]}
-              onPress={handleConfirm}
-              disabled={pickerDays.length === 0}
-            >
-              <Text style={styles.confirmBtnText}>設定する</Text>
-            </Pressable>
+            {/* 設定する（変更の保存はPro機能。非Proは削除のみ可のため非表示） */}
+            {isProUnlocked ? (
+              <Pressable
+                style={({ pressed }) => [
+                  styles.confirmBtn,
+                  pickerDays.length === 0 && styles.confirmBtnDisabled,
+                  pressed && { opacity: 0.7 },
+                ]}
+                onPress={handleConfirm}
+                disabled={pickerDays.length === 0}
+              >
+                <Text style={styles.confirmBtnText}>設定する</Text>
+              </Pressable>
+            ) : (
+              <Text style={styles.proHint}>時刻・曜日の変更はProで解放できます。</Text>
+            )}
 
             {/* 通知を削除（既存のみ） */}
             {reminders.some((r) => r.routineTaskId === pickerRoutineId) && (
@@ -519,6 +544,12 @@ const styles = StyleSheet.create({
     color: colors.surface,
     fontWeight: fontWeight.bold,
     fontSize: fontSize.sm,
+  },
+  proHint: {
+    fontSize: fontSize.xs,
+    color: colors.textMuted,
+    textAlign: 'center',
+    marginTop: spacing.sm,
   },
   removeBtn: {
     borderRadius: radius.md,

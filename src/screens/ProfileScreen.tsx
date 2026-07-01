@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   View, StyleSheet, ScrollView, Pressable,
   Platform, Modal, TextInput, Alert,
@@ -12,17 +12,42 @@ import {
   scheduleReminders,
   openExactAlarmSettings,
 } from '../services/NotificationService';
+import { fetchProUnlockProduct } from '../services/PurchaseService';
 import { colors, spacing, radius, fontSize, fontWeight } from '../theme';
 import { DAY_LABELS } from '../constants/reminder';
 import { TimeWheelPicker } from '../components/TimeWheelPicker';
 
 const FORMSPREE_URL = 'https://formspree.io/f/xqejvywv';
 
+// ストア商品未登録時や取得失敗時のフォールバック表示価格。
+// 商品登録後は fetchProUnlockProduct() の displayPrice が取得でき次第そちらを表示する。
+const PRO_UNLOCK_DISPLAY_PRICE = '¥480';
+
 export function ProfileScreen() {
   const reminders = useAppStore((s) => s.reminders);
   const addReminder = useAppStore((s) => s.addReminder);
   const removeReminder = useAppStore((s) => s.removeReminder);
   const updateReminder = useAppStore((s) => s.updateReminder);
+  const isProUnlocked = useAppStore((s) => s.isProUnlocked);
+  const hasPendingPurchase = useAppStore((s) => s.hasPendingPurchase);
+  const unlockPro = useAppStore((s) => s.unlockPro);
+  const restorePro = useAppStore((s) => s.restorePro);
+
+  const [purchasing, setPurchasing] = useState(false);
+  const [restoring, setRestoring] = useState(false);
+  const [proDisplayPrice, setProDisplayPrice] = useState(PRO_UNLOCK_DISPLAY_PRICE);
+
+  // Pro商品の実価格を取得できれば表示に反映する（取得失敗時はフォールバック価格のまま）。
+  useEffect(() => {
+    let cancelled = false;
+    fetchProUnlockProduct().then((product) => {
+      if (cancelled || !product) return;
+      setProDisplayPrice(product.displayPrice);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const [timePickerVisible, setTimePickerVisible] = useState(false);
   const [editingReminderId, setEditingReminderId] = useState<string | null>(null);
@@ -103,12 +128,59 @@ export function ProfileScreen() {
     }
   }
 
+  async function handlePurchasePro() {
+    if (purchasing || restoring) return;
+    setPurchasing(true);
+    try {
+      const result = await unlockPro();
+      if (result === 'pending') {
+        // 保留中（Ask to Buy の承認待ち / Android の PENDING 決済等）。成功でも失敗でもない。
+        // 確定後に「購入を復元」で解放できることを案内する。
+        Alert.alert(
+          '購入処理中です',
+          '購入が保留中です（承認待ちや、確定に時間がかかる支払い方法の場合があります）。しばらくしてから「購入を復元」でご確認ください。'
+        );
+      } else if (result === 'failed') {
+        Alert.alert('購入できませんでした', 'もう一度お試しください。');
+      }
+      // 'success' 時は isProUnlocked が true になり UI が解放済み表示へ切り替わる。
+    } finally {
+      setPurchasing(false);
+    }
+  }
+
+  async function handleRestorePro() {
+    if (purchasing || restoring) return;
+    setRestoring(true);
+    try {
+      const result = await restorePro();
+      if (result === 'pending') {
+        Alert.alert(
+          '購入処理中です',
+          '購入が保留中です。確定するまでもうしばらくお待ちください。'
+        );
+      } else if (result === 'failed') {
+        Alert.alert('復元できる購入がありません', '過去にProを購入したアカウントでお試しください。');
+      }
+    } finally {
+      setRestoring(false);
+    }
+  }
+
   // リマインダー本体
   const reminderBody = (
     Platform.OS === 'web' ? (
       <View style={styles.reminderLocked}>
         <Ionicons name="lock-closed" size={20} color={colors.textMuted} />
         <Text style={styles.reminderLockedText}>モバイルアプリ版のみ利用出来ます</Text>
+      </View>
+    ) : !isProUnlocked ? (
+      // リマインダー機能全体がPro解放限定。触ろうとしたときに1回、Pro訴求へ誘導する。
+      <View style={styles.reminderLocked}>
+        <Ionicons name="lock-closed" size={20} color={colors.textMuted} />
+        <Text style={styles.reminderLockedText}>
+          リマインダーはProで解放できます。下の「Pro」セクションから購入できます。
+        </Text>
       </View>
     ) : (
       <>
@@ -209,6 +281,52 @@ export function ProfileScreen() {
           <Text style={styles.sectionLabel}>リマインダー</Text>
           <View style={styles.rule} />
           {reminderBody}
+        </View>
+
+        {/* Proセクション */}
+        <View style={styles.section}>
+          <Text style={styles.sectionLabel}>Pro</Text>
+          <View style={styles.rule} />
+          {Platform.OS === 'web' ? (
+            <View style={styles.reminderLocked}>
+              <Ionicons name="lock-closed" size={20} color={colors.textMuted} />
+              <Text style={styles.reminderLockedText}>モバイルアプリ版のみ利用出来ます</Text>
+            </View>
+          ) : isProUnlocked ? (
+            <View style={styles.proUnlockedRow}>
+              <Ionicons name="checkmark-circle" size={20} color={colors.success} />
+              <Text style={styles.proUnlockedText}>Pro解放済み</Text>
+            </View>
+          ) : (
+            <>
+              <Text style={styles.proDesc}>
+                ルーティン管理・リマインダーが使い放題になります。買い切りでサブスクなし。
+              </Text>
+              <Pressable
+                style={({ pressed }) => [styles.proBuyBtn, pressed && { opacity: 0.85 }]}
+                onPress={handlePurchasePro}
+                disabled={purchasing || restoring}
+              >
+                <Text style={styles.proBuyBtnText}>
+                  {purchasing ? '処理中...' : `Proを購入（${proDisplayPrice}）`}
+                </Text>
+              </Pressable>
+              <Pressable
+                style={({ pressed }) => [styles.proRestoreBtn, pressed && { opacity: 0.6 }]}
+                onPress={handleRestorePro}
+                disabled={purchasing || restoring}
+              >
+                <Text style={styles.proRestoreBtnText}>
+                  {restoring ? '確認中...' : '購入を復元'}
+                </Text>
+              </Pressable>
+              {hasPendingPurchase && (
+                <Text style={styles.proPendingText}>
+                  購入処理中です。しばらくしてからご確認ください。
+                </Text>
+              )}
+            </>
+          )}
         </View>
 
         {/* フィードバックセクション（最下部） */}
@@ -461,6 +579,53 @@ const styles = StyleSheet.create({
     color: colors.primary,
     fontWeight: fontWeight.bold,
     letterSpacing: 0.5,
+  },
+  // Pro
+  proDesc: {
+    fontSize: fontSize.sm,
+    color: colors.textSub,
+    lineHeight: 20,
+  },
+  proBuyBtn: {
+    backgroundColor: colors.primary,
+    borderRadius: radius.md,
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.md,
+    alignSelf: 'flex-start',
+    marginTop: spacing.sm,
+  },
+  proBuyBtnText: {
+    fontSize: fontSize.sm,
+    color: colors.surface,
+    fontWeight: fontWeight.bold,
+    letterSpacing: 1,
+  },
+  proRestoreBtn: {
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.xs,
+    alignSelf: 'flex-start',
+  },
+  proRestoreBtnText: {
+    fontSize: fontSize.sm,
+    color: colors.textSub,
+    fontWeight: fontWeight.semibold,
+    textDecorationLine: 'underline',
+  },
+  proPendingText: {
+    fontSize: fontSize.xs,
+    color: colors.textMuted,
+    marginTop: spacing.xs,
+  },
+  proUnlockedRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    paddingVertical: spacing.md,
+  },
+  proUnlockedText: {
+    fontSize: fontSize.sm,
+    color: colors.success,
+    fontWeight: fontWeight.bold,
   },
   // フィードバック
   feedbackDesc: {

@@ -2,6 +2,12 @@ import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { dateOfJST, today } from '../utils/date';
+import {
+  purchasePro as purchaseProService,
+  restorePro as restoreProService,
+  type PurchaseResult,
+} from '../services/PurchaseService';
+import { scheduleReminders, scheduleTaskReminder } from '../services/NotificationService';
 
 // 日付の JST 統一ユーティリティを再エクスポート（既存の import 互換のため）。
 export { today, dateOfJST } from '../utils/date';
@@ -45,6 +51,13 @@ interface AppState {
   reminderQueue: string[];
   // 「5分だけ」モード（TimerScreen へ伝達、非永続）。
   fiveMinMode: boolean;
+  // Pro解放（買い切りIAP・非消耗型）の状態。永続化される。
+  isProUnlocked: boolean;
+  // 前回 purchasePro() が 'pending' を返したことがあるかを示すフラグ。永続化される。
+  // true の間だけ起動時に restorePro()（ストア通信）を自動実行する。確定（restorePro
+  // が 'success'）したら false に戻す。未購入ユーザーの毎回のストア通信を避けるための
+  // ヒント用途で、pending 判定そのものの正しさには影響しない。
+  hasPendingPurchase: boolean;
 
   addTask: (title: string, isRoutine?: boolean) => string;
   completeTask: (id: string) => void;
@@ -78,6 +91,25 @@ interface AppState {
   // 無効な taskId は捨てながら走査し、無ければ null。
   dequeueValidReminder: () => string | null;
   clearReminderQueue: () => void;
+  // ── Pro解放（IAP）アクション ──
+  // 購入フローを実行し、確定したら isProUnlocked を true にして通知を即スケジュールする。
+  // 結果は 'success' | 'pending' | 'failed'。pending は保留中で解放しない（処理中表示用）。
+  unlockPro: () => Promise<PurchaseResult>;
+  // 復元購入フローを実行し、確定した購入があれば isProUnlocked を true にして通知を
+  // 即スケジュールする。結果は 'success' | 'pending' | 'failed'。
+  restorePro: () => Promise<PurchaseResult>;
+}
+
+// Pro解放時に通知を即スケジュールする共通処理。
+// App.tsx の起動時 useEffect と同じ内容を購入/復元成功の直後にも呼ぶことで、
+// アプリ再起動を挟まずにリマインダー・タスク連動通知が有効になる（issue #4）。
+async function scheduleProNotifications(state: Pick<AppState, 'reminders' | 'reminderMessage' | 'tasks'>): Promise<void> {
+  await scheduleReminders(state.reminders, state.reminderMessage);
+  for (const task of state.tasks) {
+    if (task.taskReminderTime && !task.completed) {
+      await scheduleTaskReminder(task.id, task.title, task.taskReminderTime, !!task.routineSourceId);
+    }
+  }
 }
 
 export const useAppStore = create<AppState>()(
@@ -92,6 +124,8 @@ export const useAppStore = create<AppState>()(
       timerBreakMinutes: 5,
       reminderQueue: [],
       fiveMinMode: false,
+      isProUnlocked: false,
+      hasPendingPurchase: false,
 
       addTask: (title, isRoutine = false) => {
         const t = today();
@@ -322,6 +356,33 @@ export const useAppStore = create<AppState>()(
       },
 
       clearReminderQueue: () => set({ reminderQueue: [] }),
+
+      unlockPro: async () => {
+        const result = await purchaseProService();
+        if (result === 'success') {
+          set({ isProUnlocked: true, hasPendingPurchase: false });
+          // 購入直後に通知をスケジュール（App.tsx 起動時と同じ処理）。
+          // これを呼ばないと、再起動するまでリマインダー・ルーティン通知が実際には
+          // OS へ登録されない（issue #4）。
+          await scheduleProNotifications(get());
+        } else if (result === 'pending') {
+          // 前回pending状態を経験したことがあるかのフラグを立てる。
+          // App.tsx 起動時の restorePro() 自動呼び出しの要否判定に使う。
+          set({ hasPendingPurchase: true });
+        }
+        return result;
+      },
+
+      restorePro: async () => {
+        const result = await restoreProService();
+        if (result === 'success') {
+          set({ isProUnlocked: true, hasPendingPurchase: false });
+          await scheduleProNotifications(get());
+        } else if (result === 'pending') {
+          set({ hasPendingPurchase: true });
+        }
+        return result;
+      },
     }),
     {
       name: 'adhd-app-storage',
@@ -333,6 +394,8 @@ export const useAppStore = create<AppState>()(
         hasCompletedOnboarding: state.hasCompletedOnboarding,
         timerWorkMinutes: state.timerWorkMinutes,
         timerBreakMinutes: state.timerBreakMinutes,
+        isProUnlocked: state.isProUnlocked,
+        hasPendingPurchase: state.hasPendingPurchase,
       }),
       onRehydrateStorage: () => (state) => {
         if (!state) return;
