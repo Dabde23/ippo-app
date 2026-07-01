@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { dateOfJST, today } from '../utils/date';
+import { purchasePro as purchaseProService, restorePro as restoreProService } from '../services/PurchaseService';
 
 // 日付の JST 統一ユーティリティを再エクスポート（既存の import 互換のため）。
 export { today, dateOfJST } from '../utils/date';
@@ -45,6 +46,8 @@ interface AppState {
   reminderQueue: string[];
   // 「5分だけ」モード（TimerScreen へ伝達、非永続）。
   fiveMinMode: boolean;
+  // Pro解放（買い切りIAP・非消耗型）の状態。永続化される。
+  isProUnlocked: boolean;
 
   addTask: (title: string, isRoutine?: boolean) => string;
   completeTask: (id: string) => void;
@@ -78,6 +81,11 @@ interface AppState {
   // 無効な taskId は捨てながら走査し、無ければ null。
   dequeueValidReminder: () => string | null;
   clearReminderQueue: () => void;
+  // ── Pro解放（IAP）アクション ──
+  // 購入フローを実行し、成功したら isProUnlocked を true にする。結果（成功/失敗）を返す。
+  unlockPro: () => Promise<boolean>;
+  // 復元購入フローを実行し、該当があれば isProUnlocked を true にする。結果を返す。
+  restorePro: () => Promise<boolean>;
 }
 
 export const useAppStore = create<AppState>()(
@@ -92,6 +100,7 @@ export const useAppStore = create<AppState>()(
       timerBreakMinutes: 5,
       reminderQueue: [],
       fiveMinMode: false,
+      isProUnlocked: false,
 
       addTask: (title, isRoutine = false) => {
         const t = today();
@@ -322,6 +331,18 @@ export const useAppStore = create<AppState>()(
       },
 
       clearReminderQueue: () => set({ reminderQueue: [] }),
+
+      unlockPro: async () => {
+        const success = await purchaseProService();
+        if (success) set({ isProUnlocked: true });
+        return success;
+      },
+
+      restorePro: async () => {
+        const restored = await restoreProService();
+        if (restored) set({ isProUnlocked: true });
+        return restored;
+      },
     }),
     {
       name: 'adhd-app-storage',
@@ -333,6 +354,7 @@ export const useAppStore = create<AppState>()(
         hasCompletedOnboarding: state.hasCompletedOnboarding,
         timerWorkMinutes: state.timerWorkMinutes,
         timerBreakMinutes: state.timerBreakMinutes,
+        isProUnlocked: state.isProUnlocked,
       }),
       onRehydrateStorage: () => (state) => {
         if (!state) return;
