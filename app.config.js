@@ -15,7 +15,7 @@ export default {
     },
     ios: {
       bundleIdentifier: IS_DEV ? 'com.dabde.ippoapp.dev' : 'com.dabde.ippoapp',
-      supportsTablet: true,
+      supportsTablet: false,
       infoPlist: {
         ITSAppUsesNonExemptEncryption: false,
       },
