@@ -4,7 +4,7 @@ export default {
   expo: {
     name: IS_DEV ? 'いっぽ (dev)' : 'いっぽ',
     slug: 'ippo-app',
-    version: '1.0.0',
+    version: '1.0.2',
     orientation: 'portrait',
     icon: './assets/icon.png',
     userInterfaceStyle: 'light',
